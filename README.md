@@ -41,7 +41,7 @@ It ships with **two clients sharing one backend and one design language**:
 
 | Monitoring | Parent Involvement | Report & Trends |
 |---|---|---|
-| ![Monitoring](images/monitoring%20bayu.png) | ![Parent involvement](images/ParentInvolvement.png) | ![Report](images/report.png) |
+| ![Monitoring](images/monitoring%20bayi.png) | ![Parent involvement](images/ParentInvolvement.png) | ![Report](images/report.png) |
 
 ### Web dashboard (Next.js)
 
