@@ -49,7 +49,7 @@ It ships with **two clients sharing one backend and one design language**:
 
 | Dashboard | Report & Vital Trends | Admin |
 |---|---|---|
-| _`images/web/dashboard.png`_ | _`images/web/report.png`_ | _`images/web/admin.png`_ |
+| ![Dashboard](images/web/dashboard.png) | ![Report](images/web/report.png) | ![Admin](images/web/admin.png) |
 
 ---
 
