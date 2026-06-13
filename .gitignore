@@ -47,5 +47,8 @@ Thumbs.db
 ~$*.docx
 ~$*.xlsx
 
+# Working doc kept out of the repo
+users.docx
+
 # Logs
 *.log
