@@ -1,0 +1,290 @@
+"use client";
+
+import { useParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ReferenceArea,
+  ResponsiveContainer,
+} from "recharts";
+import { api } from "@/lib/api";
+import type { BabyReport, MonitoringRecord } from "@/lib/types";
+import { Card, PageState, BackLink, SectionTitle } from "@/components/ui";
+import { formatDateTime, genderLabel } from "@/lib/format";
+
+export default function ReportPage() {
+  const { id } = useParams<{ id: string }>();
+
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["report", id],
+    queryFn: async () =>
+      (await api.get<BabyReport>(`/babies/${id}/report`)).data,
+  });
+
+  return (
+    <div>
+      <BackLink href="/dashboard" label="Kembali ke Dashboard" />
+      <h1 className="mb-4 mt-3 text-xl font-extrabold text-ink">
+        Laporan &amp; Riwayat Bayi
+      </h1>
+
+      <PageState loading={isLoading} error={error} onRetry={() => refetch()}>
+        {data && (
+          <div className="flex flex-col gap-4">
+            <Card className="p-5">
+              <div className="flex items-center gap-3.5">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-xl">
+                  👶
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-extrabold text-ink">
+                    {data.baby.baby_name}
+                  </p>
+                  <p className="text-xs text-muted">
+                    Hari ke-{data.baby.age_in_days} ·{" "}
+                    {data.baby.birth_weight != null
+                      ? `${data.baby.birth_weight} gram`
+                      : "-"}{" "}
+                    · {genderLabel(data.baby.gender)}
+                  </p>
+                </div>
+                <a
+                  href={`/api/v1/babies/${id}/report/pdf`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white hover:bg-primary-dark"
+                >
+                  📄 Export PDF
+                </a>
+              </div>
+            </Card>
+
+            {data.baby.latest_vitals && (
+              <LatestVitalsCard vitals={data.baby.latest_vitals} />
+            )}
+
+            <InvolvementCard summary={data.involvement_summary} />
+
+            <HistoryCard records={data.monitoring_history} />
+
+            <Card className="p-5">
+              <SectionTitle>Grafik Tren Vital</SectionTitle>
+              <div className="mt-4 flex flex-col gap-6">
+                <VitalChart
+                  title="Suhu Bayi (°C)"
+                  color="#f59e0b"
+                  records={data.monitoring_history}
+                  field="suhu_bayi"
+                  domain={[34, 40]}
+                  normal={[36, 37.5]}
+                />
+                <VitalChart
+                  title="Heart Rate (bpm)"
+                  color="#ef4444"
+                  records={data.monitoring_history}
+                  field="heart_rate"
+                  domain={[70, 200]}
+                  normal={[100, 160]}
+                />
+                <VitalChart
+                  title="SpO₂ (%)"
+                  color="#2563eb"
+                  records={data.monitoring_history}
+                  field="spo2"
+                  domain={[80, 100]}
+                  normal={[93, 100]}
+                />
+              </div>
+            </Card>
+          </div>
+        )}
+      </PageState>
+    </div>
+  );
+}
+
+function LatestVitalsCard({ vitals }: { vitals: MonitoringRecord }) {
+  const warn = vitals.vital_status === "warning";
+  return (
+    <Card className="p-5">
+      <div className="flex items-center justify-between">
+        <SectionTitle>Kondisi Terkini</SectionTitle>
+        <span
+          className={`inline-flex items-center gap-1.5 text-[13px] font-semibold ${
+            warn ? "text-warn" : "text-ok"
+          }`}
+        >
+          <span
+            className={`h-2.5 w-2.5 rounded-full ${warn ? "bg-warn" : "bg-ok"}`}
+          />
+          {warn ? "Perhatian" : "Normal"}
+        </span>
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+        <VitalTile label="Suhu Bayi" value={vitals.suhu_bayi != null ? `${vitals.suhu_bayi} °C` : "-"} />
+        <VitalTile label="Suhu Inkubator" value={vitals.suhu_inkubator != null ? `${vitals.suhu_inkubator} °C` : "-"} />
+        <VitalTile label="Heart Rate" value={vitals.heart_rate != null ? `${vitals.heart_rate} bpm` : "-"} />
+        <VitalTile label="SpO₂" value={vitals.spo2 != null ? `${vitals.spo2} %` : "-"} />
+        <VitalTile label="Ekspresi" value={vitals.expression_score != null ? `${vitals.expression_score} / 5` : "-"} />
+        <VitalTile label="Gerakan" value={vitals.movement_score != null ? `${vitals.movement_score} / 5` : "-"} />
+      </div>
+    </Card>
+  );
+}
+
+function VitalTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-line bg-[#f8fafc] px-3.5 py-2.5 text-center">
+      <div className="text-[11px] text-muted">{label}</div>
+      <div className="mt-0.5 text-[13px] font-extrabold text-ink">{value}</div>
+    </div>
+  );
+}
+
+function InvolvementCard({
+  summary,
+}: {
+  summary: BabyReport["involvement_summary"];
+}) {
+  return (
+    <Card className="p-5">
+      <SectionTitle>Keterlibatan Orang Tua</SectionTitle>
+      <div className="mt-3 flex items-center gap-3">
+        <span className="text-4xl font-extrabold text-primary">
+          {summary.latest_skor ?? "-"}
+        </span>
+        <span className="text-lg text-muted">/ 100</span>
+        {summary.latest_kategori && (
+          <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">
+            {summary.latest_kategori}
+          </span>
+        )}
+      </div>
+      <p className="mt-2 text-xs text-muted">
+        Total sesi: {summary.total_sessions} · Rata-rata:{" "}
+        {summary.avg_skor != null ? summary.avg_skor.toFixed(1) : "-"}
+      </p>
+    </Card>
+  );
+}
+
+function VitalChart({
+  title,
+  color,
+  records,
+  field,
+  domain,
+  normal,
+}: {
+  title: string;
+  color: string;
+  records: MonitoringRecord[];
+  field: "suhu_bayi" | "heart_rate" | "spo2";
+  domain: [number, number];
+  normal: [number, number];
+}) {
+  const data = [...records]
+    .reverse()
+    .map((r, i) => ({ i, value: r[field] != null ? Number(r[field]) : null }));
+
+  const hasEnough = data.filter((d) => d.value != null).length >= 2;
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center gap-2">
+        <span className="h-2.5 w-2.5 rounded-full" style={{ background: color }} />
+        <span className="text-[13px] font-semibold" style={{ color }}>
+          {title}
+        </span>
+      </div>
+      {hasEnough ? (
+        <ResponsiveContainer width="100%" height={170}>
+          <LineChart data={data} margin={{ top: 6, right: 12, bottom: 0, left: -10 }}>
+            <CartesianGrid stroke="#eef2f7" vertical={false} />
+            <ReferenceArea
+              y1={normal[0]}
+              y2={normal[1]}
+              fill="#10b981"
+              fillOpacity={0.07}
+            />
+            <XAxis dataKey="i" hide />
+            <YAxis
+              domain={domain}
+              tick={{ fontSize: 10, fill: "#94a3b8" }}
+              width={34}
+            />
+            <Tooltip
+              contentStyle={{
+                borderRadius: 12,
+                border: "1px solid #e9eef5",
+                fontSize: 12,
+              }}
+              labelFormatter={() => ""}
+            />
+            <Line
+              type="monotone"
+              dataKey="value"
+              stroke={color}
+              strokeWidth={2.5}
+              dot={{ r: 3, fill: color }}
+              connectNulls
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      ) : (
+        <p className="py-8 text-center text-[13px] text-muted">
+          Butuh minimal 2 data untuk menampilkan grafik
+        </p>
+      )}
+    </div>
+  );
+}
+
+function HistoryCard({ records }: { records: MonitoringRecord[] }) {
+  return (
+    <Card className="p-5">
+      <SectionTitle>Riwayat Monitoring ({records.length} entri)</SectionTitle>
+      {records.length === 0 ? (
+        <p className="mt-3 text-sm text-muted">Belum ada data monitoring.</p>
+      ) : (
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full text-left text-[13px]">
+            <thead>
+              <tr className="text-muted">
+                <th className="py-2 font-semibold">Waktu</th>
+                <th className="py-2 font-semibold">Suhu</th>
+                <th className="py-2 font-semibold">HR</th>
+                <th className="py-2 font-semibold">SpO₂</th>
+                <th className="py-2 font-semibold">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {records.slice(0, 12).map((r) => (
+                <tr key={r.monitoring_id} className="border-t border-line">
+                  <td className="py-2 text-muted">
+                    {formatDateTime(r.observation_time)}
+                  </td>
+                  <td className="py-2">{r.suhu_bayi ?? "-"}°C</td>
+                  <td className="py-2">{r.heart_rate ?? "-"} bpm</td>
+                  <td className="py-2">{r.spo2 ?? "-"}%</td>
+                  <td className="py-2">
+                    <span
+                      className={`inline-block h-2.5 w-2.5 rounded-full ${
+                        r.vital_status === "warning" ? "bg-warn" : "bg-ok"
+                      }`}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Card>
+  );
+}

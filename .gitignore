@@ -1,0 +1,51 @@
+# ───────────────────────────── Secrets & env ─────────────────────────────
+.env
+.env.*
+!.env.example
+!*.env.example
+
+# ───────────────────────────── Python / FastAPI ──────────────────────────
+backend/venv/
+**/__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Uploaded media (runtime, not source)
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# ───────────────────────────── Node / Next.js (web) ──────────────────────
+node_modules/
+web/.next/
+web/out/
+web/build/
+web/next-env.d.ts
+.turbo/
+*.tsbuildinfo
+
+# ───────────────────────────── Flutter / Dart (frontend) ─────────────────
+frontend/.dart_tool/
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+frontend/build/
+frontend/.pub-cache/
+frontend/.pub/
+**/*.g.dart.lock
+
+# ───────────────────────────── OS / Editor ───────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+*.iml
+
+# Office temp lock files
+~$*.docx
+~$*.xlsx
+
+# Logs
+*.log

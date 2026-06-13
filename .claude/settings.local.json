@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Stop-Process -Force -ErrorAction SilentlyContinue)",
+      "Read(//c/Users/Stark/AppData/Local/Temp/claude/D---CODE26-portfolio-NeoNatal/f868ab7b-0db5-41ec-bed0-d914a90c36c0/tasks/**)",
+      "Bash(break)"
+    ]
+  }
+}
