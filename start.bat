@@ -7,6 +7,10 @@ timeout /t 3 /nobreak >nul
 
 start "Frontend - Flutter" cmd /k "cd /d D:\_CODE26\portfolio\NeoNatal\frontend && flutter run -d chrome --web-port 5000"
 
+timeout /t 3 /nobreak >nul
+
+start "Frontend - Web" cmd /k "cd /d D:\_CODE26\portfolio\NeoNatal\web && npm run dev"
+
 echo.
 echo Backend  : http://localhost:8000
 echo Frontend : http://localhost:5000

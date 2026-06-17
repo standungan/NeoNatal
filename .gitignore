@@ -50,5 +50,8 @@ Thumbs.db
 # Working doc kept out of the repo
 users.docx
 
+# Budget / cost estimates (local only)
+rab/
+
 # Logs
 *.log
