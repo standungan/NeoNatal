@@ -82,9 +82,14 @@ export interface MonitoringRecord {
   suhu_bayi: number | null;
   suhu_inkubator: number | null;
   heart_rate: number | null;
+  respiratory_rate: number | null;
   spo2: number | null;
   expression_score: number | null;
   movement_score: number | null;
+  pain_score: number | null;
+  sleep_duration_min: number | null;
+  sleep_quality: number | null;
+  agitation_episodes: number | null;
   catatan: string | null;
   foto_url: string | null;
   vital_status: "normal" | "warning";
@@ -136,9 +141,33 @@ export interface InvolvementSummary {
   latest_kategori: string | null;
 }
 
+export interface InvolvementRecord {
+  involvement_id: string;
+  baby_id: string;
+  recorder_name: string | null;
+  observation_time: string;
+  durasi_menyusui: number | null;
+  durasi_interaksi: number | null;
+  // Pillar 8 sub-domains (0–4 each)
+  presence_score: number | null;
+  physical_interaction_score: number | null;
+  feeding_participation_score: number | null;
+  care_participation_score: number | null;
+  knowledge_score: number | null;
+  communication_score: number | null;
+  emotional_readiness_score: number | null;
+  discharge_readiness_score: number | null;
+  catatan: string | null;
+  skor_keterlibatan: number | null;
+  skor_kategori: string | null;
+  kondisi_bayi: string | null;
+  created_at: string;
+}
+
 export interface BabyReport {
   baby: BabyDetail;
   monitoring_history: MonitoringRecord[];
+  involvement_history: InvolvementRecord[];
   involvement_summary: InvolvementSummary;
   generated_at: string;
 }

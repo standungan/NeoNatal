@@ -55,14 +55,16 @@ It ships with **two clients sharing one backend and one design language**:
 
 ## ✨ Features
 
-**Monitoring & clinical**
+**Monitoring & clinical** _(aligned with the [8-Pillar NICU framework](docs/8%20pillar%20NICU.md))_
 - Baby registration with parent and birth details
-- Vital-sign monitoring (suhu bayi/inkubator, heart rate, SpO₂, expression & movement scores)
-- Automatic **warning** status when vitals fall outside safe ranges
+- Vital-sign monitoring — suhu bayi/inkubator, heart rate, **respiratory rate**, SpO₂, expression & movement scores
+- **Pain/stress score** (NIPS 0–7, Pillar 6) and **sleep & comfort** (duration, quality, agitation, Pillar 5)
+- Automatic **warning** status when vitals fall outside safe ranges (HR, RR, SpO₂, temperature, pain)
 - Optional photo upload per monitoring session
 
-**Parent involvement**
-- Logs feeding/interaction duration and computes an involvement score (0–100)
+**Parent involvement** — full **Pillar 8** structured assessment
+- 8 FICare sub-domains rated 0–4: presence, physical interaction, feeding, care, knowledge, communication, emotional readiness, discharge readiness
+- Computes a **Parent Engagement Index (PEI)** 0–100
 - Categorised: Rendah / Sedang / Baik / Sangat Baik
 
 **Reporting**

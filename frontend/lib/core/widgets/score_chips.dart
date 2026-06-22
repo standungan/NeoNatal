@@ -5,28 +5,34 @@ class ScoreChips extends StatelessWidget {
   final int? value;
   final ValueChanged<int> onChanged;
   final bool enabled;
+  final int min;
+  final int max;
 
   const ScoreChips({
     super.key,
     required this.value,
     required this.onChanged,
     this.enabled = true,
+    this.min = 1,
+    this.max = 5,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: List.generate(5, (i) {
-        final score = i + 1;
+    final count = max - min + 1;
+    final size = count > 6 ? 38.0 : 44.0;   // shrink chips for wider ranges
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: List.generate(count, (i) {
+        final score = min + i;
         final selected = value == score;
-        return Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: GestureDetector(
+        return GestureDetector(
             onTap: enabled ? () => onChanged(score) : null,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
-              width: 44,
-              height: 44,
+              width: size,
+              height: size,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: selected ? AppColors.primary : const Color(0xFFF8FAFC),
@@ -54,8 +60,7 @@ class ScoreChips extends StatelessWidget {
                 ),
               ),
             ),
-          ),
-        );
+          );
       }),
     );
   }

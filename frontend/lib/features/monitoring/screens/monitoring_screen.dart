@@ -26,18 +26,26 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen> {
   final _suhuBayiCtrl   = TextEditingController();
   final _suhuIncCtrl    = TextEditingController();
   final _hrCtrl         = TextEditingController();
+  final _rrCtrl         = TextEditingController();
   final _spo2Ctrl       = TextEditingController();
+  final _sleepDurCtrl   = TextEditingController();
+  final _agitationCtrl  = TextEditingController();
   final _catatanCtrl    = TextEditingController();
 
   int? _expressionScore;
   int? _movementScore;
+  int? _painScore;
+  int? _sleepQuality;
   XFile? _photo;
   bool _loading = false;
   String? _error;
 
   @override
   void dispose() {
-    for (final c in [_suhuBayiCtrl, _suhuIncCtrl, _hrCtrl, _spo2Ctrl, _catatanCtrl]) {
+    for (final c in [
+      _suhuBayiCtrl, _suhuIncCtrl, _hrCtrl, _rrCtrl, _spo2Ctrl,
+      _sleepDurCtrl, _agitationCtrl, _catatanCtrl,
+    ]) {
       c.dispose();
     }
     super.dispose();
@@ -60,9 +68,14 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen> {
           'suhu_bayi': _suhuBayiCtrl.text.isNotEmpty ? double.parse(_suhuBayiCtrl.text) : null,
           'suhu_inkubator': _suhuIncCtrl.text.isNotEmpty ? double.parse(_suhuIncCtrl.text) : null,
           'heart_rate': _hrCtrl.text.isNotEmpty ? int.parse(_hrCtrl.text) : null,
+          'respiratory_rate': _rrCtrl.text.isNotEmpty ? int.parse(_rrCtrl.text) : null,
           'spo2': _spo2Ctrl.text.isNotEmpty ? double.parse(_spo2Ctrl.text) : null,
           'expression_score': _expressionScore,
           'movement_score': _movementScore,
+          'pain_score': _painScore,
+          'sleep_duration_min': _sleepDurCtrl.text.isNotEmpty ? int.parse(_sleepDurCtrl.text) : null,
+          'sleep_quality': _sleepQuality,
+          'agitation_episodes': _agitationCtrl.text.isNotEmpty ? int.parse(_agitationCtrl.text) : null,
           'catatan': _catatanCtrl.text.trim().isEmpty ? null : _catatanCtrl.text.trim(),
         },
       );
@@ -159,10 +172,20 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen> {
                 )),
                 const SizedBox(width: 12),
                 Expanded(child: TextFormField(
+                  controller: _rrCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Respiratory Rate (/mnt)'),
+                )),
+              ]),
+              const SizedBox(height: 12),
+              Row(children: [
+                Expanded(child: TextFormField(
                   controller: _spo2Ctrl,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   decoration: const InputDecoration(labelText: 'SpO2 (%)'),
                 )),
+                const SizedBox(width: 12),
+                const Expanded(child: SizedBox()),
               ]),
               const SizedBox(height: 20),
 
@@ -177,6 +200,48 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen> {
               ScoreChips(
                 value: _movementScore,
                 onChanged: (v) => setState(() => _movementScore = v),
+              ),
+              const SizedBox(height: 20),
+
+              // ── Pillar 6: Pain & Stress ──────────────────────────────────
+              const _SectionTitle('Skor Nyeri / NIPS (0–7)'),
+              ScoreChips(
+                value: _painScore,
+                min: 0,
+                max: 7,
+                onChanged: (v) => setState(() => _painScore = v),
+              ),
+              const SizedBox(height: 6),
+              const Text('0 = tidak nyeri  •  ≥ 4 = perlu perhatian',
+                  style: TextStyle(fontSize: 11, color: AppColors.inkMuted)),
+              const SizedBox(height: 20),
+
+              // ── Pillar 5: Sleep & Comfort ────────────────────────────────
+              const _SectionTitle('Tidur & Kenyamanan'),
+              Row(children: [
+                Expanded(child: TextFormField(
+                  controller: _sleepDurCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                      labelText: 'Durasi Tidur', suffixText: 'menit'),
+                )),
+                const SizedBox(width: 12),
+                Expanded(child: TextFormField(
+                  controller: _agitationCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Episode Gelisah'),
+                )),
+              ]),
+              const SizedBox(height: 14),
+              const Text('Kualitas Tidur (1–5)',
+                  style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: AppColors.inkMuted)),
+              const SizedBox(height: 8),
+              ScoreChips(
+                value: _sleepQuality,
+                onChanged: (v) => setState(() => _sleepQuality = v),
               ),
               const SizedBox(height: 20),
 

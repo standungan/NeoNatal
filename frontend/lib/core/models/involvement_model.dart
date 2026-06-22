@@ -5,6 +5,15 @@ class InvolvementRecord {
   final DateTime observationTime;
   final int? durasiMenyusui;
   final int? durasiInteraksi;
+  // Pillar 8 sub-domains (0–4 each)
+  final int? presenceScore;
+  final int? physicalInteractionScore;
+  final int? feedingParticipationScore;
+  final int? careParticipationScore;
+  final int? knowledgeScore;
+  final int? communicationScore;
+  final int? emotionalReadinessScore;
+  final int? dischargeReadinessScore;
   final String? catatan;
   final int? skorKeterlibatan;
   final String? skorKategori;
@@ -17,6 +26,14 @@ class InvolvementRecord {
     required this.observationTime,
     this.durasiMenyusui,
     this.durasiInteraksi,
+    this.presenceScore,
+    this.physicalInteractionScore,
+    this.feedingParticipationScore,
+    this.careParticipationScore,
+    this.knowledgeScore,
+    this.communicationScore,
+    this.emotionalReadinessScore,
+    this.dischargeReadinessScore,
     this.catatan,
     this.skorKeterlibatan,
     this.skorKategori,
@@ -31,6 +48,14 @@ class InvolvementRecord {
         observationTime: DateTime.parse(j['observation_time']),
         durasiMenyusui: j['durasi_menyusui'],
         durasiInteraksi: j['durasi_interaksi'],
+        presenceScore: j['presence_score'],
+        physicalInteractionScore: j['physical_interaction_score'],
+        feedingParticipationScore: j['feeding_participation_score'],
+        careParticipationScore: j['care_participation_score'],
+        knowledgeScore: j['knowledge_score'],
+        communicationScore: j['communication_score'],
+        emotionalReadinessScore: j['emotional_readiness_score'],
+        dischargeReadinessScore: j['discharge_readiness_score'],
         catatan: j['catatan'],
         skorKeterlibatan: j['skor_keterlibatan'],
         skorKategori: j['skor_kategori'],
@@ -72,13 +97,11 @@ class InvolvementSummary {
       );
 }
 
-/// Client-side score preview — mirrors backend formula exactly
-int previewScore(int? menyusui, int? interaksi) {
-  final m = menyusui ?? 0;
-  final i = interaksi ?? 0;
-  final mPts = (m * 2).clamp(0, 60);
-  final iPts = (i * 40 / 60).round().clamp(0, 40);
-  return mPts + iPts;
+/// Client-side Parent Engagement Index preview — mirrors backend formula.
+/// 8 Pillar-8 domains, each 0–4 (max raw = 32) → PEI = round(sum / 32 * 100).
+int previewScore(List<int?> domainScores) {
+  final raw = domainScores.fold<int>(0, (sum, v) => sum + (v ?? 0));
+  return (raw / 32 * 100).round();
 }
 
 String scoreCategory(int score) {

@@ -13,9 +13,21 @@ from app.schemas.involvement import (
 )
 from app.services.audit_service import log_action
 
-# ── Scoring formula ────────────────────────────────────────────────────────────
-# menyusui: benchmark 30 min/session → 60 pts max   (2 pts/min)
-# interaksi: benchmark 60 min/session → 40 pts max  (0.667 pts/min)
+# ── Parent Engagement Index (PEI) ───────────────────────────────────────────────
+# Pillar 8 has 8 sub-domains, each rated 0–4 (max raw = 32).
+# PEI = round(sum / 32 * 100), giving a 0–100 index.
+
+_DOMAIN_FIELDS = (
+    "presence_score",
+    "physical_interaction_score",
+    "feeding_participation_score",
+    "care_participation_score",
+    "knowledge_score",
+    "communication_score",
+    "emotional_readiness_score",
+    "discharge_readiness_score",
+)
+_DOMAIN_MAX = len(_DOMAIN_FIELDS) * 4   # 32
 
 _SCORE_CATEGORIES = [
     (76, "Sangat Baik"),
@@ -25,12 +37,10 @@ _SCORE_CATEGORIES = [
 ]
 
 
-def calculate_score(durasi_menyusui: int | None, durasi_interaksi: int | None) -> int:
-    menyusui = durasi_menyusui or 0
-    interaksi = durasi_interaksi or 0
-    menyusui_pts = min(60, menyusui * 2)
-    interaksi_pts = min(40, round(interaksi * 40 / 60))
-    return round(menyusui_pts + interaksi_pts)
+def calculate_score(data) -> int:
+    """Compute the Parent Engagement Index (0–100) from the 8 Pillar-8 domains."""
+    raw = sum(getattr(data, f) or 0 for f in _DOMAIN_FIELDS)
+    return round(raw / _DOMAIN_MAX * 100)
 
 
 def score_to_category(score: int | None) -> str | None:
@@ -51,6 +61,14 @@ def _to_response(record: ParentInvolvementRecord) -> InvolvementResponse:
         observation_time=record.observation_time,
         durasi_menyusui=record.durasi_menyusui,
         durasi_interaksi=record.durasi_interaksi,
+        presence_score=record.presence_score,
+        physical_interaction_score=record.physical_interaction_score,
+        feeding_participation_score=record.feeding_participation_score,
+        care_participation_score=record.care_participation_score,
+        knowledge_score=record.knowledge_score,
+        communication_score=record.communication_score,
+        emotional_readiness_score=record.emotional_readiness_score,
+        discharge_readiness_score=record.discharge_readiness_score,
         catatan=record.catatan,
         skor_keterlibatan=record.skor_keterlibatan,
         skor_kategori=score_to_category(record.skor_keterlibatan),
@@ -70,7 +88,7 @@ async def create_involvement(
     if not baby:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Data bayi tidak ditemukan")
 
-    skor = calculate_score(data.durasi_menyusui, data.durasi_interaksi)
+    skor = calculate_score(data)
 
     record = ParentInvolvementRecord(
         baby_id=baby_id,
@@ -78,6 +96,14 @@ async def create_involvement(
         observation_time=data.observation_time,
         durasi_menyusui=data.durasi_menyusui,
         durasi_interaksi=data.durasi_interaksi,
+        presence_score=data.presence_score,
+        physical_interaction_score=data.physical_interaction_score,
+        feeding_participation_score=data.feeding_participation_score,
+        care_participation_score=data.care_participation_score,
+        knowledge_score=data.knowledge_score,
+        communication_score=data.communication_score,
+        emotional_readiness_score=data.emotional_readiness_score,
+        discharge_readiness_score=data.discharge_readiness_score,
         catatan=data.catatan,
         skor_keterlibatan=skor,
         kondisi_bayi=data.kondisi_bayi,

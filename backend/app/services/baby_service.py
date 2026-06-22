@@ -20,6 +20,7 @@ from app.schemas.baby import (
     ParentResponse,
 )
 from app.services.audit_service import log_action
+from app.services.monitoring_service import _check_vital_status
 
 
 def _age_in_days(birth_date: date) -> int:
@@ -199,11 +200,20 @@ async def _to_detail(baby: Baby, db: AsyncSession) -> BabyDetailResponse:
             suhu_bayi=latest.suhu_bayi,
             suhu_inkubator=latest.suhu_inkubator,
             heart_rate=latest.heart_rate,
+            respiratory_rate=latest.respiratory_rate,
             spo2=latest.spo2,
             expression_score=latest.expression_score,
             movement_score=latest.movement_score,
+            pain_score=latest.pain_score,
+            sleep_duration_min=latest.sleep_duration_min,
+            sleep_quality=latest.sleep_quality,
+            agitation_episodes=latest.agitation_episodes,
             catatan=latest.catatan,
             foto_url=latest.foto_url,
+            vital_status=_check_vital_status(
+                latest.heart_rate, latest.spo2, latest.suhu_bayi,
+                latest.respiratory_rate, latest.pain_score,
+            ),
         )
 
     return BabyDetailResponse(
