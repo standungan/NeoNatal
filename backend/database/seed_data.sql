@@ -133,52 +133,59 @@ INSERT INTO baby_incubator_assignments (baby_id, incubator_id, assigned_by, assi
 -- =============================================================================
 
 INSERT INTO monitoring_records
-    (baby_id, recorded_by, observation_time, suhu_bayi, suhu_inkubator, heart_rate, spo2, expression_score, movement_score)
+    (baby_id, recorded_by, observation_time, suhu_bayi, suhu_inkubator, heart_rate, respiratory_rate, spo2,
+     expression_score, movement_score, pain_score, sleep_duration_min, sleep_quality, agitation_episodes)
 VALUES
 -- Ahmad Rizki — Inkubator 01
 (
     'cccccccc-0003-0003-0003-000000000001',
     'aaaaaaaa-0001-0001-0001-000000000002',
     '2025-05-16 09:30:00+07',
-    36.8, 33.5, 128, 98.00, 3, 4
+    36.8, 33.5, 128, 48, 98.00, 3, 4, 1, 120, 4, 0
 ),
 (
     'cccccccc-0003-0003-0003-000000000001',
     'aaaaaaaa-0001-0001-0001-000000000002',
     '2025-05-16 14:00:00+07',
-    37.0, 33.8, 132, 97.50, 4, 4
+    37.0, 33.8, 132, 50, 97.50, 4, 4, 0, 90, 4, 1
 ),
 -- Siti Aisyah — Inkubator 02
 (
     'cccccccc-0003-0003-0003-000000000002',
     'aaaaaaaa-0001-0001-0001-000000000002',
     '2025-05-16 10:00:00+07',
-    37.1, 34.0, 135, 96.00, 2, 3
+    37.1, 34.0, 135, 52, 96.00, 2, 3, 2, 100, 3, 1
 ),
--- Muhammad Farhan — Inkubator 04 (warning)
+-- Muhammad Farhan — Inkubator 04 (warning: RR & pain out of range)
 (
     'cccccccc-0003-0003-0003-000000000003',
     'aaaaaaaa-0001-0001-0001-000000000003',
     '2025-05-16 09:00:00+07',
-    37.6, 34.5, 160, 92.00, 2, 2
+    37.6, 34.5, 160, 68, 92.00, 2, 2, 4, 40, 2, 3
 );
 
 -- =============================================================================
 -- PARENT_INVOLVEMENT_RECORDS
 -- =============================================================================
 
+-- Pillar 8 sub-domains (0–4 each); skor_keterlibatan (PEI) = round(sum/32*100)
 INSERT INTO parent_involvement_records
-    (baby_id, recorded_by, observation_time, durasi_menyusui, durasi_interaksi, skor_keterlibatan, kondisi_bayi)
+    (baby_id, recorded_by, observation_time, durasi_menyusui, durasi_interaksi,
+     presence_score, physical_interaction_score, feeding_participation_score, care_participation_score,
+     knowledge_score, communication_score, emotional_readiness_score, discharge_readiness_score,
+     skor_keterlibatan, kondisi_bayi)
 VALUES
+-- domains sum = 25/32 → 78
 (
     'cccccccc-0003-0003-0003-000000000001',
     'aaaaaaaa-0001-0001-0001-000000000002',
     '2025-05-16 11:00:00+07',
-    20, 45, 78, 'Tenang'
+    20, 45, 4, 4, 3, 3, 3, 3, 3, 2, 78, 'Tenang'
 ),
+-- domains sum = 16/32 → 50
 (
     'cccccccc-0003-0003-0003-000000000002',
     'aaaaaaaa-0001-0001-0001-000000000002',
     '2025-05-16 11:30:00+07',
-    10, 30, 52, 'Aktif'
+    10, 30, 2, 2, 2, 2, 2, 2, 2, 2, 50, 'Aktif'
 );

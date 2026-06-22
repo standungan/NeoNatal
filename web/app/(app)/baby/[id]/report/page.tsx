@@ -13,7 +13,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { api } from "@/lib/api";
-import type { BabyReport, MonitoringRecord } from "@/lib/types";
+import type { BabyReport, MonitoringRecord, InvolvementRecord } from "@/lib/types";
 import { Card, PageState, BackLink, SectionTitle } from "@/components/ui";
 import { formatDateTime, genderLabel } from "@/lib/format";
 
@@ -69,6 +69,10 @@ export default function ReportPage() {
             )}
 
             <InvolvementCard summary={data.involvement_summary} />
+
+            {data.involvement_history.length > 0 && (
+              <PillarDomainCard record={data.involvement_history[0]} />
+            )}
 
             <HistoryCard records={data.monitoring_history} />
 
@@ -129,9 +133,14 @@ function LatestVitalsCard({ vitals }: { vitals: MonitoringRecord }) {
         <VitalTile label="Suhu Bayi" value={vitals.suhu_bayi != null ? `${vitals.suhu_bayi} °C` : "-"} />
         <VitalTile label="Suhu Inkubator" value={vitals.suhu_inkubator != null ? `${vitals.suhu_inkubator} °C` : "-"} />
         <VitalTile label="Heart Rate" value={vitals.heart_rate != null ? `${vitals.heart_rate} bpm` : "-"} />
+        <VitalTile label="Respiratory Rate" value={vitals.respiratory_rate != null ? `${vitals.respiratory_rate} /mnt` : "-"} />
         <VitalTile label="SpO₂" value={vitals.spo2 != null ? `${vitals.spo2} %` : "-"} />
+        <VitalTile label="Nyeri (NIPS)" value={vitals.pain_score != null ? `${vitals.pain_score} / 7` : "-"} />
         <VitalTile label="Ekspresi" value={vitals.expression_score != null ? `${vitals.expression_score} / 5` : "-"} />
         <VitalTile label="Gerakan" value={vitals.movement_score != null ? `${vitals.movement_score} / 5` : "-"} />
+        <VitalTile label="Durasi Tidur" value={vitals.sleep_duration_min != null ? `${vitals.sleep_duration_min} mnt` : "-"} />
+        <VitalTile label="Kualitas Tidur" value={vitals.sleep_quality != null ? `${vitals.sleep_quality} / 5` : "-"} />
+        <VitalTile label="Episode Gelisah" value={vitals.agitation_episodes != null ? `${vitals.agitation_episodes}` : "-"} />
       </div>
     </Card>
   );
@@ -169,6 +178,47 @@ function InvolvementCard({
         Total sesi: {summary.total_sessions} · Rata-rata:{" "}
         {summary.avg_skor != null ? summary.avg_skor.toFixed(1) : "-"}
       </p>
+    </Card>
+  );
+}
+
+const PILLAR_DOMAINS: { key: keyof InvolvementRecord; label: string }[] = [
+  { key: "presence_score", label: "Kehadiran" },
+  { key: "physical_interaction_score", label: "Interaksi Fisik" },
+  { key: "feeding_participation_score", label: "Partisipasi Menyusui" },
+  { key: "care_participation_score", label: "Partisipasi Perawatan" },
+  { key: "knowledge_score", label: "Pengetahuan" },
+  { key: "communication_score", label: "Komunikasi" },
+  { key: "emotional_readiness_score", label: "Kesiapan Emosional" },
+  { key: "discharge_readiness_score", label: "Kesiapan Pulang" },
+];
+
+function PillarDomainCard({ record }: { record: InvolvementRecord }) {
+  return (
+    <Card className="p-5">
+      <SectionTitle>Rincian Keterlibatan (8 Domain FICare)</SectionTitle>
+      <p className="mt-1 text-xs text-muted">
+        Penilaian terakhir · {formatDateTime(record.observation_time)}
+      </p>
+      <div className="mt-4 flex flex-col gap-3">
+        {PILLAR_DOMAINS.map(({ key, label }) => {
+          const score = (record[key] as number | null) ?? 0;
+          return (
+            <div key={key} className="flex items-center gap-3">
+              <span className="w-40 shrink-0 text-[13px] text-ink">{label}</span>
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#eef2f7]">
+                <div
+                  className="h-full rounded-full bg-primary"
+                  style={{ width: `${(score / 4) * 100}%` }}
+                />
+              </div>
+              <span className="w-8 shrink-0 text-right text-[13px] font-bold text-ink">
+                {record[key] != null ? `${score}/4` : "-"}
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </Card>
   );
 }
@@ -259,7 +309,9 @@ function HistoryCard({ records }: { records: MonitoringRecord[] }) {
                 <th className="py-2 font-semibold">Waktu</th>
                 <th className="py-2 font-semibold">Suhu</th>
                 <th className="py-2 font-semibold">HR</th>
+                <th className="py-2 font-semibold">RR</th>
                 <th className="py-2 font-semibold">SpO₂</th>
+                <th className="py-2 font-semibold">Nyeri</th>
                 <th className="py-2 font-semibold">Status</th>
               </tr>
             </thead>
@@ -271,7 +323,9 @@ function HistoryCard({ records }: { records: MonitoringRecord[] }) {
                   </td>
                   <td className="py-2">{r.suhu_bayi ?? "-"}°C</td>
                   <td className="py-2">{r.heart_rate ?? "-"} bpm</td>
+                  <td className="py-2">{r.respiratory_rate ?? "-"} /mnt</td>
                   <td className="py-2">{r.spo2 ?? "-"}%</td>
+                  <td className="py-2">{r.pain_score ?? "-"}</td>
                   <td className="py-2">
                     <span
                       className={`inline-block h-2.5 w-2.5 rounded-full ${

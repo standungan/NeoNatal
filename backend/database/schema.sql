@@ -122,9 +122,14 @@ CREATE TABLE monitoring_records (
     suhu_bayi           NUMERIC(4, 1),       -- °C, e.g. 36.8
     suhu_inkubator      NUMERIC(4, 1),       -- °C, e.g. 33.5
     heart_rate          SMALLINT,            -- bpm
+    respiratory_rate    SMALLINT,            -- breaths/min (Pillar 1), normal 40–60
     spo2                NUMERIC(5, 2),       -- %, e.g. 98.00
     expression_score    SMALLINT CHECK (expression_score BETWEEN 1 AND 5),
     movement_score      SMALLINT CHECK (movement_score BETWEEN 1 AND 5),
+    pain_score          SMALLINT CHECK (pain_score BETWEEN 0 AND 7),    -- Pillar 6 (NIPS), >=4 = pain
+    sleep_duration_min  SMALLINT,            -- Pillar 5, minutes
+    sleep_quality       SMALLINT CHECK (sleep_quality BETWEEN 1 AND 5), -- Pillar 5
+    agitation_episodes  SMALLINT,            -- Pillar 5, count
     catatan             TEXT,
     foto_url            VARCHAR(500),
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -141,10 +146,19 @@ CREATE TABLE parent_involvement_records (
     baby_id                 UUID NOT NULL REFERENCES babies(baby_id),
     recorded_by             UUID NOT NULL REFERENCES users(id),
     observation_time        TIMESTAMPTZ NOT NULL,
-    durasi_menyusui         SMALLINT,            -- minutes
-    durasi_interaksi        SMALLINT,            -- minutes
+    durasi_menyusui         SMALLINT,            -- minutes (informational)
+    durasi_interaksi        SMALLINT,            -- minutes (informational)
+    -- Pillar 8 sub-domains, each rated 0–4 (0=tidak ada … 4=konsisten)
+    presence_score                SMALLINT CHECK (presence_score BETWEEN 0 AND 4),
+    physical_interaction_score    SMALLINT CHECK (physical_interaction_score BETWEEN 0 AND 4),
+    feeding_participation_score   SMALLINT CHECK (feeding_participation_score BETWEEN 0 AND 4),
+    care_participation_score      SMALLINT CHECK (care_participation_score BETWEEN 0 AND 4),
+    knowledge_score               SMALLINT CHECK (knowledge_score BETWEEN 0 AND 4),
+    communication_score           SMALLINT CHECK (communication_score BETWEEN 0 AND 4),
+    emotional_readiness_score     SMALLINT CHECK (emotional_readiness_score BETWEEN 0 AND 4),
+    discharge_readiness_score     SMALLINT CHECK (discharge_readiness_score BETWEEN 0 AND 4),
     catatan                 TEXT,
-    skor_keterlibatan       SMALLINT CHECK (skor_keterlibatan BETWEEN 0 AND 100),
+    skor_keterlibatan       SMALLINT CHECK (skor_keterlibatan BETWEEN 0 AND 100),  -- PEI, computed from domains
     kondisi_bayi            VARCHAR(255),
     created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

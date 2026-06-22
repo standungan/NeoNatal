@@ -98,8 +98,14 @@ class MonitoringSummary(BaseModel):
     suhu_bayi: Decimal | None
     suhu_inkubator: Decimal | None
     heart_rate: int | None
+    respiratory_rate: int | None
     spo2: Decimal | None
     expression_score: int | None
     movement_score: int | None
+    pain_score: int | None
+    sleep_duration_min: int | None
+    sleep_quality: int | None
+    agitation_episodes: int | None
     catatan: str | None
     foto_url: str | None
+    vital_status: str = "normal"  # "normal" | "warning"

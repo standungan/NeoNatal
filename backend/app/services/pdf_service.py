@@ -113,9 +113,14 @@ def generate_pdf(report: BabyReportResponse) -> bytes:
             ("Suhu Bayi",         f"{v.suhu_bayi} C" if v.suhu_bayi else "-"),
             ("Suhu Inkubator",    f"{v.suhu_inkubator} C" if v.suhu_inkubator else "-"),
             ("Heart Rate",        f"{v.heart_rate} bpm" if v.heart_rate else "-"),
+            ("Respiratory Rate",  f"{v.respiratory_rate} /min" if v.respiratory_rate else "-"),
             ("SpO2",              f"{v.spo2} %" if v.spo2 else "-"),
             ("Expression Score",  f"{v.expression_score} / 5" if v.expression_score else "-"),
             ("Movement Score",    f"{v.movement_score} / 5" if v.movement_score else "-"),
+            ("Pain Score (NIPS)", f"{v.pain_score} / 7" if v.pain_score is not None else "-"),
+            ("Durasi Tidur",      f"{v.sleep_duration_min} menit" if v.sleep_duration_min else "-"),
+            ("Kualitas Tidur",    f"{v.sleep_quality} / 5" if v.sleep_quality else "-"),
+            ("Episode Gelisah",   str(v.agitation_episodes) if v.agitation_episodes is not None else "-"),
         ]
         for label, val in vitals:
             pdf.kv_row(label, val, shade)
@@ -124,8 +129,8 @@ def generate_pdf(report: BabyReportResponse) -> bytes:
 
     # ── Monitoring History Table ───────────────────────────────────────────────
     pdf.section_title("4. Riwayat Monitoring")
-    headers = ["Tanggal & Waktu", "Suhu Bayi", "HR (bpm)", "SpO2 %", "Ekspresi", "Gerak"]
-    col_w = [42, 25, 22, 22, 22, 22]
+    headers = ["Tanggal & Waktu", "Suhu", "HR", "RR", "SpO2", "Eksp", "Gerak", "Nyeri"]
+    col_w = [40, 22, 18, 18, 22, 18, 18, 18]
 
     pdf.set_fill_color(210, 220, 240)
     pdf.set_font("Helvetica", "B", 8)
@@ -141,9 +146,11 @@ def generate_pdf(report: BabyReportResponse) -> bytes:
             rec.observation_time.strftime("%d %b %Y %H:%M"),
             str(rec.suhu_bayi) if rec.suhu_bayi else "-",
             str(rec.heart_rate) if rec.heart_rate else "-",
+            str(rec.respiratory_rate) if rec.respiratory_rate else "-",
             str(rec.spo2) if rec.spo2 else "-",
             str(rec.expression_score) if rec.expression_score else "-",
             str(rec.movement_score) if rec.movement_score else "-",
+            str(rec.pain_score) if rec.pain_score is not None else "-",
         ]
         for val, w in zip(row_data, col_w):
             pdf.cell(w, 6, val, border=1, fill=fill)
@@ -164,6 +171,26 @@ def generate_pdf(report: BabyReportResponse) -> bytes:
     for label, val in inv_rows:
         pdf.kv_row(label, val, shade)
         shade = not shade
+    pdf.ln(4)
+
+    # ── Pillar 8 domain breakdown (latest assessment) ──────────────────────────
+    if report.involvement_history:
+        latest = report.involvement_history[0]
+        pdf.section_title("6. Rincian Keterlibatan (8 Domain FICare)")
+        shade = False
+        domains = [
+            ("Kehadiran (Presence)",            latest.presence_score),
+            ("Interaksi Fisik",                 latest.physical_interaction_score),
+            ("Partisipasi Menyusui",            latest.feeding_participation_score),
+            ("Partisipasi Perawatan",           latest.care_participation_score),
+            ("Pemahaman Kondisi",               latest.knowledge_score),
+            ("Komunikasi Klinis",               latest.communication_score),
+            ("Kesiapan Emosional",              latest.emotional_readiness_score),
+            ("Kesiapan Pulang",                 latest.discharge_readiness_score),
+        ]
+        for label, val in domains:
+            pdf.kv_row(label, f"{val} / 4" if val is not None else "-", shade)
+            shade = not shade
 
     buf = BytesIO()
     buf.write(pdf.output())

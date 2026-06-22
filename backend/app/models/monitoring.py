@@ -25,9 +25,14 @@ class MonitoringRecord(Base):
     suhu_bayi: Mapped[Decimal | None] = mapped_column(Numeric(4, 1))        # °C
     suhu_inkubator: Mapped[Decimal | None] = mapped_column(Numeric(4, 1))   # °C
     heart_rate: Mapped[int | None] = mapped_column(SmallInteger)            # bpm
+    respiratory_rate: Mapped[int | None] = mapped_column(SmallInteger)      # breaths/min (Pillar 1)
     spo2: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))             # %
     expression_score: Mapped[int | None] = mapped_column(SmallInteger)
     movement_score: Mapped[int | None] = mapped_column(SmallInteger)
+    pain_score: Mapped[int | None] = mapped_column(SmallInteger)            # 0–7, Pillar 6
+    sleep_duration_min: Mapped[int | None] = mapped_column(SmallInteger)    # minutes, Pillar 5
+    sleep_quality: Mapped[int | None] = mapped_column(SmallInteger)         # 1–5, Pillar 5
+    agitation_episodes: Mapped[int | None] = mapped_column(SmallInteger)    # count, Pillar 5
     catatan: Mapped[str | None] = mapped_column(Text)
     foto_url: Mapped[str | None] = mapped_column(String(500))
     created_at: Mapped[datetime] = mapped_column(
@@ -37,6 +42,8 @@ class MonitoringRecord(Base):
     __table_args__ = (
         CheckConstraint("expression_score BETWEEN 1 AND 5", name="ck_expression_score"),
         CheckConstraint("movement_score BETWEEN 1 AND 5", name="ck_movement_score"),
+        CheckConstraint("pain_score BETWEEN 0 AND 7", name="ck_pain_score"),
+        CheckConstraint("sleep_quality BETWEEN 1 AND 5", name="ck_sleep_quality"),
     )
 
     # relationships

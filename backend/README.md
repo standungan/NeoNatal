@@ -193,9 +193,10 @@ Base path: `/api/v1` · all routes require a Bearer token except **login**.
 ## Business Rules
 
 - **Incubator status:** `kosong` · `terisi` · `warning` · `tidak_tersedia`.
-- **Vital warning:** out-of-range heart rate / SpO₂ / temperature flags the record `vital_status = "warning"` and can raise the incubator to `warning`.
-- **Expression & movement scores:** 1–5 per monitoring entry.
-- **Parent involvement score (0–100):** auto-calculated and categorised — `0–25` Rendah · `26–50` Sedang · `51–75` Baik · `76–100` Sangat Baik.
+- **Vital warning:** out-of-range heart rate (100–160) / respiratory rate (40–60) / SpO₂ (≥93) / temperature (36.0–37.5) **or pain score ≥ 4** flags the record `vital_status = "warning"` and can raise the incubator to `warning`.
+- **Expression, movement & sleep-quality scores:** 1–5 per monitoring entry. **Pain score (NIPS):** 0–7.
+- **Pillar-8 parent involvement:** 8 FICare sub-domains (`presence_score`, `physical_interaction_score`, `feeding_participation_score`, `care_participation_score`, `knowledge_score`, `communication_score`, `emotional_readiness_score`, `discharge_readiness_score`), each rated 0–4.
+- **Parent Engagement Index (PEI, 0–100):** `round(sum of 8 domains / 32 × 100)`, categorised — `0–25` Rendah · `26–50` Sedang · `51–75` Baik · `76–100` Sangat Baik. See [docs/8 pillar NICU.md](../docs/8%20pillar%20NICU.md).
 
 ---
 
