@@ -1,5 +1,12 @@
 class ApiEndpoints {
-  static const baseUrl = 'http://localhost:8000';
+  // Override at run/build time, e.g.:
+  //   flutter run --dart-define=API_BASE=http://10.0.2.2:8000      (Android emulator)
+  //   flutter run --dart-define=API_BASE=http://192.168.1.5:8000   (physical device on LAN)
+  // Defaults to localhost for desktop/web runs.
+  static const baseUrl = String.fromEnvironment(
+    'API_BASE',
+    defaultValue: 'http://localhost:8000',
+  );
 
   // auth
   static const login     = '/api/v1/auth/login';
