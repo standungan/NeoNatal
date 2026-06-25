@@ -341,7 +341,7 @@ Single call powering the home screen: aggregate counts + every incubator with it
 ```json
 {
   "observation_time": "2026-06-22T10:00:00+07:00",
-  "suhu_bayi": 36.8, "suhu_inkubator": 33.5,
+  "suhu_bayi": 36.8, "suhu_inkubator": 33.5, "kelembapan_inkubator": 55.0,
   "heart_rate": 128, "respiratory_rate": 48, "spo2": 98.0,
   "expression_score": 3, "movement_score": 4,
   "pain_score": 1, "sleep_duration_min": 120, "sleep_quality": 4, "agitation_episodes": 0,
@@ -351,6 +351,7 @@ Single call powering the home screen: aggregate counts + every incubator with it
 | Field | Unit / range | Pillar |
 |---|---|---|
 | `suhu_bayi`, `suhu_inkubator` | °C | 1 / 2 |
+| `kelembapan_inkubator` | % RH | 7 (incubator environment) |
 | `heart_rate` | bpm | 1 |
 | `respiratory_rate` | breaths/min | 1 |
 | `spo2` | % | 1 |
@@ -365,7 +366,8 @@ Single call powering the home screen: aggregate counts + every incubator with it
 {
   "monitoring_id": "...", "baby_id": "...", "recorded_by": "...", "recorder_name": "Siti Aisyah",
   "observation_time": "2026-06-22T10:00:00+07:00",
-  "suhu_bayi": 36.8, "suhu_inkubator": 33.5, "heart_rate": 128, "respiratory_rate": 48,
+  "suhu_bayi": 36.8, "suhu_inkubator": 33.5, "kelembapan_inkubator": 55.0,
+  "heart_rate": 128, "respiratory_rate": 48,
   "spo2": 98.0, "expression_score": 3, "movement_score": 4,
   "pain_score": 1, "sleep_duration_min": 120, "sleep_quality": 4, "agitation_episodes": 0,
   "catatan": "Bayi tenang", "foto_url": null, "vital_status": "normal",
