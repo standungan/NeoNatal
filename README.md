@@ -45,11 +45,13 @@ It ships with **two clients sharing one backend and one design language**:
 
 ### Web dashboard (Next.js)
 
-> _Web dashboard screenshots — drop captures into `images/web/` (login, dashboard, report, admin)._
-
-| Dashboard | Report & Vital Trends | Admin |
+| Dashboard | Incubator Detail | Report & Vital Trends |
 |---|---|---|
-| ![Dashboard](images/web/dashboard.png) | ![Report](images/web/report.png) | ![Admin](images/web/admin.png) |
+| ![Dashboard](images/web/dashboard.png) | ![Incubator](images/web/incubator.png) | ![Report](images/web/report.png) |
+
+| Monitoring Entry | Parent Involvement Entry | Admin |
+|---|---|---|
+| ![Monitoring](images/web/monitoring.png) | ![Involvement](images/web/involvement.png) | ![Admin](images/web/admin-users.png) |
 
 ---
 
