@@ -112,6 +112,7 @@ def generate_pdf(report: BabyReportResponse) -> bytes:
             ("Waktu Observasi",   v.observation_time.strftime("%d %b %Y %H:%M")),
             ("Suhu Bayi",         f"{v.suhu_bayi} C" if v.suhu_bayi else "-"),
             ("Suhu Inkubator",    f"{v.suhu_inkubator} C" if v.suhu_inkubator else "-"),
+            ("Kelembapan Inkubator", f"{v.kelembapan_inkubator} %" if v.kelembapan_inkubator else "-"),
             ("Heart Rate",        f"{v.heart_rate} bpm" if v.heart_rate else "-"),
             ("Respiratory Rate",  f"{v.respiratory_rate} /min" if v.respiratory_rate else "-"),
             ("SpO2",              f"{v.spo2} %" if v.spo2 else "-"),

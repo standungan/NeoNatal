@@ -24,6 +24,7 @@ class MonitoringRecord(Base):
     observation_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     suhu_bayi: Mapped[Decimal | None] = mapped_column(Numeric(4, 1))        # °C
     suhu_inkubator: Mapped[Decimal | None] = mapped_column(Numeric(4, 1))   # °C
+    kelembapan_inkubator: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))  # % RH (Pillar 7)
     heart_rate: Mapped[int | None] = mapped_column(SmallInteger)            # bpm
     respiratory_rate: Mapped[int | None] = mapped_column(SmallInteger)      # breaths/min (Pillar 1)
     spo2: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))             # %
