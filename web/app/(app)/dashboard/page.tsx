@@ -6,9 +6,10 @@ import { api } from "@/lib/api";
 import type { DashboardResponse, IncubatorDashboardItem } from "@/lib/types";
 import { Card, StatCard, StatusBadge, PageState } from "@/components/ui";
 import { useAuth } from "@/components/providers";
+import { canWrite } from "@/lib/format";
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["dashboard"],
     queryFn: async () => (await api.get<DashboardResponse>("/dashboard")).data,
@@ -16,11 +17,21 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <div className="mb-5">
-        <p className="text-[13px] font-medium text-muted">Selamat datang,</p>
-        <h1 className="text-xl font-extrabold text-ink">
-          {user?.full_name ?? ""}
-        </h1>
+      <div className="mb-5 flex items-end justify-between gap-4">
+        <div>
+          <p className="text-[13px] font-medium text-muted">Selamat datang,</p>
+          <h1 className="text-xl font-extrabold text-ink">
+            {user?.full_name ?? ""}
+          </h1>
+        </div>
+        {canWrite(role) && (
+          <Link
+            href="/baby/register"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white hover:bg-primary-dark"
+          >
+            + Daftar Bayi Baru
+          </Link>
+        )}
       </div>
 
       <PageState loading={isLoading} error={error} onRetry={() => refetch()}>

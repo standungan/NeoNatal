@@ -25,6 +25,7 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen> {
 
   final _suhuBayiCtrl   = TextEditingController();
   final _suhuIncCtrl    = TextEditingController();
+  final _kelembapanCtrl = TextEditingController();
   final _hrCtrl         = TextEditingController();
   final _rrCtrl         = TextEditingController();
   final _spo2Ctrl       = TextEditingController();
@@ -43,7 +44,7 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen> {
   @override
   void dispose() {
     for (final c in [
-      _suhuBayiCtrl, _suhuIncCtrl, _hrCtrl, _rrCtrl, _spo2Ctrl,
+      _suhuBayiCtrl, _suhuIncCtrl, _kelembapanCtrl, _hrCtrl, _rrCtrl, _spo2Ctrl,
       _sleepDurCtrl, _agitationCtrl, _catatanCtrl,
     ]) {
       c.dispose();
@@ -67,6 +68,7 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen> {
           'observation_time': _obsTime.toIso8601String(),
           'suhu_bayi': _suhuBayiCtrl.text.isNotEmpty ? double.parse(_suhuBayiCtrl.text) : null,
           'suhu_inkubator': _suhuIncCtrl.text.isNotEmpty ? double.parse(_suhuIncCtrl.text) : null,
+          'kelembapan_inkubator': _kelembapanCtrl.text.isNotEmpty ? double.parse(_kelembapanCtrl.text) : null,
           'heart_rate': _hrCtrl.text.isNotEmpty ? int.parse(_hrCtrl.text) : null,
           'respiratory_rate': _rrCtrl.text.isNotEmpty ? int.parse(_rrCtrl.text) : null,
           'spo2': _spo2Ctrl.text.isNotEmpty ? double.parse(_spo2Ctrl.text) : null,
@@ -185,7 +187,11 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen> {
                   decoration: const InputDecoration(labelText: 'SpO2 (%)'),
                 )),
                 const SizedBox(width: 12),
-                const Expanded(child: SizedBox()),
+                Expanded(child: TextFormField(
+                  controller: _kelembapanCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(labelText: 'Kelembapan Inkubator (%)'),
+                )),
               ]),
               const SizedBox(height: 20),
 

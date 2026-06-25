@@ -1,4 +1,9 @@
-import type { IncubatorStatus } from "./types";
+import type { IncubatorStatus, Role } from "./types";
+
+/** Roles allowed to create/modify clinical data (mirrors backend PerawatOrAdmin). */
+export function canWrite(role: Role | null | undefined): boolean {
+  return role === "perawat" || role === "admin";
+}
 
 export function formatDate(iso: string, withTime = false): string {
   const d = new Date(iso);

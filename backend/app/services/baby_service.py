@@ -199,6 +199,7 @@ async def _to_detail(baby: Baby, db: AsyncSession) -> BabyDetailResponse:
             observation_time=latest.observation_time,
             suhu_bayi=latest.suhu_bayi,
             suhu_inkubator=latest.suhu_inkubator,
+            kelembapan_inkubator=latest.kelembapan_inkubator,
             heart_rate=latest.heart_rate,
             respiratory_rate=latest.respiratory_rate,
             spo2=latest.spo2,

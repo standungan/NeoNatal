@@ -132,6 +132,7 @@ function LatestVitalsCard({ vitals }: { vitals: MonitoringRecord }) {
       <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
         <VitalTile label="Suhu Bayi" value={vitals.suhu_bayi != null ? `${vitals.suhu_bayi} °C` : "-"} />
         <VitalTile label="Suhu Inkubator" value={vitals.suhu_inkubator != null ? `${vitals.suhu_inkubator} °C` : "-"} />
+        <VitalTile label="Kelembapan Inkubator" value={vitals.kelembapan_inkubator != null ? `${vitals.kelembapan_inkubator} %` : "-"} />
         <VitalTile label="Heart Rate" value={vitals.heart_rate != null ? `${vitals.heart_rate} bpm` : "-"} />
         <VitalTile label="Respiratory Rate" value={vitals.respiratory_rate != null ? `${vitals.respiratory_rate} /mnt` : "-"} />
         <VitalTile label="SpO₂" value={vitals.spo2 != null ? `${vitals.spo2} %` : "-"} />

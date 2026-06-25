@@ -9,6 +9,7 @@ class MonitoringCreate(BaseModel):
     observation_time: datetime
     suhu_bayi: Decimal | None = None
     suhu_inkubator: Decimal | None = None
+    kelembapan_inkubator: Decimal | None = None
     heart_rate: int | None = None
     respiratory_rate: int | None = None
     spo2: Decimal | None = None
@@ -43,6 +44,7 @@ class MonitoringResponse(BaseModel):
     observation_time: datetime
     suhu_bayi: Decimal | None
     suhu_inkubator: Decimal | None
+    kelembapan_inkubator: Decimal | None
     heart_rate: int | None
     respiratory_rate: int | None
     spo2: Decimal | None

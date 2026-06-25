@@ -1,15 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useParams, useRouter } from "next/navigation";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { BabyDetail, IncubatorDetail } from "@/lib/types";
 import { Card, StatusBadge, PageState, BackLink, SectionTitle } from "@/components/ui";
-import { formatDate, formatDateTime, genderLabel } from "@/lib/format";
+import { formatDate, formatDateTime, genderLabel, canWrite } from "@/lib/format";
+import { useAuth } from "@/components/providers";
 
 export default function IncubatorDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const qc = useQueryClient();
+  const { role } = useAuth();
+  const writable = canWrite(role);
 
   const incQ = useQuery({
     queryKey: ["incubator", id],
@@ -17,6 +22,15 @@ export default function IncubatorDetailPage() {
   });
 
   const babyId = incQ.data?.current_baby?.baby_id;
+
+  const discharge = useMutation({
+    mutationFn: async () => api.post(`/babies/${babyId}/discharge`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["incubator", id] });
+      router.push("/dashboard");
+    },
+  });
 
   const babyQ = useQuery({
     queryKey: ["baby", babyId],
@@ -68,15 +82,46 @@ export default function IncubatorDetailPage() {
 
             {babyId && (
               <Card className="p-5">
-                <SectionTitle>Menu</SectionTitle>
-                <div className="mt-4">
+                <SectionTitle>Menu Aksi</SectionTitle>
+                <div className="mt-4 flex flex-wrap gap-2.5">
                   <Link
                     href={`/baby/${babyId}/report`}
                     className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white hover:bg-primary-dark"
                   >
-                    📊 Lihat Laporan & Tren Vital
+                    📊 Lihat Laporan
                   </Link>
+                  {writable && (
+                    <>
+                      <Link
+                        href={`/baby/${babyId}/monitoring`}
+                        className="inline-flex items-center gap-2 rounded-xl border border-line px-4 py-2.5 text-sm font-bold text-ink hover:bg-surface"
+                      >
+                        🩺 Monitoring
+                      </Link>
+                      <Link
+                        href={`/baby/${babyId}/involvement`}
+                        className="inline-flex items-center gap-2 rounded-xl border border-line px-4 py-2.5 text-sm font-bold text-ink hover:bg-surface"
+                      >
+                        👨‍👩‍👧 Keterlibatan
+                      </Link>
+                      <button
+                        type="button"
+                        disabled={discharge.isPending}
+                        onClick={() => {
+                          if (confirm("Pulangkan bayi ini? Inkubator akan dikosongkan.")) {
+                            discharge.mutate();
+                          }
+                        }}
+                        className="inline-flex items-center gap-2 rounded-xl border border-danger/30 px-4 py-2.5 text-sm font-bold text-danger hover:bg-danger/10 disabled:opacity-60"
+                      >
+                        🏠 Pulangkan
+                      </button>
+                    </>
+                  )}
                 </div>
+                {discharge.isError && (
+                  <p className="mt-3 text-sm font-semibold text-danger">Gagal memulangkan bayi.</p>
+                )}
               </Card>
             )}
           </div>

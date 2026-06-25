@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { useAuth } from "@/components/providers";
-import { roleLabel } from "@/lib/format";
+import { roleLabel, canWrite } from "@/lib/format";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { user, role, logout } = useAuth();
@@ -36,6 +36,15 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             >
               Dashboard
             </Link>
+
+            {canWrite(role) && (
+              <Link
+                href="/baby/register"
+                className="rounded-lg px-3 py-2 text-sm font-semibold text-muted hover:bg-surface hover:text-ink"
+              >
+                Daftar Bayi
+              </Link>
+            )}
 
             {role === "admin" && (
               <div

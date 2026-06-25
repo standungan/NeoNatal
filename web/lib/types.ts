@@ -81,6 +81,7 @@ export interface MonitoringRecord {
   observation_time: string;
   suhu_bayi: number | null;
   suhu_inkubator: number | null;
+  kelembapan_inkubator: number | null;
   heart_rate: number | null;
   respiratory_rate: number | null;
   spo2: number | null;

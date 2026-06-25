@@ -121,6 +121,7 @@ CREATE TABLE monitoring_records (
     observation_time    TIMESTAMPTZ NOT NULL,
     suhu_bayi           NUMERIC(4, 1),       -- °C, e.g. 36.8
     suhu_inkubator      NUMERIC(4, 1),       -- °C, e.g. 33.5
+    kelembapan_inkubator NUMERIC(5, 2),      -- % RH (Pillar 7), e.g. 55.00
     heart_rate          SMALLINT,            -- bpm
     respiratory_rate    SMALLINT,            -- breaths/min (Pillar 1), normal 40–60
     spo2                NUMERIC(5, 2),       -- %, e.g. 98.00

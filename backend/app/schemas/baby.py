@@ -97,6 +97,7 @@ class MonitoringSummary(BaseModel):
     observation_time: datetime
     suhu_bayi: Decimal | None
     suhu_inkubator: Decimal | None
+    kelembapan_inkubator: Decimal | None
     heart_rate: int | None
     respiratory_rate: int | None
     spo2: Decimal | None

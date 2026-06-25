@@ -133,7 +133,8 @@ INSERT INTO baby_incubator_assignments (baby_id, incubator_id, assigned_by, assi
 -- =============================================================================
 
 INSERT INTO monitoring_records
-    (baby_id, recorded_by, observation_time, suhu_bayi, suhu_inkubator, heart_rate, respiratory_rate, spo2,
+    (baby_id, recorded_by, observation_time, suhu_bayi, suhu_inkubator, kelembapan_inkubator,
+     heart_rate, respiratory_rate, spo2,
      expression_score, movement_score, pain_score, sleep_duration_min, sleep_quality, agitation_episodes)
 VALUES
 -- Ahmad Rizki — Inkubator 01
@@ -141,27 +142,27 @@ VALUES
     'cccccccc-0003-0003-0003-000000000001',
     'aaaaaaaa-0001-0001-0001-000000000002',
     '2025-05-16 09:30:00+07',
-    36.8, 33.5, 128, 48, 98.00, 3, 4, 1, 120, 4, 0
+    36.8, 33.5, 55.00, 128, 48, 98.00, 3, 4, 1, 120, 4, 0
 ),
 (
     'cccccccc-0003-0003-0003-000000000001',
     'aaaaaaaa-0001-0001-0001-000000000002',
     '2025-05-16 14:00:00+07',
-    37.0, 33.8, 132, 50, 97.50, 4, 4, 0, 90, 4, 1
+    37.0, 33.8, 56.50, 132, 50, 97.50, 4, 4, 0, 90, 4, 1
 ),
 -- Siti Aisyah — Inkubator 02
 (
     'cccccccc-0003-0003-0003-000000000002',
     'aaaaaaaa-0001-0001-0001-000000000002',
     '2025-05-16 10:00:00+07',
-    37.1, 34.0, 135, 52, 96.00, 2, 3, 2, 100, 3, 1
+    37.1, 34.0, 58.00, 135, 52, 96.00, 2, 3, 2, 100, 3, 1
 ),
 -- Muhammad Farhan — Inkubator 04 (warning: RR & pain out of range)
 (
     'cccccccc-0003-0003-0003-000000000003',
     'aaaaaaaa-0001-0001-0001-000000000003',
     '2025-05-16 09:00:00+07',
-    37.6, 34.5, 160, 68, 92.00, 2, 2, 4, 40, 2, 3
+    37.6, 34.5, 52.00, 160, 68, 92.00, 2, 2, 4, 40, 2, 3
 );
 
 -- =============================================================================
