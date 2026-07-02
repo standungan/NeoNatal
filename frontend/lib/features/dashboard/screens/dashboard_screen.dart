@@ -171,12 +171,14 @@ class _StatsRow extends StatelessWidget {
       child: Row(
         children: [
           Expanded(child: StatCard(label: 'Total',   count: stats.total,   color: AppColors.primary, icon: Icons.devices_outlined)),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Expanded(child: StatCard(label: 'Terisi',  count: stats.terisi,  color: AppColors.accent,  icon: Icons.baby_changing_station)),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Expanded(child: StatCard(label: 'Kosong',  count: stats.kosong,  color: AppColors.kosong,  icon: Icons.check_circle_outline)),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Expanded(child: StatCard(label: 'Warning', count: stats.warning, color: AppColors.warning, icon: Icons.warning_amber_rounded)),
+          const SizedBox(width: 8),
+          Expanded(child: StatCard(label: 'Nonaktif', count: stats.tidakTersedia, color: AppColors.tidakTersedia, icon: Icons.do_not_disturb_on_outlined)),
         ],
       ),
     );

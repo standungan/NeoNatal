@@ -40,13 +40,14 @@ export function StatCard({
   label: string;
   count: number;
   icon: ReactNode;
-  tone: "primary" | "accent" | "kosong" | "warn";
+  tone: "primary" | "accent" | "kosong" | "warn" | "danger";
 }) {
   const tones = {
     primary: "bg-primary/12 text-primary",
     accent: "bg-accent/12 text-accent",
     kosong: "bg-kosong/15 text-kosong",
     warn: "bg-warn/15 text-warn",
+    danger: "bg-danger/12 text-danger",
   } as const;
   return (
     <Card className="flex flex-col items-center px-3 py-4">
