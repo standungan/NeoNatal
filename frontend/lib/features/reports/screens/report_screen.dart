@@ -43,6 +43,8 @@ class ReportScreen extends ConsumerWidget {
           final monitoring = (data['monitoring_history'] as List)
               .cast<Map<String, dynamic>>();
           final involvement = data['involvement_summary'] as Map<String, dynamic>;
+          final involvementHistory =
+              (data['involvement_history'] as List?)?.cast<Map<String, dynamic>>() ?? [];
 
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(_reportProvider(babyId)),
@@ -58,6 +60,10 @@ class ReportScreen extends ConsumerWidget {
                         vitals: baby['latest_vitals'] as Map<String, dynamic>),
                   const SizedBox(height: 12),
                   _InvolvementCard(summary: involvement),
+                  if (involvementHistory.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    _InvolvementDomainsCard(record: involvementHistory.first),
+                  ],
                   const SizedBox(height: 12),
                   _MonitoringHistoryCard(records: monitoring),
                   const SizedBox(height: 12),
@@ -169,10 +175,16 @@ class _LatestVitalsCard extends StatelessWidget {
               children: [
                 _VitalTile('Suhu Bayi',       '${vitals['suhu_bayi'] ?? '-'} °C'),
                 _VitalTile('Suhu Inkubator',  '${vitals['suhu_inkubator'] ?? '-'} °C'),
+                _VitalTile('Kelembapan Ink.', '${vitals['kelembapan_inkubator'] ?? '-'} %'),
                 _VitalTile('Heart Rate',      '${vitals['heart_rate'] ?? '-'} bpm'),
+                _VitalTile('Respiratory Rate','${vitals['respiratory_rate'] ?? '-'} /mnt'),
                 _VitalTile('SpO2',            '${vitals['spo2'] ?? '-'} %'),
+                _VitalTile('Nyeri (NIPS)',    '${vitals['pain_score'] ?? '-'} / 7'),
                 _VitalTile('Ekspresi',        '${vitals['expression_score'] ?? '-'} / 5'),
                 _VitalTile('Gerakan',         '${vitals['movement_score'] ?? '-'} / 5'),
+                _VitalTile('Durasi Tidur',    '${vitals['sleep_duration_min'] ?? '-'} mnt'),
+                _VitalTile('Kualitas Tidur',  '${vitals['sleep_quality'] ?? '-'} / 5'),
+                _VitalTile('Episode Gelisah', '${vitals['agitation_episodes'] ?? '-'}'),
               ],
             ),
           ],
@@ -253,6 +265,75 @@ class _InvolvementCard extends StatelessWidget {
               'Rata-rata: ${summary['avg_skor']?.toStringAsFixed(1) ?? '-'}',
               style: const TextStyle(color: AppColors.inkMuted, fontSize: 12),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InvolvementDomainsCard extends StatelessWidget {
+  final Map<String, dynamic> record;
+  const _InvolvementDomainsCard({required this.record});
+
+  static const _domains = [
+    ['presence_score', 'Kehadiran'],
+    ['physical_interaction_score', 'Interaksi Fisik'],
+    ['feeding_participation_score', 'Partisipasi Menyusui'],
+    ['care_participation_score', 'Partisipasi Perawatan'],
+    ['knowledge_score', 'Pengetahuan'],
+    ['communication_score', 'Komunikasi Klinis'],
+    ['emotional_readiness_score', 'Kesiapan Emosional'],
+    ['discharge_readiness_score', 'Kesiapan Pulang'],
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Rincian Keterlibatan (8 Domain FICare)',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            const SizedBox(height: 12),
+            ..._domains.map((d) {
+              final v = record[d[0]];
+              final frac = (v is num) ? (v / 4).clamp(0.0, 1.0) : 0.0;
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 5),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 150,
+                      child: Text(d[1],
+                          style: const TextStyle(fontSize: 13, color: AppColors.ink)),
+                    ),
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: LinearProgressIndicator(
+                          value: frac,
+                          minHeight: 8,
+                          backgroundColor: const Color(0xFFEEF2F7),
+                          valueColor: const AlwaysStoppedAnimation(AppColors.primary),
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      width: 34,
+                      child: Text(v != null ? '$v/4' : '-',
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.ink)),
+                    ),
+                  ],
+                ),
+              );
+            }),
           ],
         ),
       ),

@@ -37,11 +37,12 @@ export default function DashboardPage() {
       <PageState loading={isLoading} error={error} onRetry={() => refetch()}>
         {data && (
           <>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
               <StatCard label="Total" count={data.stats.total} tone="primary" icon={<Icon path="M4 6h16M4 12h16M4 18h16" />} />
               <StatCard label="Terisi" count={data.stats.terisi} tone="accent" icon={<Icon path="M12 11a3 3 0 100-6 3 3 0 000 6zM5 21a7 7 0 0114 0" />} />
               <StatCard label="Kosong" count={data.stats.kosong} tone="kosong" icon={<Icon path="M5 12l5 5L20 7" />} />
               <StatCard label="Warning" count={data.stats.warning} tone="warn" icon={<Icon path="M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" />} />
+              <StatCard label="Tidak Tersedia" count={data.stats.tidak_tersedia} tone="danger" icon={<Icon path="M18.36 6.64a9 9 0 11-12.73 0M12 2v10" />} />
             </div>
 
             <div className="mb-3 mt-7 flex items-center gap-2">
