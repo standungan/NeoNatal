@@ -66,32 +66,66 @@ web/
 
 ---
 
-## Getting Started
+## Running the Dashboard
+
+The dashboard is a **thin client** — it proxies every request to the FastAPI backend server-side,
+so the **backend (and its PostgreSQL database) must be running first**. Start things in this order.
 
 ### Prerequisites
-- Node.js 20.9+
-- A running [backend](../backend/README.md) on `http://localhost:8000`
+- **Node.js 20.9+** (for the dashboard)
+- **Python 3.12+ and PostgreSQL 14+** (for the backend it talks to)
 
-### Setup
+### 1 — Start the backend + database *(dependency)*
+In a **separate terminal**, from the repo root. First run only: create + migrate the database.
 ```bash
-npm install
-```
+cd backend
+python -m venv venv && venv\Scripts\activate      # Windows (source venv/bin/activate on *nix)
+pip install -r requirements.txt
 
-Create `web/.env.local`:
+# create backend/.env (see backend/README.md), then set up the DB:
+createdb neonatal
+psql -d neonatal -f database/schema.sql
+psql -d neonatal -f database/seed_data.sql
+alembic upgrade head            # applies later migrations (incl. observations table)
+
+# run it — keep this terminal open:
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+Confirm it's up at **http://localhost:8000/docs**. On later runs you only need the `uvicorn` line
+(plus `alembic upgrade head` after pulling new changes).
+
+> Tip: run the backend in its **own** terminal window so it isn't stopped when you restart the dashboard.
+
+### 2 — Configure the dashboard
+Create `web/.env.local` (points the server-side proxy at the backend):
 ```env
 # server-side only — never exposed to the browser
 API_BASE_URL=http://localhost:8000
 ```
 
-### Run
+### 3 — Install & run the dashboard
 ```bash
-npm run dev      # http://localhost:3000
-npm run build    # production build (Turbopack)
-npm start        # serve production build
-npm run lint     # ESLint (flat config)
+cd web
+npm install            # first time only
+npm run dev            # → http://localhost:3000
 ```
 
-Log in with a seeded account (e.g. `admin@neonatal.rs` / `Password123!`).
+### 4 — Log in
+Open **http://localhost:3000** and sign in with a seeded account, e.g.
+`admin@neonatal.rs` / `Password123!` (admin sees everything, incl. user management & audit log).
+
+### Production build
+```bash
+npm run build          # production build (Turbopack)
+npm start              # serve the production build
+npm run lint           # ESLint (flat config)
+```
+
+### Troubleshooting
+- **Login loops / "gagal memuat"** → the backend isn't reachable. Check `http://localhost:8000/docs`
+  and that `API_BASE_URL` in `web/.env.local` matches.
+- **Port 3000 busy** → stop the other process, or run `npm run dev -- -p 3001`.
+- **Blank data after pulling updates** → run `alembic upgrade head` in `backend/` (new DB columns/tables).
 
 ---
 

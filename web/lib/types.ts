@@ -173,6 +173,57 @@ export interface BabyReport {
   generated_at: string;
 }
 
+// ── Observasi 8 Pilar ───────────────────────────────────────────────────────
+
+export interface ObservationCatalogItem {
+  item_code: string;
+  text: string;
+}
+
+export interface ObservationCatalogPillar {
+  key: string;
+  label: string;
+  items: ObservationCatalogItem[];
+}
+
+export interface ObservationCatalog {
+  pillars: ObservationCatalogPillar[];
+  total_items: number;
+  max_total: number;
+}
+
+export interface ObservationPillarScore {
+  key: string;
+  label: string;
+  score: number;
+  max: number;
+  percentage: number;
+}
+
+export interface ObservationAlarm {
+  item_code: string;
+  text: string;
+  pillar_label: string;
+  score: number;
+}
+
+export interface ObservationRecord {
+  observation_id: string;
+  baby_id: string;
+  recorded_by: string;
+  recorder_name: string | null;
+  observation_time: string;
+  scores: Record<string, number>;
+  catatan: string | null;
+  total_score: number;
+  max_total: number;
+  percentage: number;
+  category: string | null;
+  pillars: ObservationPillarScore[];
+  alarms: ObservationAlarm[];
+  created_at: string;
+}
+
 export interface ManagedUser {
   id: string;
   role: Role;

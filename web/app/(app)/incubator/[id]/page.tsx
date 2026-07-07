@@ -93,10 +93,10 @@ export default function IncubatorDetailPage() {
                   {writable && (
                     <>
                       <Link
-                        href={`/baby/${babyId}/monitoring`}
+                        href={`/baby/${babyId}/observation`}
                         className="inline-flex items-center gap-2 rounded-xl border border-line px-4 py-2.5 text-sm font-bold text-ink hover:bg-surface"
                       >
-                        🩺 Monitoring
+                        🩺 Observasi 8 Pilar
                       </Link>
                       <Link
                         href={`/baby/${babyId}/involvement`}
