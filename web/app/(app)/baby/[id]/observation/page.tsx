@@ -85,7 +85,38 @@ export default function ObservationEntryPage() {
             }}
             className="flex flex-col gap-4"
           >
-            {/* live summary */}
+            <Card className="p-5">
+              <DateTimeField label="Waktu Observasi" value={obsTime} onChange={setObsTime} />
+            </Card>
+
+            {/* 8 pillars */}
+            {catalog.pillars.map((p, pi) => {
+              const ps = pillarScores[pi];
+              return (
+                <Card key={p.key} className="p-5">
+                  <div className="flex items-center justify-between">
+                    <SectionTitle>{`${pi + 1}. ${p.label}`}</SectionTitle>
+                    <span className="text-[13px] font-bold text-muted">{ps.score}/{ps.max} · {ps.percentage}%</span>
+                  </div>
+                  <div className="mt-3 flex flex-col gap-3">
+                    {p.items.map((it) => (
+                      <div key={it.item_code} className="flex flex-col gap-2 border-b border-line pb-3 last:border-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
+                        <span className="text-[13.5px] text-ink sm:max-w-[62%]">{it.text}</span>
+                        <ScoreChips value={scores[it.item_code] ?? null} onChange={(v) => setScore(it.item_code, v)} min={0} max={3} />
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              );
+            })}
+
+            <Card className="p-5">
+              <Field label="Catatan (opsional)">
+                <TextArea rows={3} value={catatan} onChange={(e) => setCatatan(e.target.value)} placeholder="Temuan khusus / catatan observasi..." />
+              </Field>
+            </Card>
+
+            {/* live summary — di bagian akhir, setelah Catatan */}
             <Card className="p-5">
               <div className="flex items-center justify-between">
                 <SectionTitle>Ringkasan Skor</SectionTitle>
@@ -125,37 +156,6 @@ export default function ObservationEntryPage() {
                 </div>
                 {showRadar && <ObservationRadar pillars={pillarScores} />}
               </div>
-            </Card>
-
-            <Card className="p-5">
-              <DateTimeField label="Waktu Observasi" value={obsTime} onChange={setObsTime} />
-            </Card>
-
-            {/* 8 pillars */}
-            {catalog.pillars.map((p, pi) => {
-              const ps = pillarScores[pi];
-              return (
-                <Card key={p.key} className="p-5">
-                  <div className="flex items-center justify-between">
-                    <SectionTitle>{`${pi + 1}. ${p.label}`}</SectionTitle>
-                    <span className="text-[13px] font-bold text-muted">{ps.score}/{ps.max} · {ps.percentage}%</span>
-                  </div>
-                  <div className="mt-3 flex flex-col gap-3">
-                    {p.items.map((it) => (
-                      <div key={it.item_code} className="flex flex-col gap-2 border-b border-line pb-3 last:border-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
-                        <span className="text-[13.5px] text-ink sm:max-w-[62%]">{it.text}</span>
-                        <ScoreChips value={scores[it.item_code] ?? null} onChange={(v) => setScore(it.item_code, v)} min={0} max={3} />
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              );
-            })}
-
-            <Card className="p-5">
-              <Field label="Catatan (opsional)">
-                <TextArea rows={3} value={catatan} onChange={(e) => setCatatan(e.target.value)} placeholder="Temuan khusus / catatan observasi..." />
-              </Field>
             </Card>
 
             {mutation.isError && <Banner kind="error">Gagal menyimpan: {errorMessage(mutation.error)}</Banner>}
