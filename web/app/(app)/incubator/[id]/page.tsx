@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import type { BabyDetail, IncubatorDetail } from "@/lib/types";
+import type { BabyDetail, IncubatorDetail, ObservationRecord } from "@/lib/types";
 import { Card, StatusBadge, PageState, BackLink, SectionTitle } from "@/components/ui";
 import { formatDate, formatDateTime, genderLabel, canWrite } from "@/lib/format";
 import { useAuth } from "@/components/providers";
+import { ObservationSummaryCard } from "@/components/observation";
 
 export default function IncubatorDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -37,6 +38,14 @@ export default function IncubatorDetailPage() {
     enabled: !!babyId,
     queryFn: async () => (await api.get<BabyDetail>(`/babies/${babyId}`)).data,
   });
+
+  const observationQ = useQuery({
+    queryKey: ["observation", babyId],
+    enabled: !!babyId,
+    queryFn: async () =>
+      (await api.get<ObservationRecord[]>(`/babies/${babyId}/observation?limit=1`)).data,
+  });
+  const latestObservation = observationQ.data?.[0];
 
   return (
     <div>
@@ -79,6 +88,8 @@ export default function IncubatorDetailPage() {
                 </p>
               </Card>
             )}
+
+            {latestObservation && <ObservationSummaryCard record={latestObservation} />}
 
             {babyId && (
               <Card className="p-5">
