@@ -16,7 +16,6 @@ export const PILLAR_SHORT: Record<string, string> = {
   posisi: "Posisi",
   kulit: "Kulit",
   nutrisi: "Nutrisi",
-  keluarga: "Keluarga",
   lingkungan: "Lingkungan",
   kolaborasi: "Kolaborasi",
 };

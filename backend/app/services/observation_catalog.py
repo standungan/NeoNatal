@@ -1,9 +1,13 @@
 """
 Instrumen Observasi Perawatan Bayi Prematur — Delapan Pilar.
 
-Catalog of the 54 observation items across 8 pillars. Each item is scored 0–3
+Catalog of the observation items across 7 pillars (48 items), each scored 0–3
 (3 = sesuai standar … 0 = penyimpangan berat, tindakan segera). This module is
 the single source of truth; the API serves it to clients.
+
+Note: "Kerjasama dengan Keluarga" is intentionally NOT part of this clinical
+instrument — family collaboration is covered by the separate Keterlibatan Orang
+Tua (parent involvement) module.
 """
 
 # Each pillar: key, human label, and its ordered items as (item_code, text).
@@ -74,18 +78,6 @@ PILLARS: list[dict] = [
             "Berat badan meningkat sesuai target",
             "Tidak terdapat intoleransi nutrisi",
             "OGT terpasang dengan baik (bila ada)",
-        ],
-    },
-    {
-        "key": "keluarga",
-        "label": "Kerjasama dengan Keluarga",
-        "items": [
-            "Ibu memberikan ASI/perah ASI",
-            "Keluarga memahami kondisi bayi",
-            "Keluarga terlibat dalam PMK",
-            "Keluarga membantu perawatan dasar",
-            "Keluarga mengikuti edukasi",
-            "Keluarga memahami perawatan di rumah",
         ],
     },
     {
