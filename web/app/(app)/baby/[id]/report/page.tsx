@@ -126,7 +126,7 @@ function ObservationReportCard({ record }: { record: ObservationRecord }) {
   return (
     <Card className="p-5">
       <div className="flex items-center justify-between">
-        <SectionTitle>Observasi 8 Pilar</SectionTitle>
+        <SectionTitle>Monitoring Bayi</SectionTitle>
         <span className="text-xs text-muted">{formatDateTime(record.observation_time)}</span>
       </div>
       <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">

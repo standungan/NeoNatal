@@ -96,7 +96,7 @@ export default function IncubatorDetailPage() {
                         href={`/baby/${babyId}/observation`}
                         className="inline-flex items-center gap-2 rounded-xl border border-line px-4 py-2.5 text-sm font-bold text-ink hover:bg-surface"
                       >
-                        🩺 Observasi 8 Pilar
+                        🩺 Monitoring Bayi
                       </Link>
                       <Link
                         href={`/baby/${babyId}/involvement`}

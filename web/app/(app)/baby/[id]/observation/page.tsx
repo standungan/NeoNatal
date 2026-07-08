@@ -73,7 +73,7 @@ export default function ObservationEntryPage() {
   return (
     <div>
       <BackLink href={`/baby/${id}/report`} label="Kembali ke Laporan" />
-      <h1 className="mb-4 mt-3 text-xl font-extrabold text-ink">Observasi 8 Pilar</h1>
+      <h1 className="mb-4 mt-3 text-xl font-extrabold text-ink">Monitoring Bayi</h1>
 
       <PageState loading={catalogQ.isLoading} error={catalogQ.error} onRetry={() => catalogQ.refetch()}>
         {catalog && (
@@ -152,7 +152,7 @@ export default function ObservationEntryPage() {
 
             <div className="flex items-center justify-end gap-3">
               <span className="text-xs text-muted">{filled} / {totalItems} item terisi</span>
-              <SubmitButton loading={mutation.isPending} disabled={filled === 0}>Simpan Observasi</SubmitButton>
+              <SubmitButton loading={mutation.isPending} disabled={filled === 0}>Simpan Monitoring</SubmitButton>
             </div>
           </form>
         )}
