@@ -138,8 +138,9 @@ CREATE TABLE monitoring_records (
 
 -- =============================================================================
 -- TABLE: parent_involvement_records
--- Records nurse input of parent interaction with baby
--- skor_keterlibatan is stored (calculated in service layer before insert)
+-- Keterlibatan Orang Tua = PILAR 6 "Kerjasama dengan Keluarga" (6 items, 0–3).
+-- Item scores stored as JSONB { item_code: 0..3 }; the catalog lives in code.
+-- total_score/percentage/category are computed in the service before insert.
 -- =============================================================================
 
 CREATE TABLE parent_involvement_records (
@@ -147,20 +148,15 @@ CREATE TABLE parent_involvement_records (
     baby_id                 UUID NOT NULL REFERENCES babies(baby_id),
     recorded_by             UUID NOT NULL REFERENCES users(id),
     observation_time        TIMESTAMPTZ NOT NULL,
+    scores                  JSONB NOT NULL DEFAULT '{}'::jsonb,   -- { item_code: 0..3 }
+    catatan                 TEXT,
+    -- optional contextual fields (not part of the pillar scoring)
     durasi_menyusui         SMALLINT,            -- minutes (informational)
     durasi_interaksi        SMALLINT,            -- minutes (informational)
-    -- Pillar 8 sub-domains, each rated 0–4 (0=tidak ada … 4=konsisten)
-    presence_score                SMALLINT CHECK (presence_score BETWEEN 0 AND 4),
-    physical_interaction_score    SMALLINT CHECK (physical_interaction_score BETWEEN 0 AND 4),
-    feeding_participation_score   SMALLINT CHECK (feeding_participation_score BETWEEN 0 AND 4),
-    care_participation_score      SMALLINT CHECK (care_participation_score BETWEEN 0 AND 4),
-    knowledge_score               SMALLINT CHECK (knowledge_score BETWEEN 0 AND 4),
-    communication_score           SMALLINT CHECK (communication_score BETWEEN 0 AND 4),
-    emotional_readiness_score     SMALLINT CHECK (emotional_readiness_score BETWEEN 0 AND 4),
-    discharge_readiness_score     SMALLINT CHECK (discharge_readiness_score BETWEEN 0 AND 4),
-    catatan                 TEXT,
-    skor_keterlibatan       SMALLINT CHECK (skor_keterlibatan BETWEEN 0 AND 100),  -- PEI, computed from domains
     kondisi_bayi            VARCHAR(255),
+    total_score             INTEGER NOT NULL DEFAULT 0,           -- 0..18
+    percentage              NUMERIC(5, 2) NOT NULL DEFAULT 0,     -- 0..100
+    category                VARCHAR(30),                          -- Sangat Baik … Sangat Kurang
     created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

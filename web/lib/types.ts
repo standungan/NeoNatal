@@ -135,33 +135,59 @@ export interface BabyDetail {
 
 export interface InvolvementSummary {
   total_sessions: number;
-  avg_skor: number | null;
+  avg_percentage: number | null;
+  latest_percentage: number | null;
+  latest_category: string | null;
   avg_durasi_menyusui: number | null;
   avg_durasi_interaksi: number | null;
-  latest_skor: number | null;
-  latest_kategori: string | null;
+}
+
+// ── Keterlibatan Orang Tua — Pilar 6 "Kerjasama dengan Keluarga" ─────────────
+
+export interface InvolvementCatalogItem {
+  item_code: string;
+  text: string;
+}
+
+export interface InvolvementCatalog {
+  key: string;
+  label: string;
+  items: InvolvementCatalogItem[];
+  total_items: number;
+  max_total: number;
+}
+
+export interface InvolvementItemScore {
+  item_code: string;
+  text: string;
+  score: number;
+  max: number;
+  percentage: number;
+}
+
+export interface InvolvementAlarm {
+  item_code: string;
+  text: string;
+  score: number;
 }
 
 export interface InvolvementRecord {
   involvement_id: string;
   baby_id: string;
+  recorded_by: string;
   recorder_name: string | null;
   observation_time: string;
+  scores: Record<string, number>;
+  catatan: string | null;
   durasi_menyusui: number | null;
   durasi_interaksi: number | null;
-  // Pillar 8 sub-domains (0–4 each)
-  presence_score: number | null;
-  physical_interaction_score: number | null;
-  feeding_participation_score: number | null;
-  care_participation_score: number | null;
-  knowledge_score: number | null;
-  communication_score: number | null;
-  emotional_readiness_score: number | null;
-  discharge_readiness_score: number | null;
-  catatan: string | null;
-  skor_keterlibatan: number | null;
-  skor_kategori: string | null;
   kondisi_bayi: string | null;
+  total_score: number;
+  max_total: number;
+  percentage: number;
+  category: string | null;
+  items: InvolvementItemScore[];
+  alarms: InvolvementAlarm[];
   created_at: string;
 }
 

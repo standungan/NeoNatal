@@ -13,10 +13,11 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { api } from "@/lib/api";
-import type { BabyReport, MonitoringRecord, InvolvementRecord, ObservationRecord } from "@/lib/types";
+import type { BabyReport, MonitoringRecord, ObservationRecord } from "@/lib/types";
 import { Card, PageState, BackLink, SectionTitle } from "@/components/ui";
 import { formatDateTime, genderLabel } from "@/lib/format";
 import { ObservationSummaryCard } from "@/components/observation";
+import { InvolvementSummaryCard } from "@/components/involvement";
 
 export default function ReportPage() {
   const { id } = useParams<{ id: string }>();
@@ -78,10 +79,10 @@ export default function ReportPage() {
               <LatestVitalsCard vitals={data.baby.latest_vitals} />
             )}
 
-            <InvolvementCard summary={data.involvement_summary} />
+            <InvolvementStatsCard summary={data.involvement_summary} />
 
             {data.involvement_history.length > 0 && (
-              <PillarDomainCard record={data.involvement_history[0]} />
+              <InvolvementSummaryCard record={data.involvement_history[0]} />
             )}
 
             <HistoryCard records={data.monitoring_history} />
@@ -166,7 +167,7 @@ function VitalTile({ label, value }: { label: string; value: string }) {
   );
 }
 
-function InvolvementCard({
+function InvolvementStatsCard({
   summary,
 }: {
   summary: BabyReport["involvement_summary"];
@@ -174,61 +175,22 @@ function InvolvementCard({
   return (
     <Card className="p-5">
       <SectionTitle>Keterlibatan Orang Tua</SectionTitle>
-      <div className="mt-3 flex items-center gap-3">
-        <span className="text-4xl font-extrabold text-primary">
-          {summary.latest_skor ?? "-"}
-        </span>
-        <span className="text-lg text-muted">/ 100</span>
-        {summary.latest_kategori && (
-          <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">
-            {summary.latest_kategori}
+      <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+        <div>
+          <span className="text-muted">Total sesi: </span>
+          <span className="font-bold text-ink">{summary.total_sessions}</span>
+        </div>
+        <div>
+          <span className="text-muted">Rata-rata: </span>
+          <span className="font-bold text-ink">
+            {summary.avg_percentage != null ? `${summary.avg_percentage.toFixed(1)}%` : "-"}
+          </span>
+        </div>
+        {summary.latest_category && (
+          <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+            Terakhir: {summary.latest_category}
           </span>
         )}
-      </div>
-      <p className="mt-2 text-xs text-muted">
-        Total sesi: {summary.total_sessions} · Rata-rata:{" "}
-        {summary.avg_skor != null ? summary.avg_skor.toFixed(1) : "-"}
-      </p>
-    </Card>
-  );
-}
-
-const PILLAR_DOMAINS: { key: keyof InvolvementRecord; label: string }[] = [
-  { key: "presence_score", label: "Kehadiran" },
-  { key: "physical_interaction_score", label: "Interaksi Fisik" },
-  { key: "feeding_participation_score", label: "Partisipasi Menyusui" },
-  { key: "care_participation_score", label: "Partisipasi Perawatan" },
-  { key: "knowledge_score", label: "Pengetahuan" },
-  { key: "communication_score", label: "Komunikasi" },
-  { key: "emotional_readiness_score", label: "Kesiapan Emosional" },
-  { key: "discharge_readiness_score", label: "Kesiapan Pulang" },
-];
-
-function PillarDomainCard({ record }: { record: InvolvementRecord }) {
-  return (
-    <Card className="p-5">
-      <SectionTitle>Rincian Keterlibatan (8 Domain FICare)</SectionTitle>
-      <p className="mt-1 text-xs text-muted">
-        Penilaian terakhir · {formatDateTime(record.observation_time)}
-      </p>
-      <div className="mt-4 flex flex-col gap-3">
-        {PILLAR_DOMAINS.map(({ key, label }) => {
-          const score = (record[key] as number | null) ?? 0;
-          return (
-            <div key={key} className="flex items-center gap-3">
-              <span className="w-40 shrink-0 text-[13px] text-ink">{label}</span>
-              <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#eef2f7]">
-                <div
-                  className="h-full rounded-full bg-primary"
-                  style={{ width: `${(score / 4) * 100}%` }}
-                />
-              </div>
-              <span className="w-8 shrink-0 text-right text-[13px] font-bold text-ink">
-                {record[key] != null ? `${score}/4` : "-"}
-              </span>
-            </div>
-          );
-        })}
       </div>
     </Card>
   );
