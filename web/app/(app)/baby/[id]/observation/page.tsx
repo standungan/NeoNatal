@@ -32,7 +32,6 @@ export default function ObservationEntryPage() {
   const [obsTime, setObsTime] = useState(localNow());
   const [catatan, setCatatan] = useState("");
   const [scores, setScores] = useState<Record<string, number>>({});
-  const [showRadar, setShowRadar] = useState(false);
   const setScore = (code: string, v: number) => setScores((s) => ({ ...s, [code]: v }));
 
   const catalog = catalogQ.data;
@@ -118,17 +117,8 @@ export default function ObservationEntryPage() {
 
             {/* live summary — di bagian akhir, setelah Catatan */}
             <Card className="p-5">
-              <div className="flex items-center justify-between">
-                <SectionTitle>Ringkasan Skor</SectionTitle>
-                <button
-                  type="button"
-                  onClick={() => setShowRadar((v) => !v)}
-                  className="text-[13px] font-semibold text-primary hover:underline"
-                >
-                  {showRadar ? "Sembunyikan radar ▲" : "Tampilkan radar ▼"}
-                </button>
-              </div>
-              <div className={`mt-3 grid grid-cols-1 gap-4 ${showRadar ? "md:grid-cols-2" : ""}`}>
+              <SectionTitle>Ringkasan Skor</SectionTitle>
+              <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <div className="flex items-end gap-3">
                     <span className={`text-5xl font-extrabold ${categoryColor(category)}`}>{pct}%</span>
@@ -154,7 +144,7 @@ export default function ObservationEntryPage() {
                     </div>
                   )}
                 </div>
-                {showRadar && <ObservationRadar pillars={pillarScores} />}
+                <ObservationRadar pillars={pillarScores} />
               </div>
             </Card>
 
