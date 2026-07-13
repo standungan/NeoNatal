@@ -250,6 +250,52 @@ export interface ObservationRecord {
   created_at: string;
 }
 
+// ── Menu Aksi — Pilar 8 "Kolaborasi Interprofesional" ───────────────────────
+
+export interface AksiCatalogItem {
+  item_code: string;
+  text: string;
+}
+
+export interface AksiCatalog {
+  key: string;
+  label: string;
+  items: AksiCatalogItem[];
+  total_items: number;
+  max_total: number;
+}
+
+export interface AksiItemScore {
+  item_code: string;
+  text: string;
+  score: number;
+  max: number;
+  percentage: number;
+}
+
+export interface AksiAlarm {
+  item_code: string;
+  text: string;
+  score: number;
+}
+
+export interface AksiRecord {
+  aksi_id: string;
+  baby_id: string;
+  recorded_by: string;
+  recorder_name: string | null;
+  observation_time: string;
+  scores: Record<string, number>;
+  catatan: string | null;
+  total_score: number;
+  max_total: number;
+  percentage: number;
+  category: string | null;
+  items: AksiItemScore[];
+  alarms: AksiAlarm[];
+  created_at: string;
+}
+
 export interface ManagedUser {
   id: string;
   role: Role;

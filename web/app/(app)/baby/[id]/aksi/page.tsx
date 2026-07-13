@@ -15,18 +15,18 @@ import {
   localNow,
   errorMessage,
 } from "@/components/form";
-import { ObservationRadar, categoryColor, categoryFor } from "@/components/observation";
-import type { ObservationCatalog, ObservationRecord } from "@/lib/types";
+import { AksiRadar, categoryColor, categoryFor } from "@/components/aksi";
+import type { AksiCatalog, AksiRecord } from "@/lib/types";
 
-export default function ObservationEntryPage() {
+export default function AksiEntryPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const qc = useQueryClient();
 
   const catalogQ = useQuery({
-    queryKey: ["observation-catalog"],
+    queryKey: ["aksi-catalog"],
     staleTime: Infinity,
-    queryFn: async () => (await api.get<ObservationCatalog>("/observation/catalog")).data,
+    queryFn: async () => (await api.get<AksiCatalog>("/aksi/catalog")).data,
   });
 
   const [obsTime, setObsTime] = useState(localNow());
@@ -43,37 +43,35 @@ export default function ObservationEntryPage() {
         scores,
         catatan: catatan.trim() || null,
       };
-      return (await api.post<ObservationRecord>(`/babies/${id}/observation`, body)).data;
+      return (await api.post<AksiRecord>(`/babies/${id}/aksi`, body)).data;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["dashboard"] });
-      qc.invalidateQueries({ queryKey: ["observation", id] });
+      qc.invalidateQueries({ queryKey: ["aksi", id] });
       qc.invalidateQueries({ queryKey: ["report", id] });
       router.push(`/baby/${id}/report`);
     },
   });
 
   // ── live scoring ──────────────────────────────────────────────────────────
-  const pillarScores = (catalog?.pillars ?? []).map((p) => {
-    const codes = p.items.map((it) => it.item_code);
-    const raw = codes.reduce((s, c) => s + (scores[c] ?? 0), 0);
-    const max = codes.length * 3;
-    return { key: p.key, label: p.label, score: raw, max, percentage: max ? Math.round((raw / max) * 1000) / 10 : 0 };
-  });
-  const total = pillarScores.reduce((s, p) => s + p.score, 0);
-  const maxTotal = catalog?.max_total ?? 126;
+  const items = (catalog?.items ?? []).map((it) => ({
+    item_code: it.item_code,
+    text: it.text,
+    score: scores[it.item_code] ?? 0,
+  }));
+  const total = items.reduce((s, it) => s + it.score, 0);
+  const maxTotal = catalog?.max_total ?? 18;
   const pct = Math.round((total / maxTotal) * 1000) / 10;
   const category = categoryFor(pct);
   const filled = Object.keys(scores).length;
-  const totalItems = catalog?.total_items ?? 42;
-  const alarms = (catalog?.pillars ?? []).flatMap((p) =>
-    p.items.filter((it) => scores[it.item_code] != null && scores[it.item_code] <= 1),
+  const totalItems = catalog?.total_items ?? 6;
+  const alarms = (catalog?.items ?? []).filter(
+    (it) => scores[it.item_code] != null && scores[it.item_code] <= 1,
   );
 
   return (
     <div>
       <BackLink href={`/baby/${id}/report`} label="Kembali ke Laporan" />
-      <h1 className="mb-4 mt-3 text-xl font-extrabold text-ink">Monitoring Bayi</h1>
+      <h1 className="mb-4 mt-3 text-xl font-extrabold text-ink">Kolaborasi Interprofesional</h1>
 
       <PageState loading={catalogQ.isLoading} error={catalogQ.error} onRetry={() => catalogQ.refetch()}>
         {catalog && (
@@ -84,38 +82,35 @@ export default function ObservationEntryPage() {
             }}
             className="flex flex-col gap-4"
           >
-            <Card className="p-5">
+            <Card className="flex flex-col gap-4 p-5">
               <DateTimeField label="Waktu Observasi" value={obsTime} onChange={setObsTime} />
+              <p className="text-[12px] text-muted">
+                {catalog.label}. Nilai tiap item 0–3 (0 = penyimpangan berat · 1 = sedang · 2 = ringan · 3 = sesuai standar).
+              </p>
             </Card>
 
-            {/* 8 pillars */}
-            {catalog.pillars.map((p, pi) => {
-              const ps = pillarScores[pi];
-              return (
-                <Card key={p.key} className="p-5">
-                  <div className="flex items-center justify-between">
-                    <SectionTitle>{`${pi + 1}. ${p.label}`}</SectionTitle>
-                    <span className="text-[13px] font-bold text-muted">{ps.score}/{ps.max} · {ps.percentage}%</span>
+            <Card className="p-5">
+              <div className="flex items-center justify-between">
+                <SectionTitle>{catalog.label}</SectionTitle>
+                <span className="text-[13px] font-bold text-muted">{total}/{maxTotal} · {pct}%</span>
+              </div>
+              <div className="mt-3 flex flex-col gap-3">
+                {catalog.items.map((it, i) => (
+                  <div key={it.item_code} className="flex flex-col gap-2 border-b border-line pb-3 last:border-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
+                    <span className="text-[13.5px] text-ink sm:max-w-[62%]">{i + 1}. {it.text}</span>
+                    <ScoreChips value={scores[it.item_code] ?? null} onChange={(v) => setScore(it.item_code, v)} min={0} max={3} />
                   </div>
-                  <div className="mt-3 flex flex-col gap-3">
-                    {p.items.map((it) => (
-                      <div key={it.item_code} className="flex flex-col gap-2 border-b border-line pb-3 last:border-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
-                        <span className="text-[13.5px] text-ink sm:max-w-[62%]">{it.text}</span>
-                        <ScoreChips value={scores[it.item_code] ?? null} onChange={(v) => setScore(it.item_code, v)} min={0} max={3} />
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              );
-            })}
+                ))}
+              </div>
+            </Card>
 
             <Card className="p-5">
               <Field label="Catatan (opsional)">
-                <TextArea rows={3} value={catatan} onChange={(e) => setCatatan(e.target.value)} placeholder="Temuan khusus / catatan observasi..." />
+                <TextArea rows={3} value={catatan} onChange={(e) => setCatatan(e.target.value)} placeholder="Catatan kolaborasi & handover..." />
               </Field>
             </Card>
 
-            {/* live summary — di bagian akhir, setelah Catatan */}
+            {/* live summary */}
             <Card className="p-5">
               <SectionTitle>Ringkasan Skor</SectionTitle>
               <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -129,22 +124,18 @@ export default function ObservationEntryPage() {
                   <p className="mt-1 text-xs text-muted">
                     {total} / {maxTotal} poin · {filled} / {totalItems} item terisi
                   </p>
-                  <p className="mt-3 text-[11px] text-muted">
-                    Skala 0–3 per item: <b>0</b> berat · <b>1</b> sedang · <b>2</b> ringan · <b>3</b> normal
-                  </p>
                   {alarms.length > 0 && (
                     <div className="mt-3 rounded-xl border border-danger/30 bg-danger/5 p-3">
                       <p className="text-[13px] font-bold text-danger">⚠ {alarms.length} item perlu perhatian (skor 0–1)</p>
-                      <ul className="mt-1 max-h-28 overflow-auto text-[12px] text-ink">
-                        {alarms.slice(0, 8).map((a) => (
+                      <ul className="mt-1 text-[12px] text-ink">
+                        {alarms.map((a) => (
                           <li key={a.item_code} className="truncate">• {a.text}</li>
                         ))}
-                        {alarms.length > 8 && <li className="text-muted">…dan {alarms.length - 8} lainnya</li>}
                       </ul>
                     </div>
                   )}
                 </div>
-                <ObservationRadar pillars={pillarScores} />
+                <AksiRadar items={items} />
               </div>
             </Card>
 
@@ -152,7 +143,7 @@ export default function ObservationEntryPage() {
 
             <div className="flex items-center justify-end gap-3">
               <span className="text-xs text-muted">{filled} / {totalItems} item terisi</span>
-              <SubmitButton loading={mutation.isPending} disabled={filled === 0}>Simpan Monitoring</SubmitButton>
+              <SubmitButton loading={mutation.isPending} disabled={filled === 0}>Simpan Aksi</SubmitButton>
             </div>
           </form>
         )}

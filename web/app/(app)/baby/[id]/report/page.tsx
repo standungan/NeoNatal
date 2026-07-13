@@ -13,11 +13,12 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { api } from "@/lib/api";
-import type { BabyReport, MonitoringRecord, ObservationRecord } from "@/lib/types";
+import type { BabyReport, MonitoringRecord, ObservationRecord, AksiRecord } from "@/lib/types";
 import { Card, PageState, BackLink, SectionTitle } from "@/components/ui";
 import { formatDateTime, genderLabel } from "@/lib/format";
 import { ObservationSummaryCard } from "@/components/observation";
 import { InvolvementSummaryCard } from "@/components/involvement";
+import { AksiSummaryCard } from "@/components/aksi";
 
 export default function ReportPage() {
   const { id } = useParams<{ id: string }>();
@@ -34,6 +35,13 @@ export default function ReportPage() {
       (await api.get<ObservationRecord[]>(`/babies/${id}/observation?limit=1`)).data,
   });
   const latestObservation = observationQ.data?.[0];
+
+  const aksiQ = useQuery({
+    queryKey: ["aksi", id],
+    queryFn: async () =>
+      (await api.get<AksiRecord[]>(`/babies/${id}/aksi?limit=1`)).data,
+  });
+  const latestAksi = aksiQ.data?.[0];
 
   return (
     <div>
@@ -84,6 +92,8 @@ export default function ReportPage() {
             {data.involvement_history.length > 0 && (
               <InvolvementSummaryCard record={data.involvement_history[0]} />
             )}
+
+            {latestAksi && <AksiSummaryCard record={latestAksi} />}
 
             <HistoryCard records={data.monitoring_history} />
 
