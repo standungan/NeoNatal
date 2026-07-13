@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:neonatal_care/core/providers/auth_provider.dart';
 import 'package:neonatal_care/features/admin/screens/audit_log_screen.dart';
 import 'package:neonatal_care/features/admin/screens/user_management_screen.dart';
+import 'package:neonatal_care/features/aksi/screens/aksi_screen.dart';
 import 'package:neonatal_care/features/auth/screens/login_screen.dart';
 import 'package:neonatal_care/features/baby/screens/register_baby_screen.dart';
 import 'package:neonatal_care/features/dashboard/screens/dashboard_screen.dart';
@@ -44,6 +45,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/baby/:id/involvement',
         builder: (_, state) =>
             InvolvementScreen(babyId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/baby/:id/aksi',
+        builder: (_, state) =>
+            AksiScreen(babyId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/baby/:id/report',

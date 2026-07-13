@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:neonatal_care/core/api/api_client.dart';
 import 'package:neonatal_care/core/api/api_endpoints.dart';
+import 'package:neonatal_care/core/models/scoring.dart';
 import 'package:neonatal_care/core/theme/app_theme.dart';
 import 'package:neonatal_care/core/widgets/status_badge.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -16,6 +17,20 @@ final _reportProvider =
   },
 );
 
+/// Latest Menu Aksi (Kolaborasi Interprofesional) record — the report endpoint
+/// does not include aksi, so it is fetched separately.
+final _aksiProvider =
+    FutureProvider.autoDispose.family<Map<String, dynamic>?, String>(
+  (ref, babyId) async {
+    final res = await ApiClient().dio.get(
+      ApiEndpoints.aksi(babyId),
+      queryParameters: {'limit': 1},
+    );
+    final list = (res.data as List).cast<Map<String, dynamic>>();
+    return list.isEmpty ? null : list.first;
+  },
+);
+
 class ReportScreen extends ConsumerWidget {
   final String babyId;
   const ReportScreen({super.key, required this.babyId});
@@ -23,6 +38,7 @@ class ReportScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final reportAsync = ref.watch(_reportProvider(babyId));
+    final aksiAsync = ref.watch(_aksiProvider(babyId));
 
     return Scaffold(
       appBar: AppBar(
@@ -64,6 +80,12 @@ class ReportScreen extends ConsumerWidget {
                     const SizedBox(height: 12),
                     _InvolvementDomainsCard(record: involvementHistory.first),
                   ],
+                  ...aksiAsync.maybeWhen(
+                    data: (rec) => rec == null
+                        ? const []
+                        : [const SizedBox(height: 12), _AksiCard(record: rec)],
+                    orElse: () => const [],
+                  ),
                   const SizedBox(height: 12),
                   _MonitoringHistoryCard(records: monitoring),
                   const SizedBox(height: 12),
@@ -229,8 +251,8 @@ class _InvolvementCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final skor = summary['latest_skor'];
-    final kategori = summary['latest_kategori'] ?? '-';
+    final pct = summary['latest_percentage'];
+    final kategori = summary['latest_category'] ?? '-';
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -243,26 +265,23 @@ class _InvolvementCard extends StatelessWidget {
             Row(
               children: [
                 Text(
-                  skor != null ? '$skor' : '-',
+                  pct != null ? '${(pct as num).toStringAsFixed(1)}%' : '-',
                   style: const TextStyle(
                       fontSize: 36,
                       fontWeight: FontWeight.bold,
                       color: AppColors.primary),
                 ),
-                if (skor != null)
-                  const Text(' / 100',
-                      style: TextStyle(fontSize: 18, color: AppColors.inkMuted)),
                 const SizedBox(width: 12),
                 Chip(
                   label: Text(kategori),
-                  backgroundColor: AppColors.primary.withValues(alpha:0.1),
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                   labelStyle: const TextStyle(color: AppColors.primary),
                 ),
               ],
             ),
             Text(
               'Total sesi: ${summary['total_sessions']}  •  '
-              'Rata-rata: ${summary['avg_skor']?.toStringAsFixed(1) ?? '-'}',
+              'Rata-rata: ${(summary['avg_percentage'] as num?)?.toStringAsFixed(1) ?? '-'}%',
               style: const TextStyle(color: AppColors.inkMuted, fontSize: 12),
             ),
           ],
@@ -276,45 +295,37 @@ class _InvolvementDomainsCard extends StatelessWidget {
   final Map<String, dynamic> record;
   const _InvolvementDomainsCard({required this.record});
 
-  static const _domains = [
-    ['presence_score', 'Kehadiran'],
-    ['physical_interaction_score', 'Interaksi Fisik'],
-    ['feeding_participation_score', 'Partisipasi Menyusui'],
-    ['care_participation_score', 'Partisipasi Perawatan'],
-    ['knowledge_score', 'Pengetahuan'],
-    ['communication_score', 'Komunikasi Klinis'],
-    ['emotional_readiness_score', 'Kesiapan Emosional'],
-    ['discharge_readiness_score', 'Kesiapan Pulang'],
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final items =
+        (record['items'] as List?)?.cast<Map<String, dynamic>>() ?? [];
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Rincian Keterlibatan (8 Domain FICare)',
+            const Text('Rincian Keterlibatan (Pilar 6 - Kerjasama dengan Keluarga)',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
             const SizedBox(height: 12),
-            ..._domains.map((d) {
-              final v = record[d[0]];
-              final frac = (v is num) ? (v / 4).clamp(0.0, 1.0) : 0.0;
+            ...items.map((it) {
+              final score = (it['score'] as num?) ?? 0;
+              final max = (it['max'] as num?) ?? 3;
+              final frac = max == 0 ? 0.0 : (score / max).clamp(0.0, 1.0);
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 5),
                 child: Row(
                   children: [
                     SizedBox(
                       width: 150,
-                      child: Text(d[1],
+                      child: Text('${it['text']}',
                           style: const TextStyle(fontSize: 13, color: AppColors.ink)),
                     ),
                     Expanded(
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(6),
                         child: LinearProgressIndicator(
-                          value: frac,
+                          value: frac.toDouble(),
                           minHeight: 8,
                           backgroundColor: const Color(0xFFEEF2F7),
                           valueColor: const AlwaysStoppedAnimation(AppColors.primary),
@@ -323,7 +334,90 @@ class _InvolvementDomainsCard extends StatelessWidget {
                     ),
                     SizedBox(
                       width: 34,
-                      child: Text(v != null ? '$v/4' : '-',
+                      child: Text('$score/$max',
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.ink)),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AksiCard extends StatelessWidget {
+  final Map<String, dynamic> record;
+  const _AksiCard({required this.record});
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = (record['percentage'] as num?)?.toDouble() ?? 0;
+    final category = '${record['category'] ?? categoryFor(pct)}';
+    final color = categoryColor(category);
+    final items = (record['items'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Kolaborasi Interprofesional',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            const Text('Menu Aksi — Pilar 8',
+                style: TextStyle(fontSize: 11, color: AppColors.inkMuted)),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Text('${pct.toStringAsFixed(1)}%',
+                    style: TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                        color: color)),
+                const SizedBox(width: 12),
+                Chip(
+                  label: Text(category),
+                  backgroundColor: color.withValues(alpha: 0.1),
+                  labelStyle: TextStyle(color: color),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ...items.map((it) {
+              final score = (it['score'] as num?) ?? 0;
+              final max = (it['max'] as num?) ?? 3;
+              final frac = max == 0 ? 0.0 : (score / max).clamp(0.0, 1.0);
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 5),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 150,
+                      child: Text('${it['text']}',
+                          style: const TextStyle(
+                              fontSize: 13, color: AppColors.ink)),
+                    ),
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: LinearProgressIndicator(
+                          value: frac.toDouble(),
+                          minHeight: 8,
+                          backgroundColor: const Color(0xFFEEF2F7),
+                          valueColor:
+                              const AlwaysStoppedAnimation(AppColors.primary),
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      width: 34,
+                      child: Text('$score/$max',
                           textAlign: TextAlign.right,
                           style: const TextStyle(
                               fontSize: 12,

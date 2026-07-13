@@ -274,12 +274,14 @@ class _ActionMenu extends StatelessWidget {
     const actions = [
       ('Monitoring',        Icons.monitor_heart,  AppColors.primary),
       ('Keterlibatan OT',   Icons.people,          AppColors.normal),
+      ('Kolaborasi',        Icons.groups,          Color(0xFF14B8A6)),
       ('Lihat Laporan',     Icons.bar_chart,       Color(0xFF8B5CF6)),
     ];
 
     final routes = [
       '/baby/$babyId/monitoring',
       '/baby/$babyId/involvement',
+      '/baby/$babyId/aksi',
       '/baby/$babyId/report',
     ];
 

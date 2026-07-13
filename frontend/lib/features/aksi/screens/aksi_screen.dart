@@ -4,38 +4,31 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:neonatal_care/core/api/api_client.dart';
 import 'package:neonatal_care/core/api/api_endpoints.dart';
-import 'package:neonatal_care/core/models/involvement_model.dart';
+import 'package:neonatal_care/core/models/aksi_model.dart';
 import 'package:neonatal_care/core/models/scoring.dart';
 import 'package:neonatal_care/core/theme/app_theme.dart';
 import 'package:neonatal_care/core/widgets/score_chips.dart';
 
-/// Keterlibatan Orang Tua — Pilar 6 "Kerjasama dengan Keluarga" (6 items, 0–3).
-class InvolvementScreen extends ConsumerStatefulWidget {
+/// Menu Aksi — Pilar 8 "Kolaborasi Interprofesional" (6 items, 0–3).
+class AksiScreen extends ConsumerStatefulWidget {
   final String babyId;
-  const InvolvementScreen({super.key, required this.babyId});
+  const AksiScreen({super.key, required this.babyId});
 
   @override
-  ConsumerState<InvolvementScreen> createState() => _InvolvementScreenState();
+  ConsumerState<AksiScreen> createState() => _AksiScreenState();
 }
 
-class _InvolvementScreenState extends ConsumerState<InvolvementScreen> {
+class _AksiScreenState extends ConsumerState<AksiScreen> {
   final _formKey = GlobalKey<FormState>();
   DateTime _obsTime = DateTime.now();
 
   final Map<String, int> _scores = {};
-
-  // Optional supplementary context
-  final _menyusuiCtrl = TextEditingController();
-  final _interaksiCtrl = TextEditingController();
   final _catatanCtrl = TextEditingController();
-  String? _kondisiBayi;
   bool _loading = false;
   String? _error;
 
   @override
   void dispose() {
-    _menyusuiCtrl.dispose();
-    _interaksiCtrl.dispose();
     _catatanCtrl.dispose();
     super.dispose();
   }
@@ -48,20 +41,17 @@ class _InvolvementScreenState extends ConsumerState<InvolvementScreen> {
     });
     try {
       await ApiClient().dio.post(
-        ApiEndpoints.involvement(widget.babyId),
+        ApiEndpoints.aksi(widget.babyId),
         data: {
           'observation_time': _obsTime.toIso8601String(),
           'scores': _scores,
           'catatan':
               _catatanCtrl.text.trim().isEmpty ? null : _catatanCtrl.text.trim(),
-          'durasi_menyusui': int.tryParse(_menyusuiCtrl.text),
-          'durasi_interaksi': int.tryParse(_interaksiCtrl.text),
-          'kondisi_bayi': _kondisiBayi,
         },
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Keterlibatan orang tua berhasil disimpan'),
+          content: Text('Kolaborasi interprofesional berhasil disimpan'),
           backgroundColor: AppColors.normal,
         ));
         context.pop();
@@ -76,15 +66,15 @@ class _InvolvementScreenState extends ConsumerState<InvolvementScreen> {
   @override
   Widget build(BuildContext context) {
     final total = _scores.values.fold<int>(0, (s, v) => s + v);
-    final pct = percentageFor(total, kInvolvementMaxTotal);
+    final pct = percentageFor(total, kAksiMaxTotal);
     final category = categoryFor(pct);
     final scoreColor = categoryColor(category);
-    final alarms = kInvolvementItems
+    final alarms = kAksiItems
         .where((it) => _scores[it[0]] != null && _scores[it[0]]! <= 1)
         .toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Keterlibatan Orang Tua')),
+      appBar: AppBar(title: const Text('Kolaborasi Interprofesional')),
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -111,20 +101,20 @@ class _InvolvementScreenState extends ConsumerState<InvolvementScreen> {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Pilar 6 — Kerjasama dengan Keluarga. Nilai tiap item 0–3 '
+                'Menu Aksi — Kolaborasi Interprofesional. Nilai tiap item 0–3 '
                 '(0 = penyimpangan berat · 1 = sedang · 2 = ringan · 3 = sesuai standar).',
                 style: TextStyle(fontSize: 11.5, color: AppColors.inkMuted),
               ),
               const SizedBox(height: 18),
 
-              // ── 6 Pillar-6 items ────────────────────────────────────────
-              for (var i = 0; i < kInvolvementItems.length; i++)
+              // ── 6 Pillar-8 items ────────────────────────────────────────
+              for (var i = 0; i < kAksiItems.length; i++)
                 _ItemTile(
                   index: i + 1,
-                  title: kInvolvementItems[i][1],
-                  value: _scores[kInvolvementItems[i][0]],
+                  title: kAksiItems[i][1],
+                  value: _scores[kAksiItems[i][0]],
                   onChanged: (v) =>
-                      setState(() => _scores[kInvolvementItems[i][0]] = v),
+                      setState(() => _scores[kAksiItems[i][0]] = v),
                 ),
               const SizedBox(height: 8),
 
@@ -165,7 +155,7 @@ class _InvolvementScreenState extends ConsumerState<InvolvementScreen> {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text('$total / $kInvolvementMaxTotal poin',
+                    Text('$total / $kAksiMaxTotal poin',
                         style: const TextStyle(
                             fontSize: 12, color: AppColors.inkMuted)),
                     if (alarms.isNotEmpty) ...[
@@ -185,50 +175,12 @@ class _InvolvementScreenState extends ConsumerState<InvolvementScreen> {
               ),
               const SizedBox(height: 20),
 
-              // optional context
-              const _SectionTitle('Konteks (Opsional)'),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _menyusuiCtrl,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                          labelText: 'Durasi menyusui', suffixText: 'menit'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _interaksiCtrl,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                          labelText: 'Durasi interaksi', suffixText: 'menit'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _kondisiBayi,
-                hint: const Text('Kondisi bayi saat interaksi'),
-                decoration: const InputDecoration(),
-                items: const [
-                  DropdownMenuItem(value: 'Tenang', child: Text('Tenang')),
-                  DropdownMenuItem(value: 'Aktif', child: Text('Aktif')),
-                  DropdownMenuItem(value: 'Rewel', child: Text('Rewel')),
-                  DropdownMenuItem(value: 'Tidur', child: Text('Tidur')),
-                ],
-                onChanged: (v) => setState(() => _kondisiBayi = v),
-              ),
-              const SizedBox(height: 20),
-
               const _SectionTitle('Catatan (Opsional)'),
               TextFormField(
                 controller: _catatanCtrl,
                 maxLines: 3,
                 decoration: const InputDecoration(
-                    hintText: 'Catatan kerjasama & keterlibatan keluarga...'),
+                    hintText: 'Catatan kolaborasi & handover...'),
               ),
 
               if (_error != null) ...[
@@ -245,7 +197,7 @@ class _InvolvementScreenState extends ConsumerState<InvolvementScreen> {
                         width: 20,
                         child: CircularProgressIndicator(
                             color: Colors.white, strokeWidth: 2))
-                    : const Text('Simpan Keterlibatan'),
+                    : const Text('Simpan Aksi'),
               ),
               const SizedBox(height: 16),
             ],

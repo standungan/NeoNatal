@@ -30,6 +30,10 @@ class ApiEndpoints {
   static String involvement(String babyId)         => '/api/v1/babies/$babyId/involvement';
   static String involvementSummary(String babyId)  => '/api/v1/babies/$babyId/involvement/summary';
 
+  // aksi (Kolaborasi Interprofesional)
+  static String aksi(String babyId)                => '/api/v1/babies/$babyId/aksi';
+  static String aksiSummary(String babyId)         => '/api/v1/babies/$babyId/aksi/summary';
+
   // dashboard
   static const dashboard = '/api/v1/dashboard';
 
