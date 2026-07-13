@@ -233,9 +233,10 @@ const rec = await apiFetch<InvolvementResponse>(`/babies/${babyId}/involvement`,
 // rec.items → radar/bars · rec.alarms → items needing attention
 ```
 
-The **8-pillar Observation** works identically: `GET /observation/catalog` → `POST /babies/{id}/observation`
-with a `scores` map. Its response adds per-pillar `pillars`, and any item scored **0** flips the baby's
-incubator to `warning`.
+The **Observation** (Monitoring Bayi) and **Menu Aksi** (Kolaborasi) modules work identically:
+`GET /observation/catalog` → `POST /babies/{id}/observation`, and `GET /aksi/catalog` →
+`POST /babies/{id}/aksi`, each with a `scores` map. Observation's response adds per-pillar `pillars`,
+and any item scored **0** there flips the baby's incubator to `warning` (Aksi has no such side effect).
 
 ---
 
@@ -283,7 +284,8 @@ So in Mode B you **don't** manage tokens or set `Authorization` — just `api.ge
 | Add vitals | `POST /babies/{id}/monitoring` |
 | Add a photo | `POST /monitoring/{id}/photo` |
 | Log parent involvement (Pillar 6) | `GET /involvement/catalog` · `POST /babies/{id}/involvement` |
-| Log 8-pillar observation | `GET /observation/catalog` · `POST /babies/{id}/observation` |
+| Log observation (Monitoring Bayi) | `GET /observation/catalog` · `POST /babies/{id}/observation` |
+| Log Menu Aksi (Pillar 8) | `GET /aksi/catalog` · `POST /babies/{id}/aksi` |
 | Show report / trends | `GET /babies/{id}/report` |
 | Download PDF | `GET /babies/{id}/report/pdf?token=…` |
 | Discharge | `POST /babies/{id}/discharge` |

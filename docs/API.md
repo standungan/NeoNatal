@@ -31,12 +31,13 @@ REST API served by **FastAPI**. Interactive docs are auto-generated at runtime:
 6. [Babies](#6-babies)
 7. [Monitoring](#7-monitoring)
 8. [Parent involvement (Pillar 6)](#8-parent-involvement)
-9. [Observation (8-pillar)](#9-observation-8-pillar)
-10. [Dashboard](#10-dashboard)
-11. [Reports & PDF](#11-reports--pdf)
-12. [Audit logs (admin)](#12-audit-logs-admin-only)
-13. [Health & static files](#13-health--static-files)
-14. [Endpoint matrix](#14-endpoint-matrix)
+9. [Observation (Monitoring Bayi)](#9-observation-monitoring-bayi)
+10. [Menu Aksi (Pillar 8)](#10-menu-aksi-pillar-8)
+11. [Dashboard](#11-dashboard)
+12. [Reports & PDF](#12-reports--pdf)
+13. [Audit logs (admin)](#13-audit-logs-admin-only)
+14. [Health & static files](#14-health--static-files)
+15. [Endpoint matrix](#15-endpoint-matrix)
 
 ---
 
@@ -412,7 +413,7 @@ Form field: `file` (image). Stored under `/uploads` (local; S3-pluggable) and se
 ## 8. Parent involvement
 
 Keterlibatan Orang Tua is **Pillar 6 "Kerjasama dengan Keluarga"** of the 8-pillar instrument
-(see [§9 Observation](#9-observation-8-pillar)): **6 items**, each scored **0–3**, stored as a JSONB
+(see [§9 Observation](#9-observation-monitoring-bayi)): **6 items**, each scored **0–3**, stored as a JSONB
 `scores` map. The server computes `total_score` (0–18), `percentage`, a `category` band, a per-item
 breakdown, and `alarms`.
 
@@ -523,16 +524,16 @@ Omitted items count as 0. **Validation:** each score ∈ `[0,3]`; durations ≥ 
 
 ---
 
-## 9. Observation (8-pillar)
+## 9. Observation (Monitoring Bayi)
 
 The **Instrumen Observasi Perawatan Bayi Prematur** — a structured premature-baby care assessment.
-Currently **7 pillars / 48 items**, each scored **0–3**, stored as a JSONB `scores` map. The server
-computes `total_score` (0–144), `percentage`, a `category` band, per-pillar scores, and `alarms`.
+Currently **6 pillars / 42 items**, each scored **0–3**, stored as a JSONB `scores` map. The server
+computes `total_score` (0–126), `percentage`, a `category` band, per-pillar scores, and `alarms`.
 
 > **Scoring per item:** 3 = sesuai standar · 2 = ringan · 1 = sedang · 0 = berat.
-> **Percentage:** `round( total_score / 144 × 100, 1 )`. Same 5 `category` bands as §8.
+> **Percentage:** `round( total_score / 126 × 100, 1 )`. Same 5 `category` bands as §8.
 > **Alarm:** any item scored 0 or 1. **Side effect:** any item scored **0** flips the baby's active incubator to `warning`.
-> The instrument's 8th pillar, "Kerjasama dengan Keluarga", is served separately as [Parent involvement](#8-parent-involvement) (§8).
+> Two pillars of the original 8-pillar instrument are served as their own modules: "Kerjasama dengan Keluarga" → [Parent involvement](#8-parent-involvement) (§8); "Kolaborasi Interprofesional" → [Menu Aksi](#10-menu-aksi-pillar-8) (§10).
 
 ### 9.1 Catalog
 `GET /api/v1/observation/catalog` · **any role** → `200` `ObservationCatalog`
@@ -545,11 +546,11 @@ The fixed pillar/item catalog (source of truth for the form). Item codes are sta
       "items": [ { "item_code": "tidur_1", "text": "Bayi memperoleh periode tidur tanpa gangguan minimal 60 menit" } ] },
     { "key": "nyeri", "label": "Manajemen Stres dan Nyeri", "items": [] }
   ],
-  "total_items": 48,
-  "max_total": 144
+  "total_items": 42,
+  "max_total": 126
 }
 ```
-Pillars & item counts: `tidur`(8) · `nyeri`(6) · `posisi`(6) · `kulit`(8) · `nutrisi`(8) · `lingkungan`(6) · `kolaborasi`(6).
+Pillars & item counts: `tidur`(8) · `nyeri`(6) · `posisi`(6) · `kulit`(8) · `nutrisi`(8) · `lingkungan`(6).
 
 ### 9.2 Create observation
 `POST /api/v1/babies/{baby_id}/observation` · **perawat / admin** → `201` `ObservationResponse`
@@ -574,7 +575,7 @@ Omitted items count as 0. **Validation:** each score ∈ `[0,3]` → else `422`.
 ```jsonc
 { "observation_id":"uuid","baby_id":"uuid","recorded_by":"uuid","recorder_name":"str|null",
   "observation_time":"datetime","scores":{"tidur_1":3,"…":0},"catatan":"str|null",
-  "total_score":115,"max_total":144,"percentage":79.9,"category":"Baik",
+  "total_score":100,"max_total":126,"percentage":79.4,"category":"Baik",
   "pillars":[{"key":"tidur","label":"Menjaga Masa Tidur Bayi","score":20,"max":24,"percentage":83.3}],
   "alarms":[{"item_code":"kulit_2","text":"…","pillar_label":"Perlindungan Kulit","score":0}],
   "created_at":"datetime" }
@@ -585,7 +586,72 @@ Omitted items count as 0. **Validation:** each score ∈ `[0,3]` → else `422`.
 
 ---
 
-## 10. Dashboard
+## 10. Menu Aksi (Pillar 8)
+
+**Kolaborasi Interprofesional** — Pillar 8 of the 8-pillar instrument, pulled out of Monitoring Bayi
+(§9) into its own module: **6 items**, each scored **0–3**, stored as a JSONB `scores` map. The server
+computes `total_score` (0–18), `percentage`, a `category` band, per-item breakdown, and `alarms`.
+
+> **Percentage:** `round( total_score / 18 × 100, 1 )`. Same 5 `category` bands as §8.
+> **Alarm:** any item scored 0 or 1. No incubator side effect (collaboration is not a vital sign).
+
+### 10.1 Catalog
+`GET /api/v1/aksi/catalog` · **any role** → `200` `AksiCatalog`
+```json
+{
+  "key": "kolaborasi",
+  "label": "Kolaborasi Interprofesional",
+  "items": [
+    { "item_code": "kolaborasi_1", "text": "Catatan CPPT lengkap" },
+    { "item_code": "kolaborasi_2", "text": "SBAR dilakukan saat handover" }
+  ],
+  "total_items": 6,
+  "max_total": 18
+}
+```
+Items `kolaborasi_1..6`: CPPT lengkap · SBAR handover · instruksi dokter · lapor perubahan kondisi · kolaborasi dokter-perawat · dokumentasi tindakan.
+
+### 10.2 Create aksi
+`POST /api/v1/babies/{baby_id}/aksi` · **perawat / admin** → `201` `AksiResponse`
+
+**Request** (`observation_time` + `scores` required)
+```json
+{
+  "observation_time": "2026-07-10T13:00:00+07:00",
+  "scores": { "kolaborasi_1": 3, "kolaborasi_2": 3, "kolaborasi_4": 1 },
+  "catatan": "Handover lengkap, SBAR jelas"
+}
+```
+| Field | Type | Req? | Range |
+|---|---|:--:|---|
+| `observation_time` | string (ISO-8601) | ✅ | |
+| `scores` | object `{ item_code: number }` | ✅ | each value **0–3** |
+| `catatan` | string | — | |
+
+Omitted items count as 0. **Validation:** each score ∈ `[0,3]` → else `422`. `404` if the baby does not exist.
+
+**Response** `AksiResponse`:
+```jsonc
+{ "aksi_id":"uuid","baby_id":"uuid","recorded_by":"uuid","recorder_name":"str|null",
+  "observation_time":"datetime","scores":{"kolaborasi_1":3,"…":0},"catatan":"str|null",
+  "total_score":12,"max_total":18,"percentage":66.7,"category":"Cukup",
+  "items":[{"item_code":"kolaborasi_1","text":"Catatan CPPT lengkap","score":3,"max":3,"percentage":100.0}],
+  "alarms":[{"item_code":"kolaborasi_4","text":"…","score":1}],
+  "created_at":"datetime" }
+```
+
+### 10.3 List aksi
+`GET /api/v1/babies/{baby_id}/aksi?skip=0&limit=50` · **any role** → `200` `AksiResponse[]`
+
+### 10.4 Aksi summary
+`GET /api/v1/babies/{baby_id}/aksi/summary` · **any role** → `200` `AksiSummary`
+```json
+{ "total_sessions": 5, "avg_percentage": 78.9, "latest_percentage": 66.7, "latest_category": "Cukup" }
+```
+
+---
+
+## 11. Dashboard
 
 ### 10.1 Get dashboard
 `GET /api/v1/dashboard` · **any role** → `200` `DashboardResponse`
@@ -609,7 +675,7 @@ Aggregate incubator occupancy stats plus a per-incubator board with current baby
 
 ---
 
-## 11. Reports & PDF
+## 12. Reports & PDF
 
 ### 11.1 Baby report (JSON)
 `GET /api/v1/babies/{baby_id}/report` · **any role** → `200` `BabyReportResponse`
@@ -633,7 +699,7 @@ Returns the PDF as an attachment: `Content-Disposition: attachment; filename="la
 
 ---
 
-## 12. Audit logs (admin only)
+## 13. Audit logs (admin only)
 
 ### 12.1 List audit logs
 `GET /api/v1/audit-logs` · **admin** → `200` `AuditLogResponse[]`
@@ -662,7 +728,7 @@ e.g. `LOGIN`, `CREATE`, `UPDATE`, `UPLOAD_PHOTO`).
 
 ---
 
-## 13. Health & static files
+## 14. Health & static files
 
 | Endpoint | Auth | Description |
 |---|---|---|
@@ -672,7 +738,7 @@ e.g. `LOGIN`, `CREATE`, `UPDATE`, `UPLOAD_PHOTO`).
 
 ---
 
-## 14. Endpoint matrix
+## 15. Endpoint matrix
 
 | Method | Path | Role | Success |
 |---|---|---|---|
@@ -704,6 +770,10 @@ e.g. `LOGIN`, `CREATE`, `UPDATE`, `UPLOAD_PHOTO`).
 | GET | `/api/v1/observation/catalog` | any | 200 |
 | POST | `/api/v1/babies/{id}/observation` | perawat/admin | 201 |
 | GET | `/api/v1/babies/{id}/observation` | any | 200 |
+| GET | `/api/v1/aksi/catalog` | any | 200 |
+| POST | `/api/v1/babies/{id}/aksi` | perawat/admin | 201 |
+| GET | `/api/v1/babies/{id}/aksi` | any | 200 |
+| GET | `/api/v1/babies/{id}/aksi/summary` | any | 200 |
 | GET | `/api/v1/dashboard` | any | 200 |
 | GET | `/api/v1/babies/{id}/report` | any | 200 |
 | GET | `/api/v1/babies/{id}/report/pdf` | any (header or `?token=`) | 200 (PDF) |

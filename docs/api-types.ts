@@ -321,8 +321,8 @@ export interface InvolvementSummaryResponse {
 }
 
 /* ============================================================
- * Observation — 8-pillar premature-baby instrument
- * Currently 7 pillars / 48 items, each scored 0–3.
+ * Observation (Monitoring Bayi) — premature-baby instrument
+ * Currently 6 pillars / 42 items, each scored 0–3.
  * GET /observation/catalog for the pillars & items.
  * ========================================================== */
 
@@ -338,8 +338,8 @@ export interface ObservationCatalogPillar {
 }
 export interface ObservationCatalog {
   pillars: ObservationCatalogPillar[];
-  total_items: number; // 48
-  max_total: number; // 144
+  total_items: number; // 42
+  max_total: number; // 126
 }
 
 export interface ObservationCreateRequest {
@@ -374,13 +374,80 @@ export interface ObservationResponse {
   observation_time: string;
   scores: Record<string, number>;
   catatan: string | null;
-  total_score: number; // 0–144
-  max_total: number; // 144
+  total_score: number; // 0–126
+  max_total: number; // 126
   percentage: number; // 0–100
   category: InstrumentCategory | null;
   pillars: ObservationPillarScore[];
   alarms: ObservationAlarm[];
   created_at: string;
+}
+
+/* ============================================================
+ * Menu Aksi — Pillar 8 "Kolaborasi Interprofesional"
+ * 6 items, each scored 0–3 (pulled out of Monitoring Bayi).
+ * GET /aksi/catalog for the items.
+ * ========================================================== */
+
+/** GET /api/v1/aksi/catalog */
+export interface AksiCatalogItem {
+  item_code: string; // "kolaborasi_1".."kolaborasi_6"
+  text: string;
+}
+export interface AksiCatalog {
+  key: string; // "kolaborasi"
+  label: string; // "Kolaborasi Interprofesional"
+  items: AksiCatalogItem[];
+  total_items: number; // 6
+  max_total: number; // 18
+}
+
+export interface AksiCreateRequest {
+  observation_time: string; // required
+  /** { item_code: 0..3 }. Omitted items count as 0. */
+  scores: Record<string, number>; // required
+  catatan?: string;
+}
+
+/** Per-item breakdown (returned; drives the radar & bars). */
+export interface AksiItemScore {
+  item_code: string;
+  text: string;
+  score: number; // 0–3
+  max: number; // 3
+  percentage: number; // 0–100
+}
+
+/** An item scored 0 or 1 (no incubator side effect). */
+export interface AksiAlarm {
+  item_code: string;
+  text: string;
+  score: number; // 0 or 1
+}
+
+export interface AksiResponse {
+  aksi_id: string;
+  baby_id: string;
+  recorded_by: string;
+  recorder_name: string | null;
+  observation_time: string;
+  scores: Record<string, number>;
+  catatan: string | null;
+  total_score: number; // 0–18
+  max_total: number; // 18
+  percentage: number; // 0–100
+  category: InstrumentCategory | null;
+  items: AksiItemScore[];
+  alarms: AksiAlarm[];
+  created_at: string;
+}
+
+/** GET /api/v1/babies/{id}/aksi/summary */
+export interface AksiSummary {
+  total_sessions: number;
+  avg_percentage: number | null;
+  latest_percentage: number | null;
+  latest_category: InstrumentCategory | null;
 }
 
 /* ============================================================

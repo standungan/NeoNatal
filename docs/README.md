@@ -28,7 +28,8 @@ All diagrams use [Mermaid](https://mermaid.js.org/) and render directly on GitHu
 
 - **Actors:** Admin (user management, audit), Perawat/Nurse (registration, monitoring, involvement),
   Dokter/Doctor (read-only dashboards & reports).
-- **Clinical model:** implements the **IFCDC 8-Pillar** neonatal care framework — a 48-item
-  **Observation** instrument (7 pillars, 0–3 each) plus **Pillar 6 "Kerjasama dengan Keluarga"**
-  served as the 6-item parent-involvement score. Both roll up to a percentage + 5-band category.
+- **Clinical model:** implements the **IFCDC 8-Pillar** neonatal care framework. Six pillars form the
+  **Observation** (Monitoring Bayi) instrument (42 items, 0–3 each); the other two are their own
+  6-item modules: Pillar 6 "Kerjasama dengan Keluarga" → **Parent involvement**, Pillar 8 "Kolaborasi
+  Interprofesional" → **Menu Aksi**. All roll up to a percentage + 5-band category.
 - **Auth:** JWT Bearer for mobile; httpOnly-cookie BFF for web. Every mutation is audit-logged.

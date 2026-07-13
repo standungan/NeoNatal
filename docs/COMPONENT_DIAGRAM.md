@@ -106,7 +106,8 @@ flowchart LR
         s8["report_service + pdf_service"]
         s9["audit_service"]
         s10["storage_service"]
-        s11["observation_service<br/>(8-pillar scoring)"]
+        s11["observation_service<br/>(Monitoring Bayi, 6-pillar)"]
+        s12["involvement_service + aksi_service<br/>(Pillar 6 & 8)"]
     end
 
     subgraph Rep["Repository layer"]

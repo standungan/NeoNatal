@@ -23,6 +23,7 @@ erDiagram
     users ||--o{ monitoring_records          : "records (recorded_by)"
     users ||--o{ parent_involvement_records  : "records (recorded_by)"
     users ||--o{ observations                : "records (recorded_by)"
+    users ||--o{ aksi_records                : "records (recorded_by)"
     users ||--o{ audit_logs                  : "performs"
 
     babies ||--|| parents                     : "has one"
@@ -30,6 +31,7 @@ erDiagram
     babies ||--o{ monitoring_records           : "monitored by"
     babies ||--o{ parent_involvement_records   : "engaged in"
     babies ||--o{ observations                 : "assessed by"
+    babies ||--o{ aksi_records                 : "logged for"
 
     incubators ||--o{ baby_incubator_assignments : "houses"
 
@@ -135,9 +137,22 @@ erDiagram
         uuid     baby_id FK
         uuid     recorded_by FK "-> users.id"
         timestamptz observation_time
-        jsonb    scores "8-pillar {item_code: 0-3}"
+        jsonb    scores "6-pillar (Monitoring Bayi) {item_code: 0-3}"
         text     catatan "nullable"
-        int      total_score "0-144, computed"
+        int      total_score "0-126, computed"
+        numeric  percentage "0-100, computed"
+        varchar  category "band, computed"
+        timestamptz created_at
+    }
+
+    aksi_records {
+        uuid     aksi_id PK
+        uuid     baby_id FK
+        uuid     recorded_by FK "-> users.id"
+        timestamptz observation_time
+        jsonb    scores "Pilar 8 Kolaborasi {item_code: 0-3}"
+        text     catatan "nullable"
+        int      total_score "0-18, computed"
         numeric  percentage "0-100, computed"
         varchar  category "band, computed"
         timestamptz created_at
@@ -240,12 +255,18 @@ are computed in the service layer from the fixed catalog. Contextual columns (`d
 `kondisi_bayi`, `catatan`) are optional and not scored.
 
 ### 2.8 `observations`
-The 8-pillar premature-baby instrument (currently 7 pillars / 48 items, each **0–3**), stored as a
-`JSONB` `scores` map (`{item_code: 0-3}`). `total_score` (0–144), `percentage`, and `category` are
+The **Monitoring Bayi** instrument — currently 6 pillars / 42 items, each **0–3**, stored as a
+`JSONB` `scores` map (`{item_code: 0-3}`). `total_score` (0–126), `percentage`, and `category` are
 computed from the catalog. Any item scored **0** flips the baby's active incubator to `warning`.
-Banding (both instruments): ≥85 Sangat Baik · 70–84 Baik · 55–69 Cukup · 40–54 Kurang · <40 Sangat Kurang.
+Banding (all instruments): ≥85 Sangat Baik · 70–84 Baik · 55–69 Cukup · 40–54 Kurang · <40 Sangat Kurang.
+Two pillars of the original 8-pillar instrument live in their own tables: Pillar 6 → `parent_involvement_records` (§2.7), Pillar 8 → `aksi_records` (§2.9).
 
-### 2.9 `audit_logs`
+### 2.9 `aksi_records`
+**Menu Aksi** — Pillar 8 "Kolaborasi Interprofesional" (6 items, each **0–3**), pulled out of Monitoring Bayi.
+`JSONB` `scores` (`{item_code: 0-3}`) with computed `total_score` (0–18), `percentage`, and `category`.
+No incubator side effect. Same layout as `observations`.
+
+### 2.10 `audit_logs`
 Append-only trail. `user_id` is `ON DELETE SET NULL` so the trail survives user deletion.
 `details` is a flexible `JSONB` payload; `ip_address` uses the native `INET` type.
 
@@ -265,6 +286,8 @@ Append-only trail. `user_id` is `ON DELETE SET NULL` so the trail survives user 
 | `users` | `parent_involvement_records` | 1 : N | `recorded_by` | — |
 | `babies` | `observations` | 1 : N | `baby_id` | — |
 | `users` | `observations` | 1 : N | `recorded_by` | — |
+| `babies` | `aksi_records` | 1 : N | `baby_id` | — |
+| `users` | `aksi_records` | 1 : N | `recorded_by` | — |
 | `users` | `audit_logs` | 1 : N | `user_id` | SET NULL |
 
 ---
