@@ -1,0 +1,43 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+# Deploy with: Render dashboard → New → Blueprint → pick this repo.
+#
+# SECRET_KEY uses generateValue so Render mints a fresh random secret. Do NOT
+# paste the one from git history — that repo is public and the key is burned.
+
+databases:
+  - name: neonatal-db
+    databaseName: neonatal
+    user: neonatal
+    plan: free
+    region: singapore
+
+services:
+  - type: web
+    name: neonatal-backend
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: neonatal-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "false"
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "480"
+      - key: STORAGE_BACKEND
+        value: local
+      - key: STORAGE_LOCAL_PATH
+        value: ./uploads
+      # Only affects direct browser/Flutter calls — the Next.js dashboard
+      # reaches the API server-side, so it never triggers CORS. Set this to the
+      # real Vercel origin once the frontend is deployed.
+      - key: ALLOWED_ORIGINS
+        sync: false

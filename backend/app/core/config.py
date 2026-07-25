@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -20,6 +21,16 @@ class Settings(BaseSettings):
     aws_region: str = "ap-southeast-1"
 
     allowed_origins: str = "http://localhost:3000"
+
+    @field_validator("database_url")
+    @classmethod
+    def force_async_driver(cls, v: str) -> str:
+        # Managed hosts (Render, Neon, Supabase) hand out `postgresql://…`, but
+        # every consumer here is SQLAlchemy's async engine, which needs asyncpg.
+        for prefix in ("postgresql://", "postgres://"):
+            if v.startswith(prefix):
+                return "postgresql+asyncpg://" + v[len(prefix):]
+        return v
 
     @property
     def origins_list(self) -> list[str]:
