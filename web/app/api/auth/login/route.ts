@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { API_BASE, TOKEN_COOKIE } from "@/lib/config";
+import { API_BASE, COOKIE_SECURE, TOKEN_COOKIE } from "@/lib/config";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
-    secure: process.env.NODE_ENV === "production",
+    secure: COOKIE_SECURE,
     maxAge: 60 * 60 * 8, // 8h
   });
 

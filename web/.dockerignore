@@ -1,0 +1,14 @@
+node_modules/
+.next/
+out/
+build/
+.git/
+.env
+.env.*
+!.env.example
+*.tsbuildinfo
+npm-debug.log*
+README.md
+AGENTS.md
+CLAUDE.md
+vercel.json

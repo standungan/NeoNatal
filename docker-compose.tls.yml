@@ -1,0 +1,62 @@
+# HTTPS overlay — use only once you own a domain whose DNS points at the VPS.
+# Not needed for the plain-HTTP setup in docker-compose.yml.
+#
+# 1. Edit .env so ports 80/443 are free for nginx and the app ports stop being
+#    world-reachable (a host-IP prefix is valid in a compose port mapping):
+#
+#      WEB_PORT=127.0.0.1:3000
+#      API_PORT=127.0.0.1:8000
+#      COOKIE_SECURE=true
+#      APP_DOMAIN=app.example.com
+#      API_DOMAIN=api.example.com
+#      LETSENCRYPT_EMAIL=you@example.com
+#
+# 2. Make both files the default for every compose command in this shell:
+#      export COMPOSE_FILE=docker-compose.yml:docker-compose.tls.yml
+#
+# 3. Issue certificates (once):
+#      ./deploy/init-letsencrypt.sh
+#
+# Why the API needs its own hostname rather than a /api/ path: see the header of
+# deploy/nginx/templates/default.conf.template. Short version — Next's BFF
+# already owns /api/* on the dashboard origin.
+
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      - web
+      - backend
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+      API_DOMAIN: ${API_DOMAIN}
+    volumes:
+      # The nginx image runs envsubst over /etc/nginx/templates/*.template at
+      # boot and writes the result into /etc/nginx/conf.d/.
+      - ./deploy/nginx/templates:/etc/nginx/templates:ro
+      - certbot-www:/var/www/certbot:ro
+      - letsencrypt:/etc/letsencrypt:ro
+    # Certbot renews in its own container and cannot signal this one, so reload
+    # on a timer to pick up rotated certs. The image entrypoint still runs the
+    # template pass before exec'ing this.
+    command: >
+      sh -c "while :; do sleep 6h & wait $${!}; nginx -s reload; done & exec nginx -g 'daemon off;'"
+
+  certbot:
+    image: certbot/certbot:latest
+    restart: unless-stopped
+    volumes:
+      - certbot-www:/var/www/certbot
+      - letsencrypt:/etc/letsencrypt
+    # Twice-daily renewal attempt; certbot no-ops until a cert is within 30 days
+    # of expiry. First issuance is deploy/init-letsencrypt.sh's job.
+    entrypoint: >
+      sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done"
+
+volumes:
+  certbot-www:
+  letsencrypt:

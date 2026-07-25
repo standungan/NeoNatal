@@ -1,0 +1,7 @@
+# This repo is developed on Windows with core.autocrlf=true. Anything that runs
+# *inside* a Linux container must keep LF endings, or the shell fails on the \r
+# ("bad interpreter", "not found"). Pin those file types explicitly.
+*.sh        text eol=lf
+Dockerfile  text eol=lf
+*.conf      text eol=lf
+*.template  text eol=lf

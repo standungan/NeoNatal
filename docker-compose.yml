@@ -1,0 +1,79 @@
+# Backend + dashboard + Postgres on one VPS, over plain HTTP.
+#
+#   cp .env.example .env     # set VPS_IP and SECRET_KEY
+#   docker compose up -d --build
+#
+#   Dashboard   http://<vps-ip>
+#   API docs    http://<vps-ip>:8000/docs
+#
+# No nginx and no TLS here on purpose — this is the shortest path to something
+# you can open from home. For HTTPS on a real domain, add docker-compose.tls.yml
+# (see DEPLOYMENT.md → "Adding HTTPS later").
+
+name: neonatal
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # The backend runs `alembic upgrade head` as its first act, so it must wait
+      # for Postgres to genuinely accept connections — not merely to be running.
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # config.py rewrites postgresql:// → +asyncpg on its own; explicit anyway.
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      SECRET_KEY: ${SECRET_KEY}
+      DEBUG: "false"
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: "480"
+      STORAGE_BACKEND: local
+      STORAGE_LOCAL_PATH: ./uploads          # relative to the image's WORKDIR (/app)
+      # Only matters for browsers/Flutter hitting :8000 directly. The dashboard
+      # reaches the API server-side over the compose network, so it never
+      # triggers CORS at all.
+      ALLOWED_ORIGINS: http://${VPS_IP},http://${VPS_IP}:${API_PORT:-8000}
+    volumes:
+      # Named volume — uploaded photos survive `up --build`.
+      - uploads:/app/uploads
+    ports:
+      # The dashboard does NOT need this. It is published so you can reach
+      # /health and /docs while bringing the box up. Close it once you're done
+      # testing (see DEPLOYMENT.md → Security).
+      - "${API_PORT:-8000}:8000"
+
+  web:
+    build: ./web
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      # Server-side only (lib/config.ts). Container DNS — this never reaches the
+      # browser, which is the whole point of the BFF.
+      API_BASE_URL: http://backend:8000
+      # MUST stay false on plain HTTP. A `secure` cookie is discarded by the
+      # browser over http://, so login would look like it worked and then bounce
+      # you straight back to /login.
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    ports:
+      - "${WEB_PORT:-80}:3000"
+
+volumes:
+  pgdata:
+  uploads:

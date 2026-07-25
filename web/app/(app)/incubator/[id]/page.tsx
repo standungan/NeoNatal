@@ -115,12 +115,14 @@ export default function IncubatorDetailPage() {
                       >
                         👨‍👩‍👧 Keterlibatan
                       </Link>
-                      <Link
-                        href={`/baby/${babyId}/aksi`}
-                        className="inline-flex items-center gap-2 rounded-xl border border-line px-4 py-2.5 text-sm font-bold text-ink hover:bg-surface"
-                      >
-                        🤝 Kolaborasi
-                      </Link>
+                      {role === "admin" && (
+                        <Link
+                          href={`/baby/${babyId}/aksi`}
+                          className="inline-flex items-center gap-2 rounded-xl border border-line px-4 py-2.5 text-sm font-bold text-ink hover:bg-surface"
+                        >
+                          🤝 Kolaborasi
+                        </Link>
+                      )}
                       <button
                         type="button"
                         disabled={discharge.isPending}

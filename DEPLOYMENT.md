@@ -1,102 +1,212 @@
-# Deployment
+# Deployment — VPS
 
-This repo holds three deployables. Only the **web dashboard** goes to Vercel.
-
-| Component | Stack | Target | Why |
-|---|---|---|---|
-| `web/` | Next.js 16 | **Vercel** | App Router + route handlers — native fit |
-| `backend/` | FastAPI + Postgres | **Render** (container) | Needs a persistent process, a pooled DB connection, and a writable `uploads/` mount |
-| `frontend/` | Flutter | Play Store / APK | Not web-hosted |
+Goal: backend + web dashboard running on your VPS, reachable from home at
+`http://<vps-ip>`. Plain HTTP, no domain, no TLS. The Flutter app is not part of
+this — it ships as an APK.
 
 ```
-Browser ──HTTPS──▶ Vercel (Next.js)  ──HTTPS──▶ Render (FastAPI) ──▶ Postgres
-                   httpOnly cookie             Bearer token          
-                   nc_token                    injected server-side
+                          ┌─────────── VPS ───────────┐
+Home browser ──:80──▶     │  web (Next.js)            │
+                          │    └─▶ backend (FastAPI)  │
+Home browser ──:8000──▶   │          └─▶ db (Postgres)│
+  (only for /docs)        └───────────────────────────┘
 ```
 
-The browser only ever talks to the Vercel origin. `API_BASE_URL` is consumed **server-side only** (`lib/config.ts`), so the backend URL is never shipped to the client and CORS never comes into play for the dashboard.
+Three containers. Postgres is never published — only the other containers can
+reach it. The dashboard talks to the backend over the internal compose network,
+so `http://backend:8000` never leaves the box and never reaches your browser.
+
+> **This is a testing posture, not a production one.** Over plain HTTP the login
+> JWT travels in cleartext. Fine for a portfolio demo you're poking at from home;
+> not fine for real patient data. See [Adding HTTPS later](#adding-https-later).
 
 ---
 
-## Order matters: backend first
+## 1. Prepare the VPS
 
-The Vercel build succeeds without a reachable backend, but every page will 500 at runtime. Deploy `backend/` first and note its public URL.
-
-### 1. Backend → Render
-
-`backend/` is its own git repo (`standungan/neonatal-backend`, default branch `main`) and ships a [Dockerfile](backend/Dockerfile) plus a [render.yaml](backend/render.yaml) blueprint.
-
-**Push first.** Render builds from GitHub, so the deploy-prep commit must be on `origin/main`:
+SSH in, then install Docker:
 
 ```bash
-cd backend
-git push origin main
+curl -fsSL https://get.docker.com | sh
 ```
 
-**Then deploy the blueprint:** Render → **New → Blueprint** → select the backend repo. `render.yaml` provisions both the Postgres database and the web service, wires `DATABASE_URL` between them, generates a random `SECRET_KEY`, and sets the health check to `/health`.
-
-The one variable it deliberately leaves blank is `ALLOWED_ORIGINS` (marked `sync: false`, so Render prompts you). Set it to your Vercel origin once step 2 is done — or leave it empty for now, since the dashboard reaches the API server-side and never triggers CORS. It only matters for the Flutter client.
-
-**Migrations run themselves.** The container executes `alembic upgrade head` before starting uvicorn, because Render's free plan offers neither a pre-deploy command nor shell access. It's idempotent, so restarts are harmless.
-
-**Verify:** `curl https://<backend>.onrender.com/health` → `{"status":"ok","version":"1.0.0"}`
-
-> **Seeding demo data** needs shell access, which the free plan lacks. Either run `populate_data.py` locally against the Render database using its *External* connection string, or upgrade the instance temporarily.
-
-### 2. Web → Vercel
-
-1. **Import** `standungan/NeoNatal` at [vercel.com/new](https://vercel.com/new).
-2. **Set Root Directory to `web`.** This is required — the repo root is not a Node project, so the build fails without it. Framework preset auto-detects as Next.js.
-3. **Environment variable** (Production, Preview, Development):
-
-   | Key | Value |
-   |---|---|
-   | `API_BASE_URL` | `https://<backend>.onrender.com` — **no trailing slash** |
-
-4. **Deploy.** Build settings come from [web/vercel.json](web/vercel.json); no dashboard overrides needed.
-
-Or from the CLI:
+Open the two ports. **If your VPS is on AWS / Oracle / GCP / Azure, you must
+also open them in the cloud console's security group or firewall rules** — the
+host firewall alone is not enough, and this is the single most common reason a
+deploy looks dead from home:
 
 ```bash
-npm i -g vercel
-cd web
-vercel link
-vercel env add API_BASE_URL production
-vercel --prod
+sudo ufw allow OpenSSH
+sudo ufw allow 80/tcp
+sudo ufw allow 8000/tcp
+sudo ufw enable
+```
+
+**If the VPS has 1 GB RAM or less, add swap before building.** The Next.js build
+is the memory-hungry step and gets OOM-killed without it — the symptom is a
+build that dies with no useful error:
+
+```bash
+sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile
+sudo mkswap /swapfile && sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+```
+
+## 2. Clone and configure
+
+```bash
+git clone https://github.com/standungan/NeoNatal.git
+cd NeoNatal
+cp .env.example .env
+openssl rand -hex 32          # copy the output
+nano .env
+```
+
+Three values must change:
+
+| Key | Set it to |
+|---|---|
+| `VPS_IP` | your server's public IP |
+| `POSTGRES_PASSWORD` | anything long — it never leaves the container network |
+| `SECRET_KEY` | the `openssl rand -hex 32` output |
+
+Leave `COOKIE_SECURE=false`. Over plain HTTP a `secure` cookie is silently
+dropped by the browser, so login would appear to succeed and then bounce you
+back to `/login`.
+
+## 3. Build and start
+
+```bash
+docker compose up -d --build
+```
+
+First run takes a few minutes — it builds two images and pulls Postgres. Then:
+
+```bash
+docker compose ps          # all three should be running, db healthy
+docker compose logs -f     # Ctrl-C to stop tailing
+```
+
+**Migrations need no step of their own.** The backend container runs
+`alembic upgrade head` before uvicorn on every start, and it's idempotent.
+
+## 4. Load demo data
+
+The schema exists now, but it's empty — you'd have no account to log in with.
+
+```bash
+set -a; . ./.env; set +a
+docker compose exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+  < backend/database/seed_data.sql
+```
+
+That loads 8 users, 9 incubators, 8 babies, and about four days of monitoring,
+observation, involvement and aksi records. It opens with a `TRUNCATE`, so it's
+safe to re-run — and destructive to anything real.
+
+Every seeded account uses the password **`Password123!`**:
+
+| Role | Email |
+|---|---|
+| Admin | `admin@neonatal.rs` |
+| Perawat | `siti.aisyah@neonatal.rs` |
+| Dokter | `dr.anisa@neonatal.rs` |
+
+> `backend/populate_data.py` is a local-dev leftover — it hardcodes `localhost`
+> and its own credentials, so it won't work against containers. `seed_data.sql`
+> replaces it.
+
+## 5. Test from home
+
+1. `http://<vps-ip>:8000/health` → `{"status":"ok","version":"1.0.0"}` — proves the backend is up
+2. `http://<vps-ip>/` → redirects to `/login`
+3. Log in as `admin@neonatal.rs` / `Password123!`
+4. The dashboard shows incubator stats — **this is the real test**, it proves the browser → Next → FastAPI → Postgres chain works end to end
+5. Open a baby → **Laporan** → charts render, **Export PDF** downloads
+6. Log in as `dr.anisa@neonatal.rs` and try `/admin/users` → bounced to `/dashboard` by `proxy.ts`
+
+---
+
+## Troubleshooting
+
+**Login succeeds then bounces back to `/login`.** `COOKIE_SECURE` is `true` over
+HTTP. Set it to `false` in `.env`, then `docker compose up -d web`.
+
+**Nothing loads from home, but `curl localhost` works on the VPS.** Cloud
+provider firewall. Check the security group / network rules in the provider
+console, not just `ufw status`.
+
+**`port is already allocated` on :80.** Something else is bound — often a
+preinstalled Apache or nginx. `sudo ss -tlnp | grep :80`, then
+`sudo systemctl disable --now apache2` (or set `WEB_PORT=8080` in `.env`).
+
+**Build dies with no error, or "killed".** Out of memory during `next build`.
+Add swap (step 1).
+
+**Dashboard loads but every panel is empty.** The BFF hop is failing:
+`docker compose logs backend web`. Usually the backend is unhealthy — check it
+reached Postgres.
+
+**`docker compose exec db psql ...` says role does not exist.** The `pgdata`
+volume was created with different credentials on an earlier run. Wipe and redo:
+`docker compose down -v` (**deletes all data**), then `up -d --build`.
+
+---
+
+## Day-to-day
+
+```bash
+docker compose logs -f backend        # tail one service
+docker compose restart backend
+docker compose down                   # stop (keeps data)
+docker compose down -v                # stop AND delete the database
+
+# Deploy an update
+git pull && docker compose up -d --build
+
+# Back up the database
+set -a; . ./.env; set +a
+docker compose exec -T db pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" \
+  | gzip > "backup-$(date +%F).sql.gz"
+
+# Back up uploaded photos (they live in a named volume, not the image)
+docker run --rm -v neonatal_uploads:/data -v "$PWD:/out" alpine \
+  tar czf "/out/uploads-$(date +%F).tar.gz" -C /data .
 ```
 
 ---
 
-## What `web/vercel.json` does
+## Security
 
-- `regions: ["sin1"]` — pins functions to Singapore. Every dashboard request makes a Vercel→backend hop, so co-locating with an Asia-region backend cuts a round-trip's worth of latency. **Change this if the backend lives elsewhere.**
-- `maxDuration: 60` on `app/api/**` — covers PDF report generation and, importantly, Render free-tier cold starts (a spun-down service takes ~50s to wake; the 10s default would time out).
-- Security headers plus `no-store` on `/api/*` so authenticated responses are never cached at the edge.
+Things that are fine for a home-testing deploy and **not** fine beyond it:
 
----
-
-## Verifying the deploy
-
-1. `https://<app>.vercel.app/` → redirects to `/login`.
-2. Log in. In DevTools → Application → Cookies, `nc_token` must show **HttpOnly ✓ Secure ✓**.
-3. Dashboard loads incubator stats — this proves the BFF hop to FastAPI works.
-4. Open a baby report → charts render → **Export PDF** downloads a file.
-5. Log in as a non-admin and hit `/admin/users` → redirected to `/dashboard` by `proxy.ts`.
-
-If pages render but data is empty, check the Vercel function logs — a bad `API_BASE_URL` shows up as `ECONNREFUSED` or a 404 from the proxy route.
+- **Traffic is unencrypted.** The JWT is in cleartext on every request.
+- **Port 8000 is open to the internet.** It's there for `/docs` and `/health`
+  while you bring the box up. The dashboard does not need it — close it with
+  `sudo ufw delete allow 8000/tcp` and drop the `ports:` block from the
+  `backend` service once you're done poking around.
+- **The old `SECRET_KEY` is burned.** `backend/.env` sits in the public
+  `neonatal-backend` repo's git history. Never reuse that key; generate a fresh
+  one as in step 2. Purging it from history (`git filter-repo` + force-push) is
+  worth doing if that repo stays public.
+- **The backend image runs as root**, there's no rate limit on
+  `/api/v1/auth/login`, and `backend/tests/` is empty.
 
 ---
 
-## Known limitations
+## Adding HTTPS later
 
-**Photo upload capped at ~4.5 MB.** Vercel Functions reject request bodies above that limit, and monitoring photos pass through the BFF proxy (`app/api/v1/[...path]/route.ts`). Modern phone cameras exceed it. Options: compress client-side before upload, or have the Flutter app POST to the backend directly (it already can — that's what `ALLOWED_ORIGINS` is for).
+Once you point a domain at the VPS, [docker-compose.tls.yml](docker-compose.tls.yml)
+adds nginx + Let's Encrypt on top of the same stack. Its header has the exact
+steps; the short version is: two DNS A records (`app.` and `api.`), edit `.env`,
+`export COMPOSE_FILE=docker-compose.yml:docker-compose.tls.yml`, then
+`./deploy/init-letsencrypt.sh`.
 
-**Uploaded photos do not survive a backend redeploy.** `storage_service.py` writes to local disk; the S3 branch is a stub (`# S3 path (to be wired when STORAGE_BACKEND=s3)`) even though `boto3` and the `AWS_*` settings are already in place. Render's free tier has an ephemeral filesystem. Either attach a Render persistent disk or finish the S3 backend. Note the web dashboard never *displays* photos, so this only affects the Flutter client.
-
-**Render free tier sleeps after 15 minutes idle.** The first request after that takes ~50s. Fine for a portfolio demo; the 60s function timeout is sized for it. A paid instance or an external pinger removes it.
-
-**JWT expiry is 8 hours, cookie maxAge matches.** No refresh-token flow — users re-login after that.
-
-**Render's free Postgres is deleted after 30 days.** Fine for a demo, but back up anything you care about. Neon or Supabase both offer a free tier without the expiry — swap `DATABASE_URL` and the app is agnostic, since `config.py` normalises whatever scheme the host hands out.
-
-**The old `SECRET_KEY` is public.** `backend/.env` sits in that repo's git history and the repo is public, so the committed key must be treated as compromised. `render.yaml` uses `generateValue: true`, so production gets a fresh random key and never touches the old one. The file is untracked going forward, but purging it from history (git-filter-repo + force-push) is still worth doing if the repo stays public.
+The API gets its **own subdomain** rather than a `/api/` path on the dashboard
+host. That isn't stylistic: the dashboard's BFF already owns `/api/*` on its
+origin — the Next route handlers there read the httpOnly `nc_token` cookie and
+reissue each call to FastAPI with a `Bearer` header. Mounting FastAPI under
+`/api/` on the same host would shadow those handlers, the cookie would never be
+exchanged, and every dashboard request would 401 in a way that looks like a
+backend fault. Full reasoning in
+[deploy/nginx/templates/default.conf.template](deploy/nginx/templates/default.conf.template).
