@@ -1,0 +1,513 @@
+{
+  "info": {
+    "name": "Neonatal Care API",
+    "_postman_id": "b1e7c9a0-0000-4a00-9000-neonatalcare01",
+    "description": "Neonatal Care System — FastAPI backend.\n\n## Setup\n1. Import this file into Postman.\n2. Open the collection **Variables** tab. `base_url` defaults to the live VPS `http://187.127.210.133:8000`. Change it to `http://localhost:8000` to hit a local backend.\n3. Run **Auth → Login** first — its test script stores the JWT into `{{access_token}}`, and every other request inherits Bearer auth from the collection automatically.\n\n## Self-priming ids\nRun **Incubators → List available** and **Babies → List** once; their test scripts populate `{{incubator_id}}` and `{{baby_id}}` from real data so the detail/create requests just work. Sensible seed defaults are pre-filled otherwise.\n\n## ⚠️ Writes hit real data\nPOST/PUT/DELETE mutate whatever `base_url` points at. Against the VPS that's the live demo DB — reseed with `backend/database/seed_data.sql` if you need a clean slate.\n\nSeeded logins (all password `Password123!`): `admin@neonatal.rs` · `siti.aisyah@neonatal.rs` (perawat) · `dr.anisa@neonatal.rs` (dokter).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://187.127.210.133:8000", "type": "string" },
+    { "key": "access_token", "value": "", "type": "string" },
+    { "key": "role", "value": "", "type": "string" },
+    { "key": "baby_id", "value": "cccccccc-0003-0003-0003-000000000001", "type": "string" },
+    { "key": "incubator_id", "value": "bbbbbbbb-0002-0002-0002-000000000001", "type": "string" },
+    { "key": "monitoring_id", "value": "", "type": "string" },
+    { "key": "new_user_id", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Health (no auth)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/health", "host": ["{{base_url}}"], "path": ["health"] }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set('access_token', j.access_token);",
+                  "pm.collectionVariables.set('role', j.role);",
+                  "console.log('Logged in as', j.full_name, '(' + j.role + ')');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@neonatal.rs\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/auth/login", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "login"] }
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/auth/me", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "me"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Dashboard (stats + incubator grid)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/dashboard", "host": ["{{base_url}}"], "path": ["api", "v1", "dashboard"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Incubators",
+      "item": [
+        {
+          "name": "List all",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/incubators", "host": ["{{base_url}}"], "path": ["api", "v1", "incubators"] }
+          }
+        },
+        {
+          "name": "List available (sets incubator_id)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const arr = pm.response.json();",
+                  "if (Array.isArray(arr) && arr.length) {",
+                  "  pm.collectionVariables.set('incubator_id', arr[0].incubator_id);",
+                  "  console.log('incubator_id =', arr[0].incubator_id);",
+                  "} else { console.log('no kosong incubators — incubator_id left as-is'); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/incubators/available", "host": ["{{base_url}}"], "path": ["api", "v1", "incubators", "available"] }
+          }
+        },
+        {
+          "name": "Get by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/incubators/{{incubator_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "incubators", "{{incubator_id}}"] }
+          }
+        },
+        {
+          "name": "Create (admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"incubator_no\": \"99\",\n  \"location\": \"NICU Ruang Test\"\n}" },
+            "url": { "raw": "{{base_url}}/api/v1/incubators", "host": ["{{base_url}}"], "path": ["api", "v1", "incubators"] }
+          }
+        },
+        {
+          "name": "Update (admin)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"location\": \"NICU Ruang A (updated)\",\n  \"status\": \"tidak_tersedia\"\n}" },
+            "url": { "raw": "{{base_url}}/api/v1/incubators/{{incubator_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "incubators", "{{incubator_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Babies",
+      "item": [
+        {
+          "name": "List (sets baby_id)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const arr = pm.response.json();",
+                  "if (Array.isArray(arr) && arr.length) {",
+                  "  pm.collectionVariables.set('baby_id', arr[0].baby_id);",
+                  "  console.log('baby_id =', arr[0].baby_id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/babies", "host": ["{{base_url}}"], "path": ["api", "v1", "babies"] }
+          }
+        },
+        {
+          "name": "Get detail by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/babies/{{baby_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "babies", "{{baby_id}}"] }
+          }
+        },
+        {
+          "name": "Register (perawat/admin) — needs a kosong incubator_id",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"baby_name\": \"Bayi Ny. Test\",\n  \"gender\": \"perempuan\",\n  \"birth_date\": \"2026-07-20\",\n  \"birth_weight\": 2100.0,\n  \"birth_length\": 45.0,\n  \"gestational_age\": 34,\n  \"birth_type\": \"Sectio Caesarea\",\n  \"clinical_notes\": \"Prematur, observasi ketat\",\n  \"parent\": {\n    \"mother_name\": \"Ny. Test\",\n    \"father_name\": \"Tn. Test\",\n    \"mother_phone\": \"081234567890\",\n    \"mother_medical_history\": null,\n    \"birth_history\": null,\n    \"delivery_history\": null,\n    \"additional_notes\": null\n  },\n  \"incubator_id\": \"{{incubator_id}}\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/babies", "host": ["{{base_url}}"], "path": ["api", "v1", "babies"] }
+          }
+        },
+        {
+          "name": "Update (perawat/admin)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"baby_name\": \"Ahmad Rizki\",\n  \"birth_weight\": 2450.0,\n  \"clinical_notes\": \"Kondisi membaik\"\n}" },
+            "url": { "raw": "{{base_url}}/api/v1/babies/{{baby_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "babies", "{{baby_id}}"] }
+          }
+        },
+        {
+          "name": "Discharge (perawat/admin) → 204",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/babies/{{baby_id}}/discharge", "host": ["{{base_url}}"], "path": ["api", "v1", "babies", "{{baby_id}}", "discharge"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Monitoring (vitals)",
+      "item": [
+        {
+          "name": "Create (sets monitoring_id)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "if (j.monitoring_id) pm.collectionVariables.set('monitoring_id', j.monitoring_id);",
+                  "console.log('vital_status =', j.vital_status);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"observation_time\": \"{{$isoTimestamp}}\",\n  \"suhu_bayi\": 36.8,\n  \"suhu_inkubator\": 33.5,\n  \"kelembapan_inkubator\": 55.0,\n  \"heart_rate\": 128,\n  \"respiratory_rate\": 48,\n  \"spo2\": 98.0,\n  \"expression_score\": 3,\n  \"movement_score\": 4,\n  \"pain_score\": 1,\n  \"sleep_duration_min\": 120,\n  \"sleep_quality\": 4,\n  \"agitation_episodes\": 0,\n  \"catatan\": \"Bayi tenang (via Postman)\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/babies/{{baby_id}}/monitoring", "host": ["{{base_url}}"], "path": ["api", "v1", "babies", "{{baby_id}}", "monitoring"] }
+          }
+        },
+        {
+          "name": "List history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/babies/{{baby_id}}/monitoring?skip=0&limit=50",
+              "host": ["{{base_url}}"], "path": ["api", "v1", "babies", "{{baby_id}}", "monitoring"],
+              "query": [{ "key": "skip", "value": "0" }, { "key": "limit", "value": "50" }]
+            }
+          }
+        },
+        {
+          "name": "Upload photo (multipart — attach a file)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": [], "description": "Select a JPEG/PNG/WebP ≤ 5 MB" }
+              ]
+            },
+            "url": { "raw": "{{base_url}}/api/v1/monitoring/{{monitoring_id}}/photo", "host": ["{{base_url}}"], "path": ["api", "v1", "monitoring", "{{monitoring_id}}", "photo"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Observation (Monitoring Bayi — 6 pilar / 42 item)",
+      "item": [
+        {
+          "name": "Catalog (build the form)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/observation/catalog", "host": ["{{base_url}}"], "path": ["api", "v1", "observation", "catalog"] }
+          }
+        },
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"observation_time\": \"{{$isoTimestamp}}\",\n  \"scores\": {\n    \"tidur_1\": 3, \"tidur_2\": 2, \"nyeri_1\": 3, \"nyeri_4\": 1,\n    \"posisi_1\": 3, \"kulit_1\": 2, \"nutrisi_1\": 3, \"lingkungan_1\": 3\n  },\n  \"catatan\": \"Observasi via Postman\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/babies/{{baby_id}}/observation", "host": ["{{base_url}}"], "path": ["api", "v1", "babies", "{{baby_id}}", "observation"] }
+          }
+        },
+        {
+          "name": "List history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/babies/{{baby_id}}/observation?skip=0&limit=50",
+              "host": ["{{base_url}}"], "path": ["api", "v1", "babies", "{{baby_id}}", "observation"],
+              "query": [{ "key": "skip", "value": "0" }, { "key": "limit", "value": "50" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Involvement (Keterlibatan — Pillar 6)",
+      "item": [
+        {
+          "name": "Catalog",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/involvement/catalog", "host": ["{{base_url}}"], "path": ["api", "v1", "involvement", "catalog"] }
+          }
+        },
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"observation_time\": \"{{$isoTimestamp}}\",\n  \"scores\": {\n    \"keluarga_1\": 3, \"keluarga_2\": 2, \"keluarga_3\": 3,\n    \"keluarga_4\": 2, \"keluarga_5\": 1, \"keluarga_6\": 3\n  },\n  \"durasi_menyusui\": 20,\n  \"durasi_interaksi\": 45,\n  \"kondisi_bayi\": \"Tenang\",\n  \"catatan\": \"Ibu aktif (via Postman)\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/babies/{{baby_id}}/involvement", "host": ["{{base_url}}"], "path": ["api", "v1", "babies", "{{baby_id}}", "involvement"] }
+          }
+        },
+        {
+          "name": "List history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/babies/{{baby_id}}/involvement?skip=0&limit=50",
+              "host": ["{{base_url}}"], "path": ["api", "v1", "babies", "{{baby_id}}", "involvement"],
+              "query": [{ "key": "skip", "value": "0" }, { "key": "limit", "value": "50" }]
+            }
+          }
+        },
+        {
+          "name": "Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/babies/{{baby_id}}/involvement/summary", "host": ["{{base_url}}"], "path": ["api", "v1", "babies", "{{baby_id}}", "involvement", "summary"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Aksi (Menu Aksi — Pillar 8)",
+      "item": [
+        {
+          "name": "Catalog",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/aksi/catalog", "host": ["{{base_url}}"], "path": ["api", "v1", "aksi", "catalog"] }
+          }
+        },
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"observation_time\": \"{{$isoTimestamp}}\",\n  \"scores\": {\n    \"kolaborasi_1\": 3, \"kolaborasi_2\": 2, \"kolaborasi_3\": 3,\n    \"kolaborasi_4\": 3, \"kolaborasi_5\": 2, \"kolaborasi_6\": 3\n  },\n  \"catatan\": \"Handover lengkap (via Postman)\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/babies/{{baby_id}}/aksi", "host": ["{{base_url}}"], "path": ["api", "v1", "babies", "{{baby_id}}", "aksi"] }
+          }
+        },
+        {
+          "name": "List history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/babies/{{baby_id}}/aksi?skip=0&limit=50",
+              "host": ["{{base_url}}"], "path": ["api", "v1", "babies", "{{baby_id}}", "aksi"],
+              "query": [{ "key": "skip", "value": "0" }, { "key": "limit", "value": "50" }]
+            }
+          }
+        },
+        {
+          "name": "Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/babies/{{baby_id}}/aksi/summary", "host": ["{{base_url}}"], "path": ["api", "v1", "babies", "{{baby_id}}", "aksi", "summary"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Report (JSON)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/babies/{{baby_id}}/report", "host": ["{{base_url}}"], "path": ["api", "v1", "babies", "{{baby_id}}", "report"] }
+          }
+        },
+        {
+          "name": "Report (PDF, ?token=)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/babies/{{baby_id}}/report/pdf?token={{access_token}}",
+              "host": ["{{base_url}}"], "path": ["api", "v1", "babies", "{{baby_id}}", "report", "pdf"],
+              "query": [{ "key": "token", "value": "{{access_token}}" }]
+            },
+            "description": "Also works with the Bearer header; the ?token= param exists so a browser tab can open the PDF directly. Use Postman's 'Send and Download' to save the file."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin — Users",
+      "item": [
+        {
+          "name": "List users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/users", "host": ["{{base_url}}"], "path": ["api", "v1", "users"] }
+          }
+        },
+        {
+          "name": "Create user (sets new_user_id)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.id) pm.collectionVariables.set('new_user_id', j.id);",
+                  "console.log('new_user_id =', j.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"perawat\",\n  \"email\": \"perawat.test@neonatal.rs\",\n  \"password\": \"Password123!\",\n  \"full_name\": \"Perawat Test\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/users", "host": ["{{base_url}}"], "path": ["api", "v1", "users"] }
+          }
+        },
+        {
+          "name": "Get user",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/users/{{new_user_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "users", "{{new_user_id}}"] }
+          }
+        },
+        {
+          "name": "Update user",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"full_name\": \"Perawat Test (updated)\",\n  \"is_active\": true\n}" },
+            "url": { "raw": "{{base_url}}/api/v1/users/{{new_user_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "users", "{{new_user_id}}"] }
+          }
+        },
+        {
+          "name": "Reset password → 204",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"new_password\": \"NewPassword123!\"\n}" },
+            "url": { "raw": "{{base_url}}/api/v1/users/{{new_user_id}}/reset-password", "host": ["{{base_url}}"], "path": ["api", "v1", "users", "{{new_user_id}}", "reset-password"] }
+          }
+        },
+        {
+          "name": "Deactivate user (soft delete) → 204",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/users/{{new_user_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "users", "{{new_user_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin — Audit Log",
+      "item": [
+        {
+          "name": "List audit logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/audit-logs?skip=0&limit=100",
+              "host": ["{{base_url}}"], "path": ["api", "v1", "audit-logs"],
+              "query": [{ "key": "skip", "value": "0" }, { "key": "limit", "value": "100" }, { "key": "action", "value": "LOGIN", "disabled": true }]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
