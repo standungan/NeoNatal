@@ -1,6 +1,6 @@
 # Neonatal Care — Mobile App (Flutter)
 
-The bedside data-entry client for the Neonatal Care System: nurses register babies, record vital-sign monitoring and parent-involvement sessions, upload photos, and view reports — optimised for use at the cot-side.
+The bedside data-entry client for the Neonatal Care System: nurses register babies, record vital-sign monitoring, parent-involvement (Pillar 6) and interprofessional-collaboration (Pillar 8) assessments, upload photos, and view reports — optimised for use at the cot-side.
 
 → See the [root README](../README.md) for the full-stack overview, and the [backend README](../backend/README.md) for the API.
 
@@ -29,16 +29,17 @@ lib/
 │   ├── router/     app_router.dart (go_router + auth redirect)
 │   ├── api/        api_client.dart (Dio + Bearer interceptor), endpoints
 │   ├── providers/  auth provider
-│   ├── models/     baby, dashboard, involvement, …
+│   ├── models/     baby, dashboard, involvement, aksi, monitoring, scoring, …
 │   └── widgets/    StatCard, StatusBadge, ScoreChips, …
 ├── features/
 │   ├── auth/         login
 │   ├── dashboard/    incubator grid + stats
 │   ├── baby/         registration (stepper)
 │   ├── monitoring/   vitals entry + photo upload
-│   ├── involvement/  parent-involvement entry (live score)
+│   ├── involvement/  Keterlibatan Orang Tua — Pillar 6, 6 items (live score)
+│   ├── aksi/         Menu Aksi — Kolaborasi Interprofesional, Pillar 8 (live score)
 │   ├── reports/      report + vital-trend charts + PDF export
-│   ├── incubator/    incubator detail
+│   ├── incubator/    incubator detail (+ Menu Aksi entry points)
 │   └── admin/        user management · audit log
 └── main.dart
 ```

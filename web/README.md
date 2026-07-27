@@ -44,8 +44,10 @@ web/
 ├── app/
 │   ├── (app)/                authenticated route group (shared header/shell)
 │   │   ├── dashboard/        stats + incubator grid
-│   │   ├── incubator/[id]/   incubator + baby detail
-│   │   ├── baby/[id]/report/ report: vitals, involvement, history, charts, PDF
+│   │   ├── incubator/[id]/   incubator + baby detail (+ Menu Aksi entry points)
+│   │   ├── baby/register/    register baby + parent + assign incubator
+│   │   ├── baby/[id]/        data-entry forms — monitoring · observation ·
+│   │   │                     involvement · aksi — and report (charts + PDF)
 │   │   └── admin/            users (CRUD) · audit-logs
 │   ├── api/
 │   │   ├── auth/             login · logout · me  (cookie handling)
@@ -73,7 +75,10 @@ so the **backend (and its PostgreSQL database) must be running first**. Start th
 
 ### Prerequisites
 - **Node.js 20.9+** (for the dashboard)
-- **Python 3.12+ and PostgreSQL 14+** (for the backend it talks to)
+- **Python 3.13 and PostgreSQL 14+** (for the backend it talks to)
+
+> Prefer Docker? `docker compose up` from the repo root runs the dashboard, backend and Postgres
+> together — see [DEPLOYMENT.md](../DEPLOYMENT.md). The steps below run the dashboard natively.
 
 ### 1 — Start the backend + database *(dependency)*
 In a **separate terminal**, from the repo root. First run only: create + migrate the database.
@@ -86,13 +91,13 @@ pip install -r requirements.txt
 createdb neonatal
 psql -d neonatal -f database/schema.sql
 psql -d neonatal -f database/seed_data.sql
-alembic upgrade head            # applies later migrations (incl. observations table)
+alembic stamp head              # mark the schema current (schema.sql already built all tables)
 
 # run it — keep this terminal open:
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 Confirm it's up at **http://localhost:8000/docs**. On later runs you only need the `uvicorn` line
-(plus `alembic upgrade head` after pulling new changes).
+(and `alembic upgrade head` only if a new migration was added after pulling changes).
 
 > Tip: run the backend in its **own** terminal window so it isn't stopped when you restart the dashboard.
 
@@ -125,7 +130,8 @@ npm run lint           # ESLint (flat config)
 - **Login loops / "gagal memuat"** → the backend isn't reachable. Check `http://localhost:8000/docs`
   and that `API_BASE_URL` in `web/.env.local` matches.
 - **Port 3000 busy** → stop the other process, or run `npm run dev -- -p 3001`.
-- **Blank data after pulling updates** → run `alembic upgrade head` in `backend/` (new DB columns/tables).
+- **Blank data after pulling updates** → a new migration may have landed; run `alembic upgrade head`
+  in `backend/` (safe once the DB is stamped; see the DB-setup note above).
 
 ---
 

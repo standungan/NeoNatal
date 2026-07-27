@@ -57,17 +57,19 @@ It ships with **two clients sharing one backend and one design language**:
 
 ## ✨ Features
 
-**Monitoring & clinical** _(aligned with the [8-Pillar NICU framework](docs/8%20pillar%20NICU.md))_
+**Vital-sign monitoring** _(fields aligned with the [8-Pillar NICU framework](docs/8%20pillar%20NICU.md))_
 - Baby registration with parent and birth details
-- Vital-sign monitoring — suhu bayi/inkubator, heart rate, **respiratory rate**, SpO₂, expression & movement scores
-- **Pain/stress score** (NIPS 0–7, Pillar 6) and **sleep & comfort** (duration, quality, agitation, Pillar 5)
+- Vitals — suhu bayi/inkubator, kelembapan, heart rate, **respiratory rate**, SpO₂, expression & movement scores
+- **Pain/stress score** (NIPS 0–7) and **sleep & comfort** (duration, quality, agitation)
 - Automatic **warning** status when vitals fall outside safe ranges (HR, RR, SpO₂, temperature, pain)
 - Optional photo upload per monitoring session
 
-**Parent involvement** — full **Pillar 8** structured assessment
-- 8 FICare sub-domains rated 0–4: presence, physical interaction, feeding, care, knowledge, communication, emotional readiness, discharge readiness
-- Computes a **Parent Engagement Index (PEI)** 0–100
-- Categorised: Rendah / Sedang / Baik / Sangat Baik
+**Three catalog-driven assessment instruments** — each scores its items **0–3**, rolls up to a
+percentage and a shared 5-band category (Sangat Baik ≥85 · Baik ≥70 · Cukup ≥55 · Kurang ≥40 · Sangat Kurang <40),
+and renders as a radar chart. Forms are built from a `…/catalog` endpoint (single source of truth):
+- **Observation** ("Monitoring Bayi") — the premature-baby instrument: **6 pillars / 42 items** (max 126). Any item scored 0 flips the incubator to `warning`.
+- **Keterlibatan Orang Tua** (parent involvement) — Pillar 6 "Kerjasama dengan Keluarga": **6 items** (max 18).
+- **Menu Aksi** — Pillar 8 "Kolaborasi Interprofesional": **6 items** (max 18).
 
 **Reporting**
 - Per-baby report: current condition, involvement summary, full history
@@ -139,8 +141,8 @@ See [`images/04 system arch.png`](images/04%20system%20arch.png) and [`images/05
 NeoNatal/
 ├── backend/          FastAPI service
 │   ├── app/
-│   │   ├── api/v1/    auth, users, incubators, babies, monitoring,
-│   │   │              involvement, reports, dashboard, audit
+│   │   ├── api/v1/    auth, users, incubators, babies, monitoring, involvement,
+│   │   │              observation, aksi, reports, dashboard, audit
 │   │   ├── core/      config, security, database
 │   │   ├── models/ · schemas/ · services/ · repositories/
 │   │   └── main.py
@@ -150,12 +152,13 @@ NeoNatal/
 ├── frontend/         Flutter mobile app
 │   └── lib/
 │       ├── core/     theme, router, api client, widgets
-│       └── features/ auth, dashboard, baby, monitoring,
-│                      involvement, reports, incubator, admin
+│       └── features/ auth, dashboard, baby, monitoring, involvement,
+│                      aksi, reports, incubator, admin
 ├── web/              Next.js web dashboard
 │   ├── app/          (app)/ pages, api/ route handlers
 │   ├── components/ · lib/
 │   └── proxy.ts      route gating (Next 16 middleware)
+├── docker-compose.yml    full stack (backend + web + Postgres)
 └── images/           diagrams & screenshots
 ```
 
@@ -164,7 +167,10 @@ NeoNatal/
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Python 3.12+ · PostgreSQL 14+ · Node.js 20.9+ · Flutter SDK 3.44+
+- Python 3.13 · PostgreSQL 14+ · Node.js 20.9+ · Flutter SDK 3.44+
+
+> Prefer Docker? The whole stack (backend + dashboard + Postgres) runs with one
+> `docker compose up` — see [DEPLOYMENT.md](DEPLOYMENT.md). The steps below are the native path.
 
 ### 1. Database
 ```bash
@@ -172,6 +178,8 @@ createdb neonatal
 psql -d neonatal -f backend/database/schema.sql
 psql -d neonatal -f backend/database/seed_data.sql
 ```
+> The schema is built from `schema.sql`, **not** the Alembic chain (its initial revision can't build
+> from empty). If you use Alembic, run `alembic stamp head` once after loading `schema.sql`.
 
 ### 2. Backend (FastAPI)
 ```bash
@@ -238,7 +246,8 @@ Design artefacts from the analysis & architecture phases live in [`images/`](ima
 | Backend (auth, RBAC, all modules) | ✅ Complete |
 | Flutter mobile app | ✅ Complete |
 | Next.js web dashboard | ✅ Complete |
-| Testing & deployment | ⬜ Planned |
+| Containerised deployment (Docker Compose) | ✅ Complete — see [DEPLOYMENT.md](DEPLOYMENT.md) |
+| Automated tests | ⬜ Planned |
 
 ---
 
