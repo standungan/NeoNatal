@@ -7,6 +7,7 @@ import type { DashboardResponse, IncubatorDashboardItem } from "@/lib/types";
 import { Card, StatCard, StatusBadge, PageState } from "@/components/ui";
 import { useAuth } from "@/components/providers";
 import { canWrite } from "@/lib/format";
+import { AddIncubatorButton } from "@/components/add-incubator";
 
 export default function DashboardPage() {
   const { user, role } = useAuth();
@@ -52,6 +53,9 @@ export default function DashboardPage() {
               <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">
                 {data.incubators.length}
               </span>
+              <div className="ml-auto">
+                <AddIncubatorButton />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
