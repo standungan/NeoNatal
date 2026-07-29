@@ -19,6 +19,7 @@ import { formatDateTime, genderLabel } from "@/lib/format";
 import { ObservationSummaryCard } from "@/components/observation";
 import { InvolvementSummaryCard } from "@/components/involvement";
 import { AksiSummaryCard } from "@/components/aksi";
+import { RegistrationCard, BabyIdentityCard, MaternalRecordCard } from "@/components/maternal";
 
 export default function ReportPage() {
   const { id } = useParams<{ id: string }>();
@@ -80,6 +81,16 @@ export default function ReportPage() {
                 </a>
               </div>
             </Card>
+
+            {data.baby.current_assignment && (
+              <RegistrationCard assignment={data.baby.current_assignment} />
+            )}
+
+            <BabyIdentityCard baby={data.baby} />
+
+            {data.baby.maternal && (
+              <MaternalRecordCard maternal={data.baby.maternal} parent={data.baby.parent} />
+            )}
 
             {latestObservation && <ObservationSummaryCard record={latestObservation} />}
 

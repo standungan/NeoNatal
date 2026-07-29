@@ -115,6 +115,56 @@ export interface AssignmentInfo {
   location: string | null;
   assigned_at: string;
   assigned_by_name: string | null;
+  // registration data (updates02)
+  no_registrasi_nicu: string | null;
+  rumah_sakit: string | null;
+  ruang_nicu: string | null;
+  dpjp_name: string | null;
+}
+
+export interface MaternalRecord {
+  maternal_record_id: string;
+  no_rm_ibu: string | null;
+  umur_ibu: number | null;
+  pendidikan: string | null;
+  pekerjaan: string | null;
+  alamat: string | null;
+  golongan_darah: string | null;
+  kehamilan_ke: number | null;
+  jumlah_persalinan_hidup: number | null;
+  riwayat_abortus: boolean | null;
+  riwayat_prematur: boolean | null;
+  riwayat_bblr: boolean | null;
+  riwayat_bayi_meninggal: boolean | null;
+  usia_kehamilan_lahir: number | null;
+  jenis_kehamilan: string | null;
+  anc_rutin: boolean | null;
+  jumlah_anc: number | null;
+  hipertensi_kehamilan: boolean | null;
+  preeklamsia: boolean | null;
+  diabetes_gestasional: boolean | null;
+  infeksi_hamil: boolean | null;
+  perdarahan_hamil: boolean | null;
+  ketuban_pecah_dini: boolean | null;
+  merokok: boolean | null;
+  paparan_asap_rokok: boolean | null;
+  konsumsi_alkohol: boolean | null;
+  obat_tertentu: boolean | null;
+  obat_tertentu_ket: string | null;
+  tanggal_persalinan: string | null;
+  jenis_persalinan: string | null;
+  tempat_persalinan: string | null;
+  indikasi_prematur: string[] | null;
+  indikasi_prematur_lainnya: string | null;
+  komplikasi_persalinan: string[] | null;
+  komplikasi_lainnya: string | null;
+  apgar_menit_1: number | null;
+  apgar_menit_5: number | null;
+  kondisi_umum: string | null;
+  masih_dirawat: boolean | null;
+  komplikasi_postpartum: boolean | null;
+  dapat_berjalan: boolean | null;
+  dapat_menyusui: boolean | null;
 }
 
 export interface BabyDetail {
@@ -127,8 +177,16 @@ export interface BabyDetail {
   gestational_age: number | null;
   birth_type: string | null;
   clinical_notes: string | null;
+  // extended identity (updates02)
+  no_rm_bayi: string | null;
+  jam_lahir: string | null;
+  usia_masuk_nicu_jam: number | null;
+  lingkar_kepala: number | null;
+  lingkar_dada: number | null;
+  golongan_darah: string | null;
   age_in_days: number;
   parent: ParentInfo | null;
+  maternal: MaternalRecord | null;
   current_assignment: AssignmentInfo | null;
   latest_vitals: MonitoringRecord | null;
 }
