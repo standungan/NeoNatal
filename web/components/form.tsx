@@ -104,6 +104,80 @@ export function ScoreChips({
   );
 }
 
+/** Compact Ya / Tidak toggle → boolean | null. Click the selected one to clear. */
+export function YesNo({
+  value,
+  onChange,
+}: {
+  value: boolean | null;
+  onChange: (v: boolean | null) => void;
+}) {
+  const opt = (v: boolean, label: string) => {
+    const on = value === v;
+    return (
+      <button
+        type="button"
+        onClick={() => onChange(on ? null : v)}
+        className={`flex-1 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
+          on
+            ? v
+              ? "border-primary bg-primary text-white"
+              : "border-danger bg-danger text-white"
+            : "border-line bg-[#f8fafc] text-muted hover:border-primary/40"
+        }`}
+      >
+        {label}
+      </button>
+    );
+  };
+  return (
+    <div className="flex gap-2">
+      {opt(true, "Ya")}
+      {opt(false, "Tidak")}
+    </div>
+  );
+}
+
+/** Multi-select checklist backed by a string[] of chosen option labels. */
+export function CheckboxGroup({
+  options,
+  value,
+  onChange,
+}: {
+  options: string[];
+  value: string[];
+  onChange: (v: string[]) => void;
+}) {
+  const toggle = (opt: string) =>
+    onChange(value.includes(opt) ? value.filter((o) => o !== opt) : [...value, opt]);
+  return (
+    <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+      {options.map((opt) => {
+        const on = value.includes(opt);
+        return (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => toggle(opt)}
+            className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-[13px] font-medium transition ${
+              on ? "border-primary bg-primary/8 text-ink" : "border-line bg-card text-muted hover:border-primary/40"
+            }`}
+          >
+            <span
+              className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] ${
+                on ? "border-primary bg-primary text-white" : "border-line"
+              }`}
+            >
+              {on ? "✓" : ""}
+            </span>
+            {opt}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function SubmitButton({
   loading,
   children,
