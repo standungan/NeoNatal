@@ -104,10 +104,16 @@ export default function IncubatorDetailPage() {
                   {writable && (
                     <>
                       <Link
+                        href={`/baby/${babyId}/monitoring`}
+                        className="inline-flex items-center gap-2 rounded-xl border border-line px-4 py-2.5 text-sm font-bold text-ink hover:bg-surface"
+                      >
+                        💓 Input Tanda Vital
+                      </Link>
+                      <Link
                         href={`/baby/${babyId}/observation`}
                         className="inline-flex items-center gap-2 rounded-xl border border-line px-4 py-2.5 text-sm font-bold text-ink hover:bg-surface"
                       >
-                        🩺 Monitoring Bayi
+                        🩺 Monitoring Bayi (Observasi)
                       </Link>
                       <Link
                         href={`/baby/${babyId}/involvement`}

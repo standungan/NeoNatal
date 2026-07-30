@@ -80,7 +80,7 @@ export default function MonitoringEntryPage() {
   return (
     <div>
       <BackLink href={`/baby/${id}/report`} label="Kembali ke Laporan" />
-      <h1 className="mb-4 mt-3 text-xl font-extrabold text-ink">Input Monitoring Bayi</h1>
+      <h1 className="mb-4 mt-3 text-xl font-extrabold text-ink">Input Tanda Vital</h1>
 
       <form
         onSubmit={(e) => {
