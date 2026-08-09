@@ -35,14 +35,13 @@ export function AddIncubatorButton() {
 
 function AddIncubatorDialog({ onClose }: { onClose: () => void }) {
   const qc = useQueryClient();
-  const [incubatorNo, setIncubatorNo] = useState("");
   const [location, setLocation] = useState("");
   const [err, setErr] = useState<string | null>(null);
 
   const save = useMutation({
     mutationFn: async () =>
       api.post("/incubators", {
-        incubator_no: incubatorNo.trim(),
+        // incubator_no is assigned automatically (next sequential number) by the backend.
         // backend treats location as optional (str | None)
         location: location.trim() || null,
       }),
@@ -54,7 +53,7 @@ function AddIncubatorDialog({ onClose }: { onClose: () => void }) {
     onError: (e) => setErr(errorMessage(e)),
   });
 
-  const canSubmit = incubatorNo.trim().length > 0 && !save.isPending;
+  const canSubmit = !save.isPending;
 
   return (
     <div
@@ -73,19 +72,15 @@ function AddIncubatorDialog({ onClose }: { onClose: () => void }) {
             if (canSubmit) save.mutate();
           }}
         >
-          <Field label="Nomor Inkubator">
-            <TextInput
-              placeholder="mis. 08"
-              value={incubatorNo}
-              onChange={(e) => setIncubatorNo(e.target.value)}
-              autoFocus
-            />
-          </Field>
+          <p className="rounded-lg bg-surface px-3 py-2 text-[13px] text-muted">
+            Nomor inkubator dibuat otomatis (berurutan) saat disimpan.
+          </p>
           <Field label="Lokasi" hint="Opsional — mis. NICU Ruang C">
             <TextInput
               placeholder="NICU Ruang C"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
+              autoFocus
             />
           </Field>
           {err && <Banner kind="error">{err}</Banner>}

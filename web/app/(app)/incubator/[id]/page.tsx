@@ -9,6 +9,14 @@ import { Card, StatusBadge, PageState, BackLink, SectionTitle } from "@/componen
 import { formatDate, formatDateTime, genderLabel, canWrite } from "@/lib/format";
 import { useAuth } from "@/components/providers";
 import { ObservationSummaryCard } from "@/components/observation";
+import { errorMessage } from "@/components/form";
+
+// Statuses an admin may set by hand (occupied/warning are system-managed).
+const MANUAL_STATUSES = ["kosong", "tidak_tersedia"] as const;
+const STATUS_ACTION_LABEL: Record<string, string> = {
+  kosong: "✅ Tandai Kosong",
+  tidak_tersedia: "🚫 Tandai Tidak Tersedia",
+};
 
 export default function IncubatorDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -29,6 +37,23 @@ export default function IncubatorDetailPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       qc.invalidateQueries({ queryKey: ["incubator", id] });
+      router.push("/dashboard");
+    },
+  });
+
+  // Admin-only: change status between kosong/tidak_tersedia, or delete an unused incubator.
+  const setStatus = useMutation({
+    mutationFn: async (status: string) => api.put(`/incubators/${id}`, { status }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["incubator", id] });
+    },
+  });
+
+  const remove = useMutation({
+    mutationFn: async () => api.delete(`/incubators/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
       router.push("/dashboard");
     },
   });
@@ -146,6 +171,53 @@ export default function IncubatorDetailPage() {
                 </div>
                 {discharge.isError && (
                   <p className="mt-3 text-sm font-semibold text-danger">Gagal memulangkan bayi.</p>
+                )}
+              </Card>
+            )}
+
+            {role === "admin" && !babyId && (
+              <Card className="p-5">
+                <SectionTitle>Pengaturan Inkubator (Admin)</SectionTitle>
+                <div className="mt-4 flex flex-wrap gap-2.5">
+                  {MANUAL_STATUSES.filter((s) => s !== incQ.data!.status).map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      disabled={setStatus.isPending}
+                      onClick={() => setStatus.mutate(s)}
+                      className="inline-flex items-center gap-2 rounded-xl border border-line px-4 py-2.5 text-sm font-bold text-ink hover:bg-surface disabled:opacity-60"
+                    >
+                      {STATUS_ACTION_LABEL[s]}
+                    </button>
+                  ))}
+                  {(MANUAL_STATUSES as readonly string[]).includes(incQ.data!.status) && (
+                    <button
+                      type="button"
+                      disabled={remove.isPending}
+                      onClick={() => {
+                        if (
+                          confirm(
+                            `Hapus Inkubator ${incQ.data!.incubator_no}? Tindakan ini tidak dapat dibatalkan.`,
+                          )
+                        ) {
+                          remove.mutate();
+                        }
+                      }}
+                      className="inline-flex items-center gap-2 rounded-xl border border-danger/30 px-4 py-2.5 text-sm font-bold text-danger hover:bg-danger/10 disabled:opacity-60"
+                    >
+                      🗑️ Hapus Inkubator
+                    </button>
+                  )}
+                </div>
+                {setStatus.isError && (
+                  <p className="mt-3 text-sm font-semibold text-danger">
+                    {errorMessage(setStatus.error)}
+                  </p>
+                )}
+                {remove.isError && (
+                  <p className="mt-3 text-sm font-semibold text-danger">
+                    {errorMessage(remove.error)}
+                  </p>
                 )}
               </Card>
             )}
