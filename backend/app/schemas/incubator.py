@@ -9,7 +9,8 @@ IncubatorStatus = Literal["kosong", "terisi", "warning", "tidak_tersedia"]
 
 
 class IncubatorCreate(BaseModel):
-    incubator_no: str
+    # incubator_no is assigned automatically (next sequential number) — see
+    # incubator_service.create_incubator. Only the location is user-provided.
     location: str | None = None
 
 

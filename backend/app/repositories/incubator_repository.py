@@ -49,13 +49,6 @@ class IncubatorRepository:
         )
         return result.scalar_one_or_none()
 
-    async def number_exists(self, incubator_no: str, exclude_id: uuid.UUID | None = None) -> bool:
-        stmt = select(Incubator.incubator_id).where(Incubator.incubator_no == incubator_no)
-        if exclude_id:
-            stmt = stmt.where(Incubator.incubator_id != exclude_id)
-        result = await self.db.execute(stmt)
-        return result.scalar_one_or_none() is not None
-
     async def create(self, incubator: Incubator) -> Incubator:
         self.db.add(incubator)
         await self.db.flush()
@@ -66,6 +59,32 @@ class IncubatorRepository:
         await self.db.flush()
         await self.db.refresh(incubator)
         return incubator
+
+    async def delete(self, incubator: Incubator) -> None:
+        await self.db.delete(incubator)
+        await self.db.flush()
+
+    async def has_assignments(self, incubator_id: uuid.UUID) -> bool:
+        """True if any assignment (active or historical) references this incubator."""
+        result = await self.db.execute(
+            select(BabyIncubatorAssignment.assignment_id)
+            .where(BabyIncubatorAssignment.incubator_id == incubator_id)
+            .limit(1)
+        )
+        return result.scalar_one_or_none() is not None
+
+    async def has_active_assignment(self, incubator_id: uuid.UUID) -> bool:
+        result = await self.db.execute(
+            select(BabyIncubatorAssignment.assignment_id)
+            .where(
+                and_(
+                    BabyIncubatorAssignment.incubator_id == incubator_id,
+                    BabyIncubatorAssignment.status == "active",
+                )
+            )
+            .limit(1)
+        )
+        return result.scalar_one_or_none() is not None
 
     async def get_available(self) -> list[Incubator]:
         """Return incubators that can accept a new baby."""

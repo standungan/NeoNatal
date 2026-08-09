@@ -65,3 +65,17 @@ async def update_incubator(
     return await incubator_service.update_incubator(
         incubator_id, data, db, actor_id=current_user.id, ip=ip
     )
+
+
+@router.delete("/{incubator_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_incubator(
+    incubator_id: uuid.UUID,
+    request: Request,
+    current_user: AdminOnly,
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete an empty/unavailable incubator (admin only)."""
+    ip = request.client.host if request.client else None
+    await incubator_service.delete_incubator(
+        incubator_id, db, actor_id=current_user.id, ip=ip
+    )

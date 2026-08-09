@@ -14,6 +14,21 @@ from app.schemas.incubator import (
 )
 from app.services.audit_service import log_action
 
+# Statuses an admin may set (or that allow deletion) by hand. 'terisi' and
+# 'warning' are managed automatically by the assignment/monitoring flows.
+MANUAL_STATUSES = ("kosong", "tidak_tersedia")
+
+
+def _next_incubator_no(existing: list[Incubator]) -> str:
+    """Next sequential number: highest numeric incubator_no + 1, zero-padded to 2."""
+    max_n = 0
+    for inc in existing:
+        try:
+            max_n = max(max_n, int(inc.incubator_no))
+        except (TypeError, ValueError):
+            continue  # ignore any non-numeric legacy numbers
+    return f"{max_n + 1:02d}"
+
 
 async def get_all_incubators(db: AsyncSession) -> list[IncubatorDetailResponse]:
     repo = IncubatorRepository(db)
@@ -43,13 +58,10 @@ async def create_incubator(
 ) -> IncubatorResponse:
     repo = IncubatorRepository(db)
 
-    if await repo.number_exists(data.incubator_no):
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Inkubator nomor {data.incubator_no} sudah ada",
-        )
+    # Auto-assign the next sequential number (max existing + 1, zero-padded).
+    incubator_no = _next_incubator_no(await repo.get_all())
 
-    inc = Incubator(incubator_no=data.incubator_no, location=data.location)
+    inc = Incubator(incubator_no=incubator_no, location=data.location)
     inc = await repo.create(inc)
 
     await log_action(
@@ -79,6 +91,19 @@ async def update_incubator(
     if data.location is not None:
         inc.location = data.location
     if data.status is not None:
+        # Manual status changes are admin-only (enforced at the route) and limited
+        # to the two non-occupied states. 'terisi'/'warning' are set automatically
+        # by the assignment/monitoring/observation flows, never by hand.
+        if data.status not in MANUAL_STATUSES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Status hanya dapat diubah menjadi Kosong atau Tidak Tersedia",
+            )
+        if await repo.has_active_assignment(incubator_id):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Inkubator sedang terisi — status tidak dapat diubah",
+            )
         inc.status = data.status
 
     inc = await repo.update(inc)
@@ -92,6 +117,45 @@ async def update_incubator(
         ip_address=ip,
     )
     return IncubatorResponse.model_validate(inc)
+
+
+async def delete_incubator(
+    incubator_id: uuid.UUID,
+    db: AsyncSession,
+    actor_id: uuid.UUID | None = None,
+    ip: str | None = None,
+) -> None:
+    repo = IncubatorRepository(db)
+    inc = await repo.get_by_id(incubator_id)
+    if not inc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Inkubator tidak ditemukan")
+
+    if inc.status not in MANUAL_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Hanya inkubator berstatus Kosong atau Tidak Tersedia yang dapat dihapus",
+        )
+    if await repo.has_assignments(incubator_id):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Inkubator memiliki riwayat penempatan bayi dan tidak dapat dihapus. "
+                "Tandai sebagai 'Tidak Tersedia' sebagai gantinya."
+            ),
+        )
+
+    incubator_no = inc.incubator_no
+    await repo.delete(inc)
+
+    await log_action(
+        db,
+        user_id=actor_id,
+        action="DELETE",
+        table_name="incubators",
+        record_id=incubator_id,
+        ip_address=ip,
+        details={"incubator_no": incubator_no},
+    )
 
 
 def _to_detail_response(inc: Incubator) -> IncubatorDetailResponse:
