@@ -10,6 +10,7 @@ from app.api.v1 import (
     auth,
     babies,
     dashboard,
+    doctor_notes,
     incubators,
     involvement,
     monitoring,
@@ -46,6 +47,7 @@ app.include_router(monitoring.router,  prefix="/api/v1",             tags=["Moni
 app.include_router(involvement.router, prefix="/api/v1",             tags=["Involvement"])
 app.include_router(observation.router, prefix="/api/v1",             tags=["Observation"])
 app.include_router(aksi.router,        prefix="/api/v1",             tags=["Aksi"])
+app.include_router(doctor_notes.router, prefix="/api/v1",            tags=["Doctor Notes"])
 app.include_router(dashboard.router,   prefix="/api/v1/dashboard",   tags=["Dashboard"])
 app.include_router(reports.router,     prefix="/api/v1",             tags=["Reports"])
 app.include_router(audit.router,       prefix="/api/v1/audit-logs",  tags=["Audit"])

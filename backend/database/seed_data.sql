@@ -2,8 +2,9 @@
 -- Seed Data (rich demo) — Sistem Monitoring Bayi pada Inkubator
 -- Run AFTER schema.sql.  Generated — do not edit by hand; see backend/database/gen_seed.py.
 --
---   8 users · 9 incubators · 8 babies (7 active + 1 discharged)
---   ~4 days of time-series: monitoring (3x/day) + daily observation + involvement
+--   6 users · 9 incubators · 8 babies (7 active + 1 discharged)
+--   ~4 days of time-series: monitoring (3x/day) + daily observation + involvement + aksi
+--   + doctor notes (Catatan Dokter) and per-incubator sensor thresholds.
 --   Covers stable, improving, warning and critical cases.
 --
 --   All passwords are bcrypt hashes of "Password123!"
@@ -13,7 +14,7 @@
 BEGIN;
 
 -- Idempotent: clear existing rows (children first) before reseeding.
-TRUNCATE TABLE audit_logs, aksi_records, observations, parent_involvement_records,
+TRUNCATE TABLE audit_logs, doctor_notes, aksi_records, observations, parent_involvement_records,
     monitoring_records, baby_incubator_assignments, maternal_records, parents, babies,
     incubators, users RESTART IDENTITY CASCADE;
 
@@ -27,16 +28,16 @@ INSERT INTO users (id, role, email, password_hash, full_name) VALUES
 ('aaaaaaaa-0001-0001-0001-000000000006', 'dokter', 'dr.bagus@neonatal.rs', '$2b$12$mVNFQ/MY10L6vCb8hx9C9eXKfnWQGZHQDkBu3a.oZYhgQR5Xtjn0K', 'dr. Bagus Wicaksono, Sp.A');
 
 -- ── INCUBATORS ───────────────────────────────────────────────────────────
-INSERT INTO incubators (incubator_id, incubator_no, location, status) VALUES
-('bbbbbbbb-0002-0002-0002-000000000001', '01', 'NICU Ruang A', 'terisi'),
-('bbbbbbbb-0002-0002-0002-000000000002', '02', 'NICU Ruang A', 'terisi'),
-('bbbbbbbb-0002-0002-0002-000000000003', '03', 'NICU Ruang A', 'kosong'),
-('bbbbbbbb-0002-0002-0002-000000000004', '04', 'NICU Ruang A', 'warning'),
-('bbbbbbbb-0002-0002-0002-000000000005', '05', 'NICU Ruang B', 'terisi'),
-('bbbbbbbb-0002-0002-0002-000000000006', '06', 'NICU Ruang B', 'warning'),
-('bbbbbbbb-0002-0002-0002-000000000007', '07', 'NICU Ruang B', 'terisi'),
-('bbbbbbbb-0002-0002-0002-000000000008', '08', 'NICU Ruang B', 'terisi'),
-('bbbbbbbb-0002-0002-0002-000000000009', '09', 'NICU Ruang B', 'tidak_tersedia');
+INSERT INTO incubators (incubator_id, incubator_no, location, status, alert_thresholds) VALUES
+('bbbbbbbb-0002-0002-0002-000000000001', '01', 'NICU Ruang A', 'terisi', NULL),
+('bbbbbbbb-0002-0002-0002-000000000002', '02', 'NICU Ruang A', 'terisi', NULL),
+('bbbbbbbb-0002-0002-0002-000000000003', '03', 'NICU Ruang A', 'kosong', NULL),
+('bbbbbbbb-0002-0002-0002-000000000004', '04', 'NICU Ruang A', 'warning', '{"suhu_bayi": {"min": 36.3, "max": 37.5}, "spo2": {"min": 92, "max": 100}, "heart_rate": {"min": 110, "max": 175}}'::jsonb),
+('bbbbbbbb-0002-0002-0002-000000000005', '05', 'NICU Ruang B', 'terisi', NULL),
+('bbbbbbbb-0002-0002-0002-000000000006', '06', 'NICU Ruang B', 'warning', '{"spo2": {"min": 93, "max": 100}, "heart_rate": {"min": 110, "max": 180}, "respiratory_rate": {"min": 30, "max": 65}}'::jsonb),
+('bbbbbbbb-0002-0002-0002-000000000007', '07', 'NICU Ruang B', 'terisi', NULL),
+('bbbbbbbb-0002-0002-0002-000000000008', '08', 'NICU Ruang B', 'terisi', NULL),
+('bbbbbbbb-0002-0002-0002-000000000009', '09', 'NICU Ruang B', 'tidak_tersedia', NULL);
 
 -- ── BABIES ───────────────────────────────────────────────────────────────
 INSERT INTO babies (baby_id, baby_name, gender, birth_date, birth_weight, birth_length, gestational_age, birth_type, no_rm_bayi, jam_lahir, usia_masuk_nicu_jam, lingkar_kepala, lingkar_dada, golongan_darah, is_active) VALUES
@@ -256,6 +257,18 @@ INSERT INTO aksi_records
 ('cccccccc-0003-0003-0003-000000000007', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-06 13:00:00+07', '{"kolaborasi_1":3,"kolaborasi_2":2,"kolaborasi_3":2,"kolaborasi_4":3,"kolaborasi_5":3,"kolaborasi_6":3}'::jsonb, NULL, 16, 88.9, 'Sangat Baik'),
 ('cccccccc-0003-0003-0003-000000000007', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-07 13:00:00+07', '{"kolaborasi_1":3,"kolaborasi_2":3,"kolaborasi_3":3,"kolaborasi_4":2,"kolaborasi_5":2,"kolaborasi_6":2}'::jsonb, NULL, 15, 83.3, 'Baik'),
 ('cccccccc-0003-0003-0003-000000000007', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-08 13:00:00+07', '{"kolaborasi_1":2,"kolaborasi_2":3,"kolaborasi_3":3,"kolaborasi_4":2,"kolaborasi_5":3,"kolaborasi_6":2}'::jsonb, NULL, 15, 83.3, 'Baik');
+
+-- ── DOCTOR NOTES (Catatan Dokter — ditulis oleh DPJP saat observasi) ──────
+INSERT INTO doctor_notes (baby_id, recorded_by, observation_time, catatan) VALUES
+('cccccccc-0003-0003-0003-000000000001', 'aaaaaaaa-0001-0001-0001-000000000004', '2026-07-08 10:30:00+07', 'Kondisi klinis membaik. Berat badan naik bertahap, toleransi minum baik. Lanjutkan perawatan suportif dan pemantauan rutin.'),
+('cccccccc-0003-0003-0003-000000000002', 'aaaaaaaa-0001-0001-0001-000000000006', '2026-07-08 10:30:00+07', 'Bayi stabil, tanda vital dalam rentang normal. Pertahankan terapi saat ini dan nutrisi enteral.'),
+('cccccccc-0003-0003-0003-000000000003', 'aaaaaaaa-0001-0001-0001-000000000004', '2026-07-07 10:30:00+07', 'Takipnea dengan SpO2 borderline. Tingkatkan dukungan oksigen, pantau ketat tiap shift. Pertimbangkan foto toraks bila memburuk.'),
+('cccccccc-0003-0003-0003-000000000003', 'aaaaaaaa-0001-0001-0001-000000000004', '2026-07-08 10:30:00+07', 'Perlu observasi ketat. Evaluasi ulang analisa gas darah bila desaturasi berulang.'),
+('cccccccc-0003-0003-0003-000000000004', 'aaaaaaaa-0001-0001-0001-000000000006', '2026-07-08 10:30:00+07', 'Bayi stabil, tanda vital dalam rentang normal. Pertahankan terapi saat ini dan nutrisi enteral.'),
+('cccccccc-0003-0003-0003-000000000005', 'aaaaaaaa-0001-0001-0001-000000000004', '2026-07-07 10:30:00+07', 'Kondisi kritis: desaturasi dan apnea berulang. Optimalkan dukungan respirasi, konsul sub-spesialis, dan lakukan informed consent keluarga.'),
+('cccccccc-0003-0003-0003-000000000005', 'aaaaaaaa-0001-0001-0001-000000000004', '2026-07-08 10:30:00+07', 'Belum stabil. Ketatkan pemantauan hemodinamik dan respirasi; siapkan rencana rujukan bila ada indikasi.'),
+('cccccccc-0003-0003-0003-000000000006', 'aaaaaaaa-0001-0001-0001-000000000006', '2026-07-08 10:30:00+07', 'Kondisi klinis membaik. Berat badan naik bertahap, toleransi minum baik. Lanjutkan perawatan suportif dan pemantauan rutin.'),
+('cccccccc-0003-0003-0003-000000000007', 'aaaaaaaa-0001-0001-0001-000000000004', '2026-07-08 10:30:00+07', 'Bayi stabil, tanda vital dalam rentang normal. Pertahankan terapi saat ini dan nutrisi enteral.');
 
 -- ── AUDIT LOG (sample entries) ───────────────────────────────────────────
 INSERT INTO audit_logs (user_id, action, table_name, record_id, ip_address, details) VALUES

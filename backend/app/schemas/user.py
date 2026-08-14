@@ -18,6 +18,7 @@ class UserCreate(BaseModel):
 class UserUpdate(BaseModel):
     full_name: str | None = None
     is_active: bool | None = None
+    role: UserRole | None = None
 
 
 class PasswordResetRequest(BaseModel):

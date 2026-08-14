@@ -78,6 +78,22 @@ INCUBATORS = [
     (INC(9), "09", "NICU Ruang B", "tidak_tersedia"),
 ]
 
+# admin-set sensor alert thresholds (per incubator; absent → NULL → code defaults).
+# A couple of incubators are pre-configured to demonstrate the feature; the rest
+# fall back to the backend defaults.
+INC_THRESHOLDS = {
+    INC(4): {   # Muhammad Farhan (warning) — tighter bounds
+        "suhu_bayi": {"min": 36.3, "max": 37.5},
+        "spo2": {"min": 92, "max": 100},
+        "heart_rate": {"min": 110, "max": 175},
+    },
+    INC(6): {   # Bilqis (critical) — close monitoring
+        "spo2": {"min": 93, "max": 100},
+        "heart_rate": {"min": 110, "max": 180},
+        "respiratory_rate": {"min": 30, "max": 65},
+    },
+}
+
 # ── babies ───────────────────────────────────────────────────────────────────
 # profile drives generated vitals / observation quality / PEI over time.
 #   q0 -> q1 = observation avg item score at start / end of window (0..3) → trend
@@ -229,6 +245,32 @@ MON_NOTES = {
 }
 KONDISI = ["Tenang", "Aktif", "Rewel", "Tidur"]
 
+# ── doctor notes (Catatan Dokter — written by the DPJP during observation) ─────
+DOCTOR_NOTES = {
+    "improving": [
+        "Kondisi klinis membaik. Berat badan naik bertahap, toleransi minum baik. "
+        "Lanjutkan perawatan suportif dan pemantauan rutin.",
+        "Tanda vital stabil dalam batas normal. Rencana penyapihan oksigen bertahap. "
+        "Evaluasi ulang dalam 24 jam.",
+    ],
+    "stable": [
+        "Bayi stabil, tanda vital dalam rentang normal. Pertahankan terapi saat ini "
+        "dan nutrisi enteral.",
+        "Tidak ada keluhan akut. Lanjutkan pemantauan standar dan dukungan laktasi ibu.",
+    ],
+    "warning": [
+        "Takipnea dengan SpO2 borderline. Tingkatkan dukungan oksigen, pantau ketat "
+        "tiap shift. Pertimbangkan foto toraks bila memburuk.",
+        "Perlu observasi ketat. Evaluasi ulang analisa gas darah bila desaturasi berulang.",
+    ],
+    "critical": [
+        "Kondisi kritis: desaturasi dan apnea berulang. Optimalkan dukungan respirasi, "
+        "konsul sub-spesialis, dan lakukan informed consent keluarga.",
+        "Belum stabil. Ketatkan pemantauan hemodinamik dan respirasi; siapkan rencana "
+        "rujukan bila ada indikasi.",
+    ],
+}
+
 # ── updates02: maternal record + expanded NICU intake ─────────────────────────
 BLOOD = ["O", "A", "B", "AB", "O", "A", "B", "O"]
 EDU = ["sma", "diploma", "s1", "s1", "smp", "s2", "sma", "sma"]
@@ -352,8 +394,9 @@ w("-- ==========================================================================
 w("-- Seed Data (rich demo) — Sistem Monitoring Bayi pada Inkubator")
 w("-- Run AFTER schema.sql.  Generated — do not edit by hand; see backend/database/gen_seed.py.")
 w("--")
-w("--   8 users · 9 incubators · 8 babies (7 active + 1 discharged)")
-w("--   ~4 days of time-series: monitoring (3x/day) + daily observation + involvement")
+w("--   6 users · 9 incubators · 8 babies (7 active + 1 discharged)")
+w("--   ~4 days of time-series: monitoring (3x/day) + daily observation + involvement + aksi")
+w("--   + doctor notes (Catatan Dokter) and per-incubator sensor thresholds.")
 w("--   Covers stable, improving, warning and critical cases.")
 w("--")
 w('--   All passwords are bcrypt hashes of "Password123!"')
@@ -363,7 +406,7 @@ w()
 w("BEGIN;")
 w()
 w("-- Idempotent: clear existing rows (children first) before reseeding.")
-w("TRUNCATE TABLE audit_logs, aksi_records, observations, parent_involvement_records,")
+w("TRUNCATE TABLE audit_logs, doctor_notes, aksi_records, observations, parent_involvement_records,")
 w("    monitoring_records, baby_incubator_assignments, maternal_records, parents, babies,")
 w("    incubators, users RESTART IDENTITY CASCADE;")
 w()
@@ -385,8 +428,11 @@ w()
 
 # ── incubators ──
 w("-- ── INCUBATORS ───────────────────────────────────────────────────────────")
-w("INSERT INTO incubators (incubator_id, incubator_no, location, status) VALUES")
-rows = [f"('{i}', {q(no)}, {q(loc)}, '{st}')" for i, no, loc, st in INCUBATORS]
+w("INSERT INTO incubators (incubator_id, incubator_no, location, status, alert_thresholds) VALUES")
+def _thr_lit(i):
+    t = INC_THRESHOLDS.get(i)
+    return "NULL" if not t else "'" + json.dumps(t) + "'::jsonb"
+rows = [f"('{i}', {q(no)}, {q(loc)}, '{st}', {_thr_lit(i)})" for i, no, loc, st in INCUBATORS]
 w(",\n".join(rows) + ";")
 w()
 
@@ -559,6 +605,23 @@ for b in BABIES:
 w(",\n".join(aksi_rows) + ";")
 w()
 
+# ── doctor notes (Catatan Dokter — written by the DPJP) ──
+w("-- ── DOCTOR NOTES (Catatan Dokter — ditulis oleh DPJP saat observasi) ──────")
+w("INSERT INTO doctor_notes (baby_id, recorded_by, observation_time, catatan) VALUES")
+note_rows = []
+for b in BABIES:
+    idx = b["_idx"]
+    dpjp = DOKS[(idx - 1) % len(DOKS)]
+    notes = DOCTOR_NOTES[b["state"]]
+    # every active baby gets a note on the last day; warning/critical get an earlier one too
+    days_for = [DAYS[-1], LAST_DAY] if b["state"] in ("warning", "critical") else [LAST_DAY]
+    for di, day in enumerate(days_for):
+        note = notes[di % len(notes)]
+        ts = sql_ts(dt(day, 10, 30))
+        note_rows.append(f"('{b['id']}', '{dpjp}', '{ts}', {q(note)})")
+w(",\n".join(note_rows) + ";")
+w()
+
 # ── a few audit-log samples ──
 w("-- ── AUDIT LOG (sample entries) ───────────────────────────────────────────")
 w("INSERT INTO audit_logs (user_id, action, table_name, record_id, ip_address, details) VALUES")
@@ -584,7 +647,7 @@ target.write_text(sql, encoding="utf-8")
 # ── summary to stderr for review ─────────────────────────────────────────────
 print(f"WROTE {target}")
 print(f"users=6 incubators={len(INCUBATORS)} babies={len(BABIES)+1}")
-print(f"monitoring_rows={len(mon_rows)} involvement_rows={len(inv_rows)} observation_rows={len(obs_rows)} aksi_rows={len(aksi_rows)}")
+print(f"monitoring_rows={len(mon_rows)} involvement_rows={len(inv_rows)} observation_rows={len(obs_rows)} aksi_rows={len(aksi_rows)} doctor_note_rows={len(note_rows)}")
 print(f"MAX_TOTAL={MAX_TOTAL} n_item_codes={len(ALL_ITEM_CODES)} slots_per_baby={N_SLOTS}")
 # show observation category spread
 print("obs sample (baby, day-index -> pct/category):")

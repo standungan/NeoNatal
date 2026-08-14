@@ -9,6 +9,8 @@ from app.schemas.incubator import (
     IncubatorCreate,
     IncubatorDetailResponse,
     IncubatorResponse,
+    IncubatorThresholdsResponse,
+    IncubatorThresholdsUpdate,
     IncubatorUpdate,
 )
 from app.services import incubator_service
@@ -78,4 +80,29 @@ async def delete_incubator(
     ip = request.client.host if request.client else None
     await incubator_service.delete_incubator(
         incubator_id, db, actor_id=current_user.id, ip=ip
+    )
+
+
+@router.get("/{incubator_id}/thresholds", response_model=IncubatorThresholdsResponse)
+async def get_incubator_thresholds(
+    incubator_id: uuid.UUID,
+    current_user: AnyRole,
+    db: AsyncSession = Depends(get_db),
+):
+    """Effective sensor alert thresholds (stored overrides merged with defaults)."""
+    return await incubator_service.get_thresholds(incubator_id, db)
+
+
+@router.put("/{incubator_id}/thresholds", response_model=IncubatorThresholdsResponse)
+async def update_incubator_thresholds(
+    incubator_id: uuid.UUID,
+    data: IncubatorThresholdsUpdate,
+    request: Request,
+    current_user: AdminOnly,
+    db: AsyncSession = Depends(get_db),
+):
+    """Set per-incubator sensor alert thresholds (admin only)."""
+    ip = request.client.host if request.client else None
+    return await incubator_service.update_thresholds(
+        incubator_id, data, db, actor_id=current_user.id, ip=ip
     )

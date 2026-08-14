@@ -54,4 +54,5 @@ def require_roles(*roles: str):
 # Pre-built role guards
 AdminOnly = Annotated[User, require_roles("admin")]
 PerawatOrAdmin = Annotated[User, require_roles("perawat", "admin")]
+DokterOnly = Annotated[User, require_roles("dokter")]
 AnyRole = CurrentUser

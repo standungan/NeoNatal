@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from app.schemas.aksi import AksiResponse
 from app.schemas.baby import BabyDetailResponse
+from app.schemas.doctor_note import DoctorNoteResponse
 from app.schemas.involvement import InvolvementResponse, InvolvementSummary
 from app.schemas.monitoring import MonitoringResponse
 from app.schemas.observation import ObservationResponse
@@ -18,4 +19,6 @@ class BabyReportResponse(BaseModel):
     # latest 8-pillar assessments (updates: shown in the PDF's "Penilaian 8 Pilar")
     observation_latest: ObservationResponse | None = None
     aksi_latest: AksiResponse | None = None
+    # latest doctor's note — shown at the end of the report + PDF ("Catatan Dokter")
+    doctor_note_latest: DoctorNoteResponse | None = None
     generated_at: datetime

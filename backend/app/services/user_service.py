@@ -83,6 +83,14 @@ async def update_user(
         user.full_name = data.full_name
     if data.is_active is not None:
         user.is_active = data.is_active
+    if data.role is not None and data.role != user.role:
+        # Guard against an admin locking themselves out of admin access.
+        if str(user_id) == str(actor_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Tidak dapat mengubah role akun sendiri",
+            )
+        user.role = data.role
 
     user = await repo.update(user)
 

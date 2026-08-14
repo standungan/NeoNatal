@@ -49,6 +49,7 @@ CREATE TABLE incubators (
     incubator_no    VARCHAR(10) NOT NULL UNIQUE,
     location        VARCHAR(255),
     status          incubator_status NOT NULL DEFAULT 'kosong',
+    alert_thresholds JSONB,                                  -- admin-set sensor min/max; NULL = code defaults
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -277,6 +278,21 @@ CREATE TABLE aksi_records (
 );
 
 -- =============================================================================
+-- TABLE: doctor_notes
+-- Free-text "Catatan Dokter" written by a dokter during observation of the
+-- incubator/baby. Shown at the end of the report + PDF. History (append-only).
+-- =============================================================================
+
+CREATE TABLE doctor_notes (
+    note_id             UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    baby_id             UUID NOT NULL REFERENCES babies(baby_id) ON DELETE CASCADE,
+    recorded_by         UUID NOT NULL REFERENCES users(id),      -- the dokter
+    observation_time    TIMESTAMPTZ NOT NULL,
+    catatan             TEXT NOT NULL,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- =============================================================================
 -- TABLE: audit_logs
 -- Immutable trail of all user actions
 -- =============================================================================
@@ -308,6 +324,9 @@ CREATE INDEX idx_observation_baby_time   ON observations (baby_id, observation_t
 
 -- aksi_records — queried by baby + time
 CREATE INDEX idx_aksi_baby_time          ON aksi_records (baby_id, observation_time DESC);
+
+-- doctor_notes — queried by baby + time
+CREATE INDEX ix_doctor_notes_baby        ON doctor_notes (baby_id, observation_time DESC);
 
 -- assignments — find active assignment for a baby or incubator quickly
 CREATE INDEX idx_assignment_baby         ON baby_incubator_assignments (baby_id);

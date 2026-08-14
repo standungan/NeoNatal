@@ -8,6 +8,7 @@ from app.models.monitoring import MonitoringRecord
 from app.models.involvement import ParentInvolvementRecord
 from app.models.observation import Observation
 from app.models.aksi import AksiRecord
+from app.models.doctor_note import DoctorNote
 from app.models.audit import AuditLog
 
 __all__ = [
@@ -21,5 +22,6 @@ __all__ = [
     "ParentInvolvementRecord",
     "Observation",
     "AksiRecord",
+    "DoctorNote",
     "AuditLog",
 ]

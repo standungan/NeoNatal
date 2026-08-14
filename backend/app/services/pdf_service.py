@@ -473,6 +473,29 @@ def generate_pdf(report: BabyReportResponse) -> bytes:
         pdf.cell(0, 6, "Belum ada data penilaian 8 pilar.", ln=True)
         pdf.set_text_color(*_BLACK)
 
+    # ── 8. Catatan Dokter ────────────────────────────────────────────────────────
+    note = report.doctor_note_latest
+    pdf.section("8. Catatan Dokter")
+    if note:
+        pdf.ensure_space(24)
+        pdf.set_font("Helvetica", "I", 8)
+        pdf.set_text_color(*_MUTE)
+        meta = note.observation_time.strftime("%d %b %Y %H:%M")
+        if note.recorder_name:
+            meta += f"   -   {note.recorder_name}"
+        pdf.cell(0, 5, meta, ln=True)
+        pdf.set_font("Helvetica", "", 9)
+        pdf.set_text_color(*_BLACK)
+        # core Helvetica is latin-1 only — replace any out-of-range chars
+        safe = note.catatan.encode("latin-1", "replace").decode("latin-1")
+        pdf.multi_cell(CONTENT_W, 5, safe)
+        pdf.ln(1)
+    else:
+        pdf.set_font("Helvetica", "", 8.5)
+        pdf.set_text_color(*_MUTE)
+        pdf.cell(0, 6, "Belum ada catatan dokter.", ln=True)
+        pdf.set_text_color(*_BLACK)
+
     buf = BytesIO()
     buf.write(pdf.output())
     return buf.getvalue()

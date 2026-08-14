@@ -6,11 +6,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.incubator import Incubator
 from app.repositories.incubator_repository import IncubatorRepository
 from app.schemas.incubator import (
+    DEFAULT_THRESHOLDS,
+    THRESHOLD_METRICS,
     CurrentBabySummary,
     IncubatorCreate,
     IncubatorDetailResponse,
     IncubatorResponse,
+    IncubatorThresholdsResponse,
+    IncubatorThresholdsUpdate,
     IncubatorUpdate,
+    ThresholdMetric,
 )
 from app.services.audit_service import log_action
 
@@ -156,6 +161,74 @@ async def delete_incubator(
         ip_address=ip,
         details={"incubator_no": incubator_no},
     )
+
+
+def _thresholds_response(inc: Incubator) -> IncubatorThresholdsResponse:
+    stored = inc.alert_thresholds or {}
+    metrics: list[ThresholdMetric] = []
+    for m in THRESHOLD_METRICS:
+        key = m["key"]
+        s = stored.get(key) or {}
+        dflt = DEFAULT_THRESHOLDS[key]
+        metrics.append(ThresholdMetric(
+            key=key,
+            label=m["label"],
+            unit=m["unit"],
+            min=s.get("min", dflt["min"]),
+            max=s.get("max", dflt["max"]),
+        ))
+    return IncubatorThresholdsResponse(
+        incubator_id=inc.incubator_id,
+        incubator_no=inc.incubator_no,
+        is_custom=inc.alert_thresholds is not None,
+        metrics=metrics,
+    )
+
+
+async def get_thresholds(incubator_id: uuid.UUID, db: AsyncSession) -> IncubatorThresholdsResponse:
+    inc = await IncubatorRepository(db).get_by_id(incubator_id)
+    if not inc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Inkubator tidak ditemukan")
+    return _thresholds_response(inc)
+
+
+async def update_thresholds(
+    incubator_id: uuid.UUID,
+    data: IncubatorThresholdsUpdate,
+    db: AsyncSession,
+    actor_id: uuid.UUID | None = None,
+    ip: str | None = None,
+) -> IncubatorThresholdsResponse:
+    repo = IncubatorRepository(db)
+    inc = await repo.get_by_id(incubator_id)
+    if not inc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Inkubator tidak ditemukan")
+
+    normalized: dict[str, dict] = {}
+    for key, bound in data.thresholds.items():
+        if key not in DEFAULT_THRESHOLDS:
+            continue  # ignore unknown metrics
+        if bound.min is not None and bound.max is not None and bound.min > bound.max:
+            label = next((m["label"] for m in THRESHOLD_METRICS if m["key"] == key), key)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Nilai minimum {label} tidak boleh lebih besar dari maksimum",
+            )
+        normalized[key] = {"min": bound.min, "max": bound.max}
+
+    inc.alert_thresholds = normalized
+    inc = await repo.update(inc)
+
+    await log_action(
+        db,
+        user_id=actor_id,
+        action="UPDATE",
+        table_name="incubators",
+        record_id=incubator_id,
+        ip_address=ip,
+        details={"alert_thresholds": normalized},
+    )
+    return _thresholds_response(inc)
 
 
 def _to_detail_response(inc: Incubator) -> IncubatorDetailResponse:

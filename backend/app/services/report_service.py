@@ -10,6 +10,7 @@ from app.repositories.monitoring_repository import MonitoringRepository
 from app.schemas.report import BabyReportResponse
 from app.services.aksi_service import list_aksi
 from app.services.baby_service import _to_detail
+from app.services.doctor_note_service import get_latest_note
 from app.services.involvement_service import _to_response as involvement_to_response
 from app.services.involvement_service import get_involvement_summary
 from app.services.monitoring_service import _to_response as monitoring_to_response
@@ -29,6 +30,7 @@ async def get_baby_report(baby_id: uuid.UUID, db: AsyncSession) -> BabyReportRes
     # latest 8-pillar assessments (newest first → [0])
     observations = await list_observations(baby_id, db, limit=1)
     aksi = await list_aksi(baby_id, db, limit=1)
+    doctor_note = await get_latest_note(baby_id, db)
 
     return BabyReportResponse(
         baby=baby_detail,
@@ -37,5 +39,6 @@ async def get_baby_report(baby_id: uuid.UUID, db: AsyncSession) -> BabyReportRes
         involvement_summary=involvement_summary,
         observation_latest=observations[0] if observations else None,
         aksi_latest=aksi[0] if aksi else None,
+        doctor_note_latest=doctor_note,
         generated_at=datetime.now(timezone.utc),
     )
