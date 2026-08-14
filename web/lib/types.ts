@@ -249,12 +249,40 @@ export interface InvolvementRecord {
   created_at: string;
 }
 
+export interface DoctorNote {
+  note_id: string;
+  baby_id: string;
+  recorded_by: string;
+  recorder_name: string | null;
+  observation_time: string;
+  catatan: string;
+  created_at: string;
+}
+
 export interface BabyReport {
   baby: BabyDetail;
   monitoring_history: MonitoringRecord[];
   involvement_history: InvolvementRecord[];
   involvement_summary: InvolvementSummary;
+  doctor_note_latest: DoctorNote | null;
   generated_at: string;
+}
+
+// ── Per-incubator sensor alert thresholds (admin) ────────────────────────────
+
+export interface ThresholdMetric {
+  key: string;
+  label: string;
+  unit: string;
+  min: number | null;
+  max: number | null;
+}
+
+export interface IncubatorThresholds {
+  incubator_id: string;
+  incubator_no: string;
+  is_custom: boolean;
+  metrics: ThresholdMetric[];
 }
 
 // ── Observasi 8 Pilar ───────────────────────────────────────────────────────

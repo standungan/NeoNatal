@@ -168,7 +168,7 @@ function UserFormDialog({
   const save = useMutation({
     mutationFn: async () =>
       isEdit
-        ? api.put(`/users/${user!.id}`, { full_name: fullName.trim() })
+        ? api.put(`/users/${user!.id}`, { full_name: fullName.trim(), role })
         : api.post("/users", {
             full_name: fullName.trim(),
             email: email.trim(),
@@ -207,17 +207,18 @@ function UserFormDialog({
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
-            <select
-              className="input"
-              value={role}
-              onChange={(e) => setRole(e.target.value as Role)}
-            >
-              <option value="perawat">Perawat</option>
-              <option value="dokter">Dokter</option>
-              <option value="admin">Admin</option>
-            </select>
           </>
         )}
+        <label className="text-[13px] font-semibold text-muted">Role / Level Akses</label>
+        <select
+          className="input"
+          value={role}
+          onChange={(e) => setRole(e.target.value as Role)}
+        >
+          <option value="perawat">Perawat</option>
+          <option value="dokter">Dokter</option>
+          <option value="admin">Admin</option>
+        </select>
         {err && <p className="text-[13px] text-danger">{err}</p>}
         <div className="mt-1 flex justify-end gap-2">
           <button onClick={onClose} className="rounded-xl px-4 py-2 text-sm font-semibold text-muted">

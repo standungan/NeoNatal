@@ -10,6 +10,7 @@ import { formatDate, formatDateTime, genderLabel, canWrite } from "@/lib/format"
 import { useAuth } from "@/components/providers";
 import { ObservationSummaryCard } from "@/components/observation";
 import { errorMessage } from "@/components/form";
+import { IncubatorThresholdsCard } from "@/components/incubator-thresholds";
 
 // Statuses an admin may set by hand (occupied/warning are system-managed).
 const MANUAL_STATUSES = ["kosong", "tidak_tersedia"] as const;
@@ -103,19 +104,6 @@ export default function IncubatorDetailPage() {
               </div>
             </Card>
 
-            {babyId ? (
-              <BabyCard baby={babyQ.data} loading={babyQ.isLoading} />
-            ) : (
-              <Card className="flex flex-col items-center gap-2 p-8 text-muted">
-                <span className="text-3xl">🛏️</span>
-                <p className="font-semibold">
-                  Inkubator {incQ.data.incubator_no} kosong
-                </p>
-              </Card>
-            )}
-
-            {latestObservation && <ObservationSummaryCard record={latestObservation} />}
-
             {babyId && (
               <Card className="p-5">
                 <SectionTitle>Menu Aksi</SectionTitle>
@@ -126,6 +114,14 @@ export default function IncubatorDetailPage() {
                   >
                     📊 Lihat Laporan
                   </Link>
+                  {role === "dokter" && (
+                    <Link
+                      href={`/baby/${babyId}/doctor-note`}
+                      className="inline-flex items-center gap-2 rounded-xl border border-line px-4 py-2.5 text-sm font-bold text-ink hover:bg-surface"
+                    >
+                      🩺 Observasi Dokter
+                    </Link>
+                  )}
                   {writable && (
                     <>
                       <Link
@@ -175,6 +171,19 @@ export default function IncubatorDetailPage() {
               </Card>
             )}
 
+            {babyId ? (
+              <BabyCard baby={babyQ.data} loading={babyQ.isLoading} />
+            ) : (
+              <Card className="flex flex-col items-center gap-2 p-8 text-muted">
+                <span className="text-3xl">🛏️</span>
+                <p className="font-semibold">
+                  Inkubator {incQ.data.incubator_no} kosong
+                </p>
+              </Card>
+            )}
+
+            {latestObservation && <ObservationSummaryCard record={latestObservation} />}
+
             {role === "admin" && !babyId && (
               <Card className="p-5">
                 <SectionTitle>Pengaturan Inkubator (Admin)</SectionTitle>
@@ -221,6 +230,8 @@ export default function IncubatorDetailPage() {
                 )}
               </Card>
             )}
+
+            {role === "admin" && <IncubatorThresholdsCard incubatorId={id} />}
           </div>
         )}
       </PageState>

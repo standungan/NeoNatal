@@ -13,7 +13,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { api } from "@/lib/api";
-import type { BabyReport, MonitoringRecord, ObservationRecord, AksiRecord } from "@/lib/types";
+import type { BabyReport, MonitoringRecord, ObservationRecord, AksiRecord, DoctorNote } from "@/lib/types";
 import { Card, PageState, BackLink, SectionTitle } from "@/components/ui";
 import { formatDateTime, genderLabel } from "@/lib/format";
 import { ObservationSummaryCard } from "@/components/observation";
@@ -137,6 +137,8 @@ export default function ReportPage() {
                 />
               </div>
             </Card>
+
+            <DoctorNoteCard note={data.doctor_note_latest} />
           </div>
         )}
       </PageState>
@@ -286,6 +288,27 @@ function VitalChart({
         </p>
       )}
     </div>
+  );
+}
+
+function DoctorNoteCard({ note }: { note: DoctorNote | null }) {
+  return (
+    <Card className="p-5">
+      <SectionTitle>Catatan Dokter</SectionTitle>
+      {note ? (
+        <div className="mt-3">
+          <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-ink">
+            {note.catatan}
+          </p>
+          <p className="mt-2.5 text-xs text-muted">
+            {note.recorder_name ? `${note.recorder_name} · ` : ""}
+            {formatDateTime(note.observation_time)}
+          </p>
+        </div>
+      ) : (
+        <p className="mt-3 text-sm text-muted">Belum ada catatan dokter.</p>
+      )}
+    </Card>
   );
 }
 
