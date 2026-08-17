@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { MenuAksiTabs } from "@/components/menu-aksi";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -107,49 +107,10 @@ export default function IncubatorDetailPage() {
             {babyId && (
               <Card className="p-5">
                 <SectionTitle>Menu Aksi</SectionTitle>
-                <div className="mt-4 flex flex-wrap gap-2.5">
-                  <Link
-                    href={`/baby/${babyId}/report`}
-                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white hover:bg-primary-dark"
-                  >
-                    📊 Lihat Laporan
-                  </Link>
-                  {role === "dokter" && (
-                    <Link
-                      href={`/baby/${babyId}/doctor-note`}
-                      className="inline-flex items-center gap-2 rounded-xl border border-line px-4 py-2.5 text-sm font-bold text-ink hover:bg-surface"
-                    >
-                      🩺 Observasi Dokter
-                    </Link>
-                  )}
+                <div className="mt-4 flex flex-col gap-3">
+                  <MenuAksiTabs babyId={babyId} />
                   {writable && (
-                    <>
-                      <Link
-                        href={`/baby/${babyId}/monitoring`}
-                        className="inline-flex items-center gap-2 rounded-xl border border-line px-4 py-2.5 text-sm font-bold text-ink hover:bg-surface"
-                      >
-                        💓 Input Tanda Vital
-                      </Link>
-                      <Link
-                        href={`/baby/${babyId}/observation`}
-                        className="inline-flex items-center gap-2 rounded-xl border border-line px-4 py-2.5 text-sm font-bold text-ink hover:bg-surface"
-                      >
-                        🩺 Monitoring Bayi (Observasi)
-                      </Link>
-                      <Link
-                        href={`/baby/${babyId}/involvement`}
-                        className="inline-flex items-center gap-2 rounded-xl border border-line px-4 py-2.5 text-sm font-bold text-ink hover:bg-surface"
-                      >
-                        👨‍👩‍👧 Keterlibatan
-                      </Link>
-                      {role === "admin" && (
-                        <Link
-                          href={`/baby/${babyId}/aksi`}
-                          className="inline-flex items-center gap-2 rounded-xl border border-line px-4 py-2.5 text-sm font-bold text-ink hover:bg-surface"
-                        >
-                          🤝 Kolaborasi
-                        </Link>
-                      )}
+                    <div>
                       <button
                         type="button"
                         disabled={discharge.isPending}
@@ -162,7 +123,7 @@ export default function IncubatorDetailPage() {
                       >
                         🏠 Pulangkan
                       </button>
-                    </>
+                    </div>
                   )}
                 </div>
                 {discharge.isError && (

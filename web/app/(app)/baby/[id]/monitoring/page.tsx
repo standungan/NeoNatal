@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { Card, SectionTitle, BackLink } from "@/components/ui";
+import { Card, SectionTitle } from "@/components/ui";
 import {
   Field,
   NumberInput,
@@ -79,7 +79,6 @@ export default function MonitoringEntryPage() {
 
   return (
     <div>
-      <BackLink href={`/baby/${id}/report`} label="Kembali ke Laporan" />
       <h1 className="mb-4 mt-3 text-xl font-extrabold text-ink">Input Tanda Vital</h1>
 
       <form

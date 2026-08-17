@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { Card, SectionTitle, BackLink, PageState } from "@/components/ui";
+import { Card, SectionTitle, PageState } from "@/components/ui";
 import {
   Field,
   TextArea,
@@ -70,7 +70,6 @@ export default function AksiEntryPage() {
 
   return (
     <div>
-      <BackLink href={`/baby/${id}/report`} label="Kembali ke Laporan" />
       <h1 className="mb-4 mt-3 text-xl font-extrabold text-ink">Kolaborasi Interprofesional</h1>
 
       <PageState loading={catalogQ.isLoading} error={catalogQ.error} onRetry={() => catalogQ.refetch()}>

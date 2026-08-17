@@ -14,7 +14,7 @@ import {
 } from "recharts";
 import { api } from "@/lib/api";
 import type { BabyReport, MonitoringRecord, ObservationRecord, AksiRecord, DoctorNote } from "@/lib/types";
-import { Card, PageState, BackLink, SectionTitle } from "@/components/ui";
+import { Card, PageState, SectionTitle } from "@/components/ui";
 import { formatDateTime, genderLabel } from "@/lib/format";
 import { ObservationSummaryCard } from "@/components/observation";
 import { InvolvementSummaryCard } from "@/components/involvement";
@@ -46,7 +46,6 @@ export default function ReportPage() {
 
   return (
     <div>
-      <BackLink href="/dashboard" label="Kembali ke Dashboard" />
       <h1 className="mb-4 mt-3 text-xl font-extrabold text-ink">
         Laporan &amp; Riwayat Bayi
       </h1>

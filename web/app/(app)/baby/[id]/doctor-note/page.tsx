@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { DoctorNote } from "@/lib/types";
-import { Card, PageState, BackLink, SectionTitle, Spinner } from "@/components/ui";
+import { Card, PageState, SectionTitle, Spinner } from "@/components/ui";
 import { formatDateTime } from "@/lib/format";
 import { errorMessage } from "@/components/form";
 
@@ -40,7 +40,6 @@ export default function DoctorNotePage() {
 
   return (
     <div>
-      <BackLink href="/dashboard" label="Kembali ke Dashboard" />
       <h1 className="mb-4 mt-3 text-xl font-extrabold text-ink">Observasi Dokter</h1>
 
       <div className="flex flex-col gap-4">
