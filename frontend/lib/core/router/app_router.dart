@@ -10,6 +10,7 @@ import 'package:neonatal_care/features/dashboard/screens/dashboard_screen.dart';
 import 'package:neonatal_care/features/incubator/screens/incubator_detail_screen.dart';
 import 'package:neonatal_care/features/involvement/screens/involvement_screen.dart';
 import 'package:neonatal_care/features/monitoring/screens/monitoring_screen.dart';
+import 'package:neonatal_care/features/observation/screens/observation_screen.dart';
 import 'package:neonatal_care/features/reports/screens/report_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -40,6 +41,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/baby/:id/monitoring',
         builder: (_, state) =>
             MonitoringScreen(babyId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/baby/:id/observation',
+        builder: (_, state) =>
+            ObservationScreen(babyId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/baby/:id/involvement',

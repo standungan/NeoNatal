@@ -272,7 +272,8 @@ class _ActionMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const actions = [
-      ('Monitoring',        Icons.monitor_heart,  AppColors.primary),
+      ('Tanda Vital',       Icons.monitor_heart,  AppColors.primary),
+      ('Observasi',         Icons.checklist,       Color(0xFF0EA5E9)),
       ('Keterlibatan OT',   Icons.people,          AppColors.normal),
       ('Kolaborasi',        Icons.groups,          Color(0xFF14B8A6)),
       ('Lihat Laporan',     Icons.bar_chart,       Color(0xFF8B5CF6)),
@@ -280,6 +281,7 @@ class _ActionMenu extends StatelessWidget {
 
     final routes = [
       '/baby/$babyId/monitoring',
+      '/baby/$babyId/observation',
       '/baby/$babyId/involvement',
       '/baby/$babyId/aksi',
       '/baby/$babyId/report',
@@ -297,35 +299,38 @@ class _ActionMenu extends StatelessWidget {
                     fontSize: 15,
                     color: AppColors.ink)),
             const SizedBox(height: 14),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            Wrap(
+              spacing: 4,
+              runSpacing: 12,
               children: List.generate(actions.length, (i) {
                 final (label, icon, color) = actions[i];
-                return InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: () => context.push(routes[i]),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 6),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 54,
-                          height: 54,
-                          decoration: BoxDecoration(
-                            color: color.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(15),
+                return SizedBox(
+                  width: 72,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => context.push(routes[i]),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            child: Icon(icon, color: color, size: 25),
                           ),
-                          child: Icon(icon, color: color, size: 26),
-                        ),
-                        const SizedBox(height: 7),
-                        Text(label,
-                            style: const TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.ink),
-                            textAlign: TextAlign.center),
-                      ],
+                          const SizedBox(height: 7),
+                          Text(label,
+                              style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.ink),
+                              textAlign: TextAlign.center),
+                        ],
+                      ),
                     ),
                   ),
                 );

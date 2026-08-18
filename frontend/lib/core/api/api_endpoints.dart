@@ -26,6 +26,10 @@ class ApiEndpoints {
   static String monitoring(String babyId)          => '/api/v1/babies/$babyId/monitoring';
   static String photoUpload(String monitoringId)   => '/api/v1/monitoring/$monitoringId/photo';
 
+  // observation (Monitoring Bayi — 6 pillars / 42 items)
+  static const observationCatalog = '/api/v1/observation/catalog';
+  static String observation(String babyId)         => '/api/v1/babies/$babyId/observation';
+
   // involvement
   static String involvement(String babyId)         => '/api/v1/babies/$babyId/involvement';
   static String involvementSummary(String babyId)  => '/api/v1/babies/$babyId/involvement/summary';

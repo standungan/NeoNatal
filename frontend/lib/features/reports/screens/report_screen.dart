@@ -75,6 +75,11 @@ class ReportScreen extends ConsumerWidget {
                     _LatestVitalsCard(
                         vitals: baby['latest_vitals'] as Map<String, dynamic>),
                   const SizedBox(height: 12),
+                  if (data['observation_latest'] != null) ...[
+                    _ObservationCard(
+                        record: data['observation_latest'] as Map<String, dynamic>),
+                    const SizedBox(height: 12),
+                  ],
                   _InvolvementCard(summary: involvement),
                   if (involvementHistory.isNotEmpty) ...[
                     const SizedBox(height: 12),
@@ -284,6 +289,94 @@ class _InvolvementCard extends StatelessWidget {
               'Rata-rata: ${(summary['avg_percentage'] as num?)?.toStringAsFixed(1) ?? '-'}%',
               style: const TextStyle(color: AppColors.inkMuted, fontSize: 12),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ObservationCard extends StatelessWidget {
+  final Map<String, dynamic> record;
+  const _ObservationCard({required this.record});
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = (record['percentage'] as num?)?.toDouble() ?? 0;
+    final category = '${record['category'] ?? categoryFor(pct)}';
+    final color = categoryColor(category);
+    final total = record['total_score'] ?? 0;
+    final maxTotal = record['max_total'] ?? 168;
+    final pillars =
+        (record['pillars'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Monitoring Bayi (Observasi)',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            const Text('6 pilar / 42 item · skala 0–4',
+                style: TextStyle(fontSize: 11, color: AppColors.inkMuted)),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Text('${pct.toStringAsFixed(1)}%',
+                    style: TextStyle(
+                        fontSize: 36, fontWeight: FontWeight.bold, color: color)),
+                const SizedBox(width: 12),
+                Chip(
+                  label: Text(category),
+                  backgroundColor: color.withValues(alpha: 0.1),
+                  labelStyle: TextStyle(color: color),
+                ),
+                const Spacer(),
+                Text('$total / $maxTotal',
+                    style:
+                        const TextStyle(fontSize: 12, color: AppColors.inkMuted)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ...pillars.map((p) {
+              final score = (p['score'] as num?) ?? 0;
+              final max = (p['max'] as num?) ?? 1;
+              final frac = max == 0 ? 0.0 : (score / max).clamp(0.0, 1.0);
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 5),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 150,
+                      child: Text('${p['label']}',
+                          style: const TextStyle(
+                              fontSize: 13, color: AppColors.ink)),
+                    ),
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: LinearProgressIndicator(
+                          value: frac.toDouble(),
+                          minHeight: 8,
+                          backgroundColor: const Color(0xFFEEF2F7),
+                          valueColor:
+                              const AlwaysStoppedAnimation(AppColors.primary),
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      width: 40,
+                      child: Text('$score/$max',
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.ink)),
+                    ),
+                  ],
+                ),
+              );
+            }),
           ],
         ),
       ),
