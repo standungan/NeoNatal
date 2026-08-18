@@ -20,6 +20,9 @@ import {
 import { InvolvementRadar, categoryColor, categoryFor } from "@/components/involvement";
 import type { InvolvementCatalog, InvolvementRecord } from "@/lib/types";
 
+const SCALE_HINT =
+  "Skala 0–4: 0 sangat berat · 1 berat · 2 sedang · 3 ringan · 4 normal";
+
 export default function InvolvementEntryPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -68,7 +71,8 @@ export default function InvolvementEntryPage() {
     score: scores[it.item_code] ?? 0,
   }));
   const total = items.reduce((s, it) => s + it.score, 0);
-  const maxTotal = catalog?.max_total ?? 18;
+  const maxTotal = catalog?.max_total ?? 24;
+  const perItem = Math.round(maxTotal / (catalog?.total_items ?? 6));
   const pct = Math.round((total / maxTotal) * 1000) / 10;
   const category = categoryFor(pct);
   const filled = Object.keys(scores).length;
@@ -92,9 +96,7 @@ export default function InvolvementEntryPage() {
           >
             <Card className="flex flex-col gap-4 p-5">
               <DateTimeField label="Waktu Observasi" value={obsTime} onChange={setObsTime} />
-              <p className="text-[12px] text-muted">
-                Pilar 6 — {catalog.label}. Nilai tiap item 0–3 (0 = penyimpangan berat · 1 = sedang · 2 = ringan · 3 = sesuai standar).
-              </p>
+              <p className="text-[12px] text-muted">Pilar 6 — {catalog.label}.</p>
             </Card>
 
             <Card className="p-5">
@@ -102,11 +104,12 @@ export default function InvolvementEntryPage() {
                 <SectionTitle>6. {catalog.label}</SectionTitle>
                 <span className="text-[13px] font-bold text-muted">{total}/{maxTotal} · {pct}%</span>
               </div>
+              <p className="mt-1 text-[11px] text-muted">{SCALE_HINT}</p>
               <div className="mt-3 flex flex-col gap-3">
                 {catalog.items.map((it, i) => (
                   <div key={it.item_code} className="flex flex-col gap-2 border-b border-line pb-3 last:border-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
                     <span className="text-[13.5px] text-ink sm:max-w-[62%]">{i + 1}. {it.text}</span>
-                    <ScoreChips value={scores[it.item_code] ?? null} onChange={(v) => setScore(it.item_code, v)} min={0} max={3} />
+                    <ScoreChips value={scores[it.item_code] ?? null} onChange={(v) => setScore(it.item_code, v)} min={0} max={perItem} />
                   </div>
                 ))}
               </div>

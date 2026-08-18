@@ -18,6 +18,10 @@ import {
 import { ObservationRadar, categoryColor, categoryFor } from "@/components/observation";
 import type { ObservationCatalog, ObservationRecord } from "@/lib/types";
 
+// Skala penilaian per item (0–4). Ditampilkan sebagai hint di tiap pilar.
+const SCALE_HINT =
+  "Skala 0–4: 0 sangat berat · 1 berat · 2 sedang · 3 ringan · 4 normal";
+
 export default function ObservationEntryPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -54,14 +58,15 @@ export default function ObservationEntryPage() {
   });
 
   // ── live scoring ──────────────────────────────────────────────────────────
+  const perItem = Math.round((catalog?.max_total ?? 168) / (catalog?.total_items ?? 42));
   const pillarScores = (catalog?.pillars ?? []).map((p) => {
     const codes = p.items.map((it) => it.item_code);
     const raw = codes.reduce((s, c) => s + (scores[c] ?? 0), 0);
-    const max = codes.length * 3;
+    const max = codes.length * perItem;
     return { key: p.key, label: p.label, score: raw, max, percentage: max ? Math.round((raw / max) * 1000) / 10 : 0 };
   });
   const total = pillarScores.reduce((s, p) => s + p.score, 0);
-  const maxTotal = catalog?.max_total ?? 126;
+  const maxTotal = catalog?.max_total ?? 168;
   const pct = Math.round((total / maxTotal) * 1000) / 10;
   const category = categoryFor(pct);
   const filled = Object.keys(scores).length;
@@ -96,11 +101,12 @@ export default function ObservationEntryPage() {
                     <SectionTitle>{`${pi + 1}. ${p.label}`}</SectionTitle>
                     <span className="text-[13px] font-bold text-muted">{ps.score}/{ps.max} · {ps.percentage}%</span>
                   </div>
+                  <p className="mt-1 text-[11px] text-muted">{SCALE_HINT}</p>
                   <div className="mt-3 flex flex-col gap-3">
                     {p.items.map((it) => (
                       <div key={it.item_code} className="flex flex-col gap-2 border-b border-line pb-3 last:border-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
                         <span className="text-[13.5px] text-ink sm:max-w-[62%]">{it.text}</span>
-                        <ScoreChips value={scores[it.item_code] ?? null} onChange={(v) => setScore(it.item_code, v)} min={0} max={3} />
+                        <ScoreChips value={scores[it.item_code] ?? null} onChange={(v) => setScore(it.item_code, v)} min={0} max={perItem} />
                       </div>
                     ))}
                   </div>
@@ -129,7 +135,7 @@ export default function ObservationEntryPage() {
                     {total} / {maxTotal} poin · {filled} / {totalItems} item terisi
                   </p>
                   <p className="mt-3 text-[11px] text-muted">
-                    Skala 0–3 per item: <b>0</b> berat · <b>1</b> sedang · <b>2</b> ringan · <b>3</b> normal
+                    Skala 0–4 per item: <b>0</b> sangat berat · <b>1</b> berat · <b>2</b> sedang · <b>3</b> ringan · <b>4</b> normal
                   </p>
                   {alarms.length > 0 && (
                     <div className="mt-3 rounded-xl border border-danger/30 bg-danger/5 p-3">

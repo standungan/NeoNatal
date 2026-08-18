@@ -48,7 +48,7 @@ export function categoryFor(percentage: number): string {
 
 export type RadarItem = { item_code: string; text: string; score: number };
 
-/** Spider/radar chart of the 6 "Kerjasama dengan Keluarga" items (0–3 scale).
+/** Spider/radar chart of the 6 "Kerjasama dengan Keluarga" items (0–4 scale).
  *  Shared by the involvement entry form (live) and the report page (latest record). */
 export function InvolvementRadar({ items, height = 280 }: { items: RadarItem[]; height?: number }) {
   const data = items.map((it) => ({ item: ITEM_SHORT[it.item_code] ?? it.text, value: it.score }));
@@ -57,7 +57,7 @@ export function InvolvementRadar({ items, height = 280 }: { items: RadarItem[]; 
       <RadarChart data={data} outerRadius="72%">
         <PolarGrid stroke="#e9eef5" />
         <PolarAngleAxis dataKey="item" tick={{ fontSize: 11, fill: "#64748b" }} />
-        <PolarRadiusAxis domain={[0, 3]} tickCount={4} angle={90} tick={{ fontSize: 9, fill: "#94a3b8" }} />
+        <PolarRadiusAxis domain={[0, 4]} tickCount={5} angle={90} tick={{ fontSize: 9, fill: "#94a3b8" }} />
         <Radar dataKey="value" stroke="#2563eb" fill="#2563eb" fillOpacity={0.25} strokeWidth={2} />
       </RadarChart>
     </ResponsiveContainer>
