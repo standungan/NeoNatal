@@ -3,7 +3,7 @@ Menu Aksi — PILAR 8: KOLABORASI INTERPROFESIONAL.
 
 Interprofessional-collaboration actions, pulled out of the Monitoring Bayi
 (8-pillar observation) instrument into their own module: 6 items, each scored
-0–3 (3 = sesuai standar … 0 = penyimpangan berat, perlu tindakan segera).
+0–4 (0 sangat berat · 1 berat · 2 sedang · 3 ringan · 4 normal).
 This module is the single source of truth; the API serves it to clients.
 """
 
@@ -20,7 +20,7 @@ ITEMS: list[str] = [
     "Seluruh tindakan terdokumentasi",
 ]
 
-MAX_PER_ITEM = 3
+MAX_PER_ITEM = 4
 
 # Flat catalog: [{item_code, text}, ...] and helpers.
 CATALOG: list[dict] = [
@@ -29,7 +29,7 @@ CATALOG: list[dict] = [
 ]
 ALL_ITEM_CODES: list[str] = [c["item_code"] for c in CATALOG]
 TOTAL_ITEMS = len(ALL_ITEM_CODES)              # 6
-MAX_TOTAL = TOTAL_ITEMS * MAX_PER_ITEM         # 18
+MAX_TOTAL = TOTAL_ITEMS * MAX_PER_ITEM         # 24
 
 
 def category_for(percentage: float) -> str:

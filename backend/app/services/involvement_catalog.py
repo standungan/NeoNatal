@@ -2,9 +2,9 @@
 Keterlibatan Orang Tua — PILAR 6: KERJASAMA DENGAN KELUARGA.
 
 The parent-involvement instrument is Pillar 6 of the 8-pillar premature-baby
-observation framework: 6 items, each scored 0–3 (3 = sesuai standar … 0 =
-penyimpangan berat, perlu tindakan segera). This module is the single source of
-truth; the API serves it to clients.
+observation framework: 6 items, each scored 0–4
+(0 sangat berat · 1 berat · 2 sedang · 3 ringan · 4 normal). This module is the
+single source of truth; the API serves it to clients.
 
 Replaces the earlier FICare 8-domain (0–4) Parent Engagement Index model.
 """
@@ -22,7 +22,7 @@ ITEMS: list[str] = [
     "Keluarga memahami perawatan di rumah",
 ]
 
-MAX_PER_ITEM = 3
+MAX_PER_ITEM = 4
 
 # Flat catalog: [{item_code, text}, ...] and helpers.
 CATALOG: list[dict] = [
@@ -31,7 +31,7 @@ CATALOG: list[dict] = [
 ]
 ALL_ITEM_CODES: list[str] = [c["item_code"] for c in CATALOG]
 TOTAL_ITEMS = len(ALL_ITEM_CODES)              # 6
-MAX_TOTAL = TOTAL_ITEMS * MAX_PER_ITEM         # 18
+MAX_TOTAL = TOTAL_ITEMS * MAX_PER_ITEM         # 24
 
 
 def category_for(percentage: float) -> str:

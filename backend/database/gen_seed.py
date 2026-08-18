@@ -25,7 +25,7 @@ cat = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(cat)
 PILLARS = cat.PILLARS
 MAX_TOTAL = cat.MAX_TOTAL          # 144
-MAX_PER_ITEM = cat.MAX_PER_ITEM    # 3
+MAX_PER_ITEM = cat.MAX_PER_ITEM    # 4
 ALL_ITEM_CODES = cat.ALL_ITEM_CODES
 category_for = cat.category_for
 
@@ -35,7 +35,7 @@ _ispec = importlib.util.spec_from_file_location("involvement_catalog", INV_CATAL
 icat = importlib.util.module_from_spec(_ispec)
 _ispec.loader.exec_module(icat)
 INV_ITEM_CODES = icat.ALL_ITEM_CODES        # keluarga_1..6
-INV_MAX_TOTAL = icat.MAX_TOTAL              # 18
+INV_MAX_TOTAL = icat.MAX_TOTAL              # 24
 inv_category_for = icat.category_for
 
 # aksi = Pillar 8 "Kolaborasi Interprofesional" (6 items, 0–3)
@@ -44,7 +44,7 @@ _aspec = importlib.util.spec_from_file_location("aksi_catalog", AKSI_CATALOG_PY)
 acat = importlib.util.module_from_spec(_aspec)
 _aspec.loader.exec_module(acat)
 AKSI_ITEM_CODES = acat.ALL_ITEM_CODES       # kolaborasi_1..6
-AKSI_MAX_TOTAL = acat.MAX_TOTAL             # 18
+AKSI_MAX_TOTAL = acat.MAX_TOTAL             # 24
 aksi_category_for = acat.category_for
 
 TZ7 = timezone(timedelta(hours=7))
@@ -187,7 +187,8 @@ def gen_observation_scores(rng, q_target, force_zeros=0):
     """Full 48-item score map centred on q_target; returns (scores, total, pct, cat)."""
     scores = {}
     for code in ALL_ITEM_CODES:
-        v = round(q_target + rng.uniform(-0.55, 0.55))
+        # q_target authored on the old 0–3 scale → rescale to the current per-item max
+        v = round(q_target * MAX_PER_ITEM / 3 + rng.uniform(-0.55, 0.55))
         scores[code] = max(0, min(MAX_PER_ITEM, v))
     # force the lowest-value items to 0 (critical deviations)
     for code in sorted(scores, key=lambda c: scores[c])[:force_zeros]:
@@ -527,11 +528,12 @@ for b in BABIES:
     for di, day in enumerate(inv_days):
         t = di / (len(inv_days) - 1)
         # reuse the baby's pei trend (0–4) mapped onto the 0–3 item scale
-        item_avg = lerp(b["pei0"], b["pei1"], t) * 3 / 4
+        # pei0/pei1 are on a 0–4 scale — matches the current per-item max directly
+        item_avg = lerp(b["pei0"], b["pei1"], t)
         scores = {}
         for code in INV_ITEM_CODES:
             v = round(item_avg + rng.uniform(-0.55, 0.55))
-            scores[code] = max(0, min(3, v))
+            scores[code] = max(0, min(MAX_PER_ITEM, v))
         total = sum(scores.values())
         pct = round(total / INV_MAX_TOTAL * 100, 1)
         catg = inv_category_for(pct)
@@ -588,11 +590,12 @@ for b in BABIES:
     rng = rng_for("aksi", b["id"])
     for di, day in enumerate(aksi_days):
         t = di / (len(aksi_days) - 1)
-        avg = lerp(b["q0"], b["q1"], t)   # collaboration quality tracks overall care quality
+        # q0/q1 authored on the old 0–3 scale → rescale; quality tracks overall care quality
+        avg = lerp(b["q0"], b["q1"], t) * MAX_PER_ITEM / 3
         scores = {}
         for code in AKSI_ITEM_CODES:
             v = round(avg + rng.uniform(-0.55, 0.55))
-            scores[code] = max(0, min(3, v))
+            scores[code] = max(0, min(MAX_PER_ITEM, v))
         total = sum(scores.values())
         pct = round(total / AKSI_MAX_TOTAL * 100, 1)
         catg = aksi_category_for(pct)

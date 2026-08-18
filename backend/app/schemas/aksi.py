@@ -6,15 +6,15 @@ from pydantic import BaseModel, field_validator
 
 class AksiCreate(BaseModel):
     observation_time: datetime
-    scores: dict[str, int]        # { item_code: 0-3 }
+    scores: dict[str, int]        # { item_code: 0-4 }
     catatan: str | None = None
 
     @field_validator("scores")
     @classmethod
     def scores_in_range(cls, v: dict[str, int]) -> dict[str, int]:
         for code, score in v.items():
-            if not isinstance(score, int) or not (0 <= score <= 3):
-                raise ValueError(f"Skor '{code}' harus bilangan 0–3")
+            if not isinstance(score, int) or not (0 <= score <= 4):
+                raise ValueError(f"Skor '{code}' harus bilangan 0–4")
         return v
 
 

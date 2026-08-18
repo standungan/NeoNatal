@@ -1,8 +1,8 @@
 """
 Instrumen Observasi Perawatan Bayi Prematur — Delapan Pilar.
 
-Catalog of the observation items across 6 pillars (42 items), each scored 0–3
-(3 = sesuai standar … 0 = penyimpangan berat, tindakan segera). This module is
+Catalog of the observation items across 6 pillars (42 items), each scored 0–4
+(0 sangat berat · 1 berat · 2 sedang · 3 ringan · 4 normal). This module is
 the single source of truth; the API serves it to clients.
 
 Note: two pillars are intentionally NOT part of this clinical instrument, each
@@ -95,7 +95,7 @@ PILLARS: list[dict] = [
     },
 ]
 
-MAX_PER_ITEM = 3
+MAX_PER_ITEM = 4
 
 # Flat catalog: [{pillar_key, pillar_label, item_code, text}, ...]
 CATALOG: list[dict] = []
@@ -111,7 +111,7 @@ for _p in PILLARS:
 
 ALL_ITEM_CODES: list[str] = [c["item_code"] for c in CATALOG]
 TOTAL_ITEMS = len(ALL_ITEM_CODES)                 # 42
-MAX_TOTAL = TOTAL_ITEMS * MAX_PER_ITEM            # 126
+MAX_TOTAL = TOTAL_ITEMS * MAX_PER_ITEM            # 168
 
 
 def category_for(percentage: float) -> str:
