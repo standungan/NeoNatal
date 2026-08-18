@@ -47,6 +47,7 @@ class ApiEndpoints {
 
   // users (admin)
   static const users = '/api/v1/users';
+  static const usersDoctors = '/api/v1/users/doctors'; // DPJP dropdown
   static String user(String id)              => '/api/v1/users/$id';
   static String userResetPassword(String id) => '/api/v1/users/$id/reset-password';
 
