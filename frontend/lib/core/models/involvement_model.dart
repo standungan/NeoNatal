@@ -1,5 +1,5 @@
 // Keterlibatan Orang Tua — PILAR 6: KERJASAMA DENGAN KELUARGA.
-// 6 items, each scored 0–3 (mirrors the backend involvement_catalog).
+// 6 items, each scored 0–4 (mirrors the backend involvement_catalog).
 // Shared scoring helpers live in core/models/scoring.dart.
 
 /// [item_code, text] for the 6 Pillar-6 items.
@@ -12,4 +12,4 @@ const kInvolvementItems = <List<String>>[
   ['keluarga_6', 'Keluarga memahami perawatan di rumah'],
 ];
 
-const kInvolvementMaxTotal = 18; // 6 items × 3
+const kInvolvementMaxTotal = 24; // 6 items × 4

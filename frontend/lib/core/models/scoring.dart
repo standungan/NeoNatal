@@ -2,7 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:neonatal_care/core/theme/app_theme.dart';
 
 /// Shared scoring helpers for the 8-pillar instrument modules
-/// (Monitoring Bayi, Keterlibatan Orang Tua, Menu Aksi) — each item is 0–3.
+/// (Monitoring Bayi, Keterlibatan Orang Tua, Menu Aksi) — each item is 0–4
+/// (0 sangat berat · 1 berat · 2 sedang · 3 ringan · 4 normal).
+
+/// Max score per item on the deviation scale.
+const int kMaxPerItem = 4;
+
+/// Scale hint shown per pillar.
+const String kScaleHint =
+    'Skala 0–4: 0 sangat berat · 1 berat · 2 sedang · 3 ringan · 4 normal';
 
 double percentageFor(int total, int maxTotal) =>
     maxTotal == 0 ? 0 : total / maxTotal * 100;

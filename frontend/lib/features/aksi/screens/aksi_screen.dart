@@ -9,7 +9,7 @@ import 'package:neonatal_care/core/models/scoring.dart';
 import 'package:neonatal_care/core/theme/app_theme.dart';
 import 'package:neonatal_care/core/widgets/score_chips.dart';
 
-/// Menu Aksi — Pilar 8 "Kolaborasi Interprofesional" (6 items, 0–3).
+/// Menu Aksi — Pilar 8 "Kolaborasi Interprofesional" (6 items, 0–4).
 class AksiScreen extends ConsumerStatefulWidget {
   final String babyId;
   const AksiScreen({super.key, required this.babyId});
@@ -101,8 +101,8 @@ class _AksiScreenState extends ConsumerState<AksiScreen> {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Menu Aksi — Kolaborasi Interprofesional. Nilai tiap item 0–3 '
-                '(0 = penyimpangan berat · 1 = sedang · 2 = ringan · 3 = sesuai standar).',
+                'Menu Aksi — Kolaborasi Interprofesional. Skala 0–4: '
+                '0 sangat berat · 1 berat · 2 sedang · 3 ringan · 4 normal.',
                 style: TextStyle(fontSize: 11.5, color: AppColors.inkMuted),
               ),
               const SizedBox(height: 18),
@@ -208,7 +208,7 @@ class _AksiScreenState extends ConsumerState<AksiScreen> {
   }
 }
 
-/// One instrument item: number + text + 0–3 chip selector.
+/// One instrument item: number + text + 0–4 chip selector.
 class _ItemTile extends StatelessWidget {
   final int index;
   final String title;
@@ -257,7 +257,7 @@ class _ItemTile extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          ScoreChips(value: value, min: 0, max: 3, onChanged: onChanged),
+          ScoreChips(value: value, min: 0, max: kMaxPerItem, onChanged: onChanged),
         ],
       ),
     );
