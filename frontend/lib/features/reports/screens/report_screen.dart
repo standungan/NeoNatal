@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:neonatal_care/core/api/api_client.dart';
 import 'package:neonatal_care/core/api/api_endpoints.dart';
+import 'package:neonatal_care/core/models/intake_options.dart';
 import 'package:neonatal_care/core/models/scoring.dart';
 import 'package:neonatal_care/core/theme/app_theme.dart';
 import 'package:neonatal_care/core/widgets/status_badge.dart';
@@ -71,6 +72,20 @@ class ReportScreen extends ConsumerWidget {
                 children: [
                   _BabyHeader(baby: baby),
                   const SizedBox(height: 12),
+                  if (baby['current_assignment'] != null) ...[
+                    _RegistrationCard(
+                        assignment:
+                            baby['current_assignment'] as Map<String, dynamic>),
+                    const SizedBox(height: 12),
+                  ],
+                  _BabyIdentityCard(baby: baby),
+                  const SizedBox(height: 12),
+                  if (baby['maternal'] != null) ...[
+                    _MaternalRecordCard(
+                        maternal: baby['maternal'] as Map<String, dynamic>,
+                        parent: baby['parent'] as Map<String, dynamic>?),
+                    const SizedBox(height: 12),
+                  ],
                   if (baby['latest_vitals'] != null)
                     _LatestVitalsCard(
                         vitals: baby['latest_vitals'] as Map<String, dynamic>),
@@ -164,6 +179,338 @@ class _BabyHeader extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+// ── Intake / identity / maternal cards (updates02 — Laporan parity) ───────────
+
+Widget _sectionCard(String title, List<Widget> children) => Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            const SizedBox(height: 12),
+            ...children,
+          ],
+        ),
+      ),
+    );
+
+String _labelOf(List<(String, String)> opts, String? v) {
+  if (v == null) return '-';
+  for (final o in opts) {
+    if (o.$1 == v) return o.$2;
+  }
+  return v;
+}
+
+String _fmtDate(String? s) {
+  if (s == null || s.isEmpty) return '-';
+  try {
+    return DateFormat('dd MMM yyyy').format(DateTime.parse(s));
+  } catch (_) {
+    return s;
+  }
+}
+
+String _fmtDateTime(String? s) {
+  if (s == null || s.isEmpty) return '-';
+  try {
+    return DateFormat('dd MMM yyyy HH:mm').format(DateTime.parse(s));
+  } catch (_) {
+    return s;
+  }
+}
+
+String _hhmm(String? t) => (t == null || t.length < 5) ? '-' : t.substring(0, 5);
+
+/// Two-column label/value grid.
+class _DL extends StatelessWidget {
+  final List<(String, String)> items;
+  const _DL(this.items);
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        for (var i = 0; i < items.length; i += 2)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: _cell(items[i])),
+                const SizedBox(width: 12),
+                Expanded(
+                    child: i + 1 < items.length
+                        ? _cell(items[i + 1])
+                        : const SizedBox()),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  static Widget _cell((String, String) it) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(it.$1,
+              style: const TextStyle(fontSize: 11, color: AppColors.inkMuted)),
+          const SizedBox(height: 2),
+          Text(it.$2.isEmpty ? '-' : it.$2,
+              style: const TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.ink)),
+        ],
+      );
+}
+
+/// Stacked Ya/Tidak facts.
+class _BoolGrid extends StatelessWidget {
+  final List<(String, bool?)> rows;
+  const _BoolGrid(this.rows);
+
+  @override
+  Widget build(BuildContext context) => Column(
+        children: rows
+            .map((r) => Container(
+                  margin: const EdgeInsets.only(bottom: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                          child: Text(r.$1,
+                              style: const TextStyle(
+                                  fontSize: 12.5, color: AppColors.ink))),
+                      Text(r.$2 == null ? '-' : (r.$2! ? 'Ya' : 'Tidak'),
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: r.$2 == null
+                                  ? AppColors.inkMuted
+                                  : AppColors.ink)),
+                    ],
+                  ),
+                ))
+            .toList(),
+      );
+}
+
+class _Chips extends StatelessWidget {
+  final List<String> items;
+  const _Chips(this.items);
+
+  @override
+  Widget build(BuildContext context) {
+    if (items.isEmpty) {
+      return const Text('-',
+          style: TextStyle(fontSize: 13, color: AppColors.inkMuted));
+    }
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: items
+          .map((it) => Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(it,
+                    style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w500)),
+              ))
+          .toList(),
+    );
+  }
+}
+
+class _SubHead extends StatelessWidget {
+  final String text;
+  const _SubHead(this.text);
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Text(text,
+            style: const TextStyle(
+                fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.ink)),
+      );
+}
+
+Widget _divider() => const Padding(
+      padding: EdgeInsets.symmetric(vertical: 8),
+      child: Divider(height: 1),
+    );
+
+class _RegistrationCard extends StatelessWidget {
+  final Map<String, dynamic> assignment;
+  const _RegistrationCard({required this.assignment});
+
+  @override
+  Widget build(BuildContext context) {
+    final a = assignment;
+    return _sectionCard('Data Registrasi', [
+      _DL([
+        ('No. Registrasi NICU', '${a['no_registrasi_nicu'] ?? '-'}'),
+        ('Tanggal Masuk NICU', _fmtDateTime(a['assigned_at'] as String?)),
+        ('Rumah Sakit', '${a['rumah_sakit'] ?? '-'}'),
+        ('Ruang NICU', '${a['ruang_nicu'] ?? '-'}'),
+        ('Inkubator',
+            'No. ${a['incubator_no']}${a['location'] != null ? ' — ${a['location']}' : ''}'),
+        ('DPJP', '${a['dpjp_name'] ?? '-'}'),
+        ('Perawat Penerima', '${a['assigned_by_name'] ?? '-'}'),
+      ]),
+    ]);
+  }
+}
+
+class _BabyIdentityCard extends StatelessWidget {
+  final Map<String, dynamic> baby;
+  const _BabyIdentityCard({required this.baby});
+
+  @override
+  Widget build(BuildContext context) {
+    final b = baby;
+    return _sectionCard('Identitas Bayi', [
+      _DL([
+        ('No. Rekam Medis', '${b['no_rm_bayi'] ?? '-'}'),
+        ('Golongan Darah', '${b['golongan_darah'] ?? '-'}'),
+        ('Tanggal Lahir', _fmtDate(b['birth_date'] as String?)),
+        ('Jam Lahir', _hhmm(b['jam_lahir'] as String?)),
+        ('Usia Gestasi',
+            b['gestational_age'] != null ? '${b['gestational_age']} mgg' : '-'),
+        ('Usia Masuk NICU',
+            b['usia_masuk_nicu_jam'] != null ? '${b['usia_masuk_nicu_jam']} jam' : '-'),
+        ('Berat Lahir',
+            b['birth_weight'] != null ? '${b['birth_weight']} gram' : '-'),
+        ('Panjang Lahir',
+            b['birth_length'] != null ? '${b['birth_length']} cm' : '-'),
+        ('Lingkar Kepala',
+            b['lingkar_kepala'] != null ? '${b['lingkar_kepala']} cm' : '-'),
+        ('Lingkar Dada',
+            b['lingkar_dada'] != null ? '${b['lingkar_dada']} cm' : '-'),
+        ('Jenis Kelahiran', '${b['birth_type'] ?? '-'}'),
+      ]),
+    ]);
+  }
+}
+
+class _MaternalRecordCard extends StatelessWidget {
+  final Map<String, dynamic> maternal;
+  final Map<String, dynamic>? parent;
+  const _MaternalRecordCard({required this.maternal, required this.parent});
+
+  bool? _b(String k) => maternal[k] as bool?;
+  String _v(String k) => '${maternal[k] ?? '-'}';
+  List<String> _list(String k) =>
+      (maternal[k] as List?)?.cast<String>() ?? const [];
+
+  @override
+  Widget build(BuildContext context) {
+    final m = maternal;
+    return _sectionCard('Rekam Medis Ibu', [
+      const _SubHead('A. Identitas Ibu'),
+      _DL([
+        ('Nama Ibu', '${parent?['mother_name'] ?? '-'}'),
+        ('No. Telepon', '${parent?['mother_phone'] ?? '-'}'),
+        ('No. RM Ibu', _v('no_rm_ibu')),
+        ('Umur', m['umur_ibu'] != null ? '${m['umur_ibu']} th' : '-'),
+        ('Pendidikan', _labelOf(kPendidikan, m['pendidikan'] as String?)),
+        ('Pekerjaan', _v('pekerjaan')),
+        ('Golongan Darah', _v('golongan_darah')),
+        ('Alamat', _v('alamat')),
+      ]),
+      _divider(),
+      const _SubHead('B. Riwayat Obstetri'),
+      _DL([
+        ('Kehamilan ke-', _v('kehamilan_ke')),
+        ('Persalinan Hidup', _v('jumlah_persalinan_hidup')),
+      ]),
+      _BoolGrid([
+        ('Riwayat abortus', _b('riwayat_abortus')),
+        ('Riwayat persalinan prematur', _b('riwayat_prematur')),
+        ('Riwayat bayi BBLR', _b('riwayat_bblr')),
+        ('Riwayat bayi meninggal', _b('riwayat_bayi_meninggal')),
+      ]),
+      _divider(),
+      const _SubHead('C. Riwayat Kehamilan Saat Ini'),
+      _DL([
+        ('Usia kehamilan lahir',
+            m['usia_kehamilan_lahir'] != null ? '${m['usia_kehamilan_lahir']} mgg' : '-'),
+        ('Kehamilan', _labelOf(kJenisKehamilan, m['jenis_kehamilan'] as String?)),
+        ('Jumlah ANC', _v('jumlah_anc')),
+      ]),
+      _BoolGrid([
+        ('Rutin ANC', _b('anc_rutin')),
+        ('Hipertensi kehamilan', _b('hipertensi_kehamilan')),
+        ('Preeklamsia', _b('preeklamsia')),
+        ('Diabetes gestasional', _b('diabetes_gestasional')),
+        ('Infeksi selama hamil', _b('infeksi_hamil')),
+        ('Perdarahan selama kehamilan', _b('perdarahan_hamil')),
+        ('Ketuban pecah dini', _b('ketuban_pecah_dini')),
+        ('Merokok selama hamil', _b('merokok')),
+        ('Paparan asap rokok', _b('paparan_asap_rokok')),
+        ('Mengonsumsi alkohol', _b('konsumsi_alkohol')),
+        ('Menggunakan obat tertentu', _b('obat_tertentu')),
+      ]),
+      if (m['obat_tertentu_ket'] != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text('Ket. obat: ${m['obat_tertentu_ket']}',
+              style: const TextStyle(fontSize: 12.5, color: AppColors.inkMuted)),
+        ),
+      _divider(),
+      const _SubHead('D. Riwayat Persalinan'),
+      _DL([
+        ('Tanggal persalinan', _fmtDate(m['tanggal_persalinan'] as String?)),
+        ('Jenis persalinan',
+            _labelOf(kJenisPersalinan, m['jenis_persalinan'] as String?)),
+        ('Tempat persalinan', _v('tempat_persalinan')),
+        ('APGAR menit 1', _v('apgar_menit_1')),
+        ('APGAR menit 5', _v('apgar_menit_5')),
+      ]),
+      const Text('Indikasi persalinan prematur',
+          style: TextStyle(fontSize: 11, color: AppColors.inkMuted)),
+      const SizedBox(height: 6),
+      _Chips(_list('indikasi_prematur')),
+      if (m['indikasi_prematur_lainnya'] != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text('Lainnya: ${m['indikasi_prematur_lainnya']}',
+              style: const TextStyle(fontSize: 12.5, color: AppColors.inkMuted)),
+        ),
+      const SizedBox(height: 10),
+      const Text('Komplikasi persalinan',
+          style: TextStyle(fontSize: 11, color: AppColors.inkMuted)),
+      const SizedBox(height: 6),
+      _Chips(_list('komplikasi_persalinan')),
+      if (m['komplikasi_lainnya'] != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text('Lainnya: ${m['komplikasi_lainnya']}',
+              style: const TextStyle(fontSize: 12.5, color: AppColors.inkMuted)),
+        ),
+      _divider(),
+      const _SubHead('E. Kondisi Ibu Setelah Melahirkan'),
+      _DL([('Kondisi umum', _labelOf(kKondisiUmum, m['kondisi_umum'] as String?))]),
+      _BoolGrid([
+        ('Masih dirawat', _b('masih_dirawat')),
+        ('Komplikasi postpartum', _b('komplikasi_postpartum')),
+        ('Dapat berjalan', _b('dapat_berjalan')),
+        ('Dapat menyusui langsung', _b('dapat_menyusui')),
+      ]),
+    ]);
   }
 }
 
