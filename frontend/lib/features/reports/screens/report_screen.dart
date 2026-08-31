@@ -111,6 +111,11 @@ class ReportScreen extends ConsumerWidget {
                   const SizedBox(height: 12),
                   _VitalsChartCard(records: monitoring),
                   const SizedBox(height: 12),
+                  if (data['doctor_note_latest'] != null) ...[
+                    _DoctorNoteCard(
+                        note: data['doctor_note_latest'] as Map<String, dynamic>),
+                    const SizedBox(height: 12),
+                  ],
                   _ExportCard(babyId: babyId),
                   const SizedBox(height: 24),
                 ],
@@ -511,6 +516,57 @@ class _MaternalRecordCard extends StatelessWidget {
         ('Dapat menyusui langsung', _b('dapat_menyusui')),
       ]),
     ]);
+  }
+}
+
+/// Catatan Dokter — latest doctor's note, shown at the end of the report.
+class _DoctorNoteCard extends StatelessWidget {
+  final Map<String, dynamic> note;
+  const _DoctorNoteCard({required this.note});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.medical_information,
+                    size: 18, color: AppColors.primary),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text('Catatan Dokter',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                ),
+                Text(_fmtDateTime(note['observation_time'] as String?),
+                    style: const TextStyle(
+                        fontSize: 11, color: AppColors.inkMuted)),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text('${note['recorder_name'] ?? 'Dokter'}',
+                style: const TextStyle(
+                    fontSize: 11.5, color: AppColors.inkMuted)),
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Text('${note['catatan'] ?? ''}',
+                  style: const TextStyle(fontSize: 13, color: AppColors.ink)),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

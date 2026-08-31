@@ -4,10 +4,16 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:neonatal_care/core/api/api_client.dart';
 import 'package:neonatal_care/core/api/api_endpoints.dart';
-import 'package:neonatal_care/core/models/aksi_model.dart';
+import 'package:neonatal_care/core/models/pillar_catalog.dart';
 import 'package:neonatal_care/core/models/scoring.dart';
 import 'package:neonatal_care/core/theme/app_theme.dart';
 import 'package:neonatal_care/core/widgets/score_chips.dart';
+
+final _aksiCatalogProvider =
+    FutureProvider.autoDispose<PillarCatalog>((ref) async {
+  final res = await ApiClient().dio.get(ApiEndpoints.aksiCatalog);
+  return PillarCatalog.fromJson(res.data as Map<String, dynamic>);
+});
 
 /// Menu Aksi — Pilar 8 "Kolaborasi Interprofesional" (6 items, 0–4).
 class AksiScreen extends ConsumerStatefulWidget {
@@ -45,8 +51,9 @@ class _AksiScreenState extends ConsumerState<AksiScreen> {
         data: {
           'observation_time': _obsTime.toIso8601String(),
           'scores': _scores,
-          'catatan':
-              _catatanCtrl.text.trim().isEmpty ? null : _catatanCtrl.text.trim(),
+          'catatan': _catatanCtrl.text.trim().isEmpty
+              ? null
+              : _catatanCtrl.text.trim(),
         },
       );
       if (mounted) {
@@ -65,144 +72,163 @@ class _AksiScreenState extends ConsumerState<AksiScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final total = _scores.values.fold<int>(0, (s, v) => s + v);
-    final pct = percentageFor(total, kAksiMaxTotal);
-    final category = categoryFor(pct);
-    final scoreColor = categoryColor(category);
-    final alarms = kAksiItems
-        .where((it) => _scores[it[0]] != null && _scores[it[0]]! <= 1)
-        .toList();
+    final catalogAsync = ref.watch(_aksiCatalogProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Kolaborasi Interprofesional')),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const _SectionTitle('Waktu Observasi'),
-              GestureDetector(
-                onTap: () async {
-                  final d = await showDatePicker(
-                    context: context,
-                    initialDate: _obsTime,
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime.now(),
-                  );
-                  if (d != null && mounted) setState(() => _obsTime = d);
-                },
-                child: InputDecorator(
-                  decoration: const InputDecoration(
-                      suffixIcon: Icon(Icons.calendar_today)),
-                  child: Text(DateFormat('dd/MM/yyyy').format(_obsTime)),
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Menu Aksi — Kolaborasi Interprofesional. Skala 0–4: '
-                '0 sangat berat · 1 berat · 2 sedang · 3 ringan · 4 normal.',
-                style: TextStyle(fontSize: 11.5, color: AppColors.inkMuted),
-              ),
-              const SizedBox(height: 18),
-
-              // ── 6 Pillar-8 items ────────────────────────────────────────
-              for (var i = 0; i < kAksiItems.length; i++)
-                _ItemTile(
-                  index: i + 1,
-                  title: kAksiItems[i][1],
-                  value: _scores[kAksiItems[i][0]],
-                  onChanged: (v) =>
-                      setState(() => _scores[kAksiItems[i][0]] = v),
-                ),
-              const SizedBox(height: 8),
-
-              // live score preview
-              const _SectionTitle('Ringkasan Skor (Otomatis)'),
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: scoreColor.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: scoreColor.withValues(alpha: 0.2)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          '${pct.toStringAsFixed(1)}%',
-                          style: TextStyle(
-                              fontSize: 38,
-                              fontWeight: FontWeight.w800,
-                              color: scoreColor),
-                        ),
-                        const SizedBox(width: 16),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: scoreColor,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(category,
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600)),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text('$total / $kAksiMaxTotal poin',
-                        style: const TextStyle(
-                            fontSize: 12, color: AppColors.inkMuted)),
-                    if (alarms.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      Text('⚠ ${alarms.length} item perlu perhatian (skor 0–1)',
-                          style: const TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.abnormal)),
-                      for (final a in alarms)
-                        Text('• ${a[1]}',
-                            style: const TextStyle(
-                                fontSize: 11.5, color: AppColors.ink)),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              const _SectionTitle('Catatan (Opsional)'),
-              TextFormField(
-                controller: _catatanCtrl,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                    hintText: 'Catatan kolaborasi & handover...'),
-              ),
-
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Text(_error!, style: const TextStyle(color: AppColors.abnormal)),
-              ],
-              const SizedBox(height: 24),
-
-              ElevatedButton(
-                onPressed: (_loading || _scores.isEmpty) ? null : _submit,
-                child: _loading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2))
-                    : const Text('Simpan Aksi'),
-              ),
-              const SizedBox(height: 16),
-            ],
+      body: catalogAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text('Gagal memuat katalog: $e',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.abnormal)),
           ),
         ),
+        data: (catalog) {
+          final total = _scores.values.fold<int>(0, (s, v) => s + v);
+          final pct = percentageFor(total, catalog.maxTotal);
+          final category = categoryFor(pct);
+          final scoreColor = categoryColor(category);
+          final alarms = catalog.items
+              .where((it) =>
+                  _scores[it.itemCode] != null && _scores[it.itemCode]! <= 1)
+              .toList();
+
+          return Form(
+            key: _formKey,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _SectionTitle('Waktu Observasi'),
+                  GestureDetector(
+                    onTap: () async {
+                      final d = await showDatePicker(
+                        context: context,
+                        initialDate: _obsTime,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime.now(),
+                      );
+                      if (d != null && mounted) setState(() => _obsTime = d);
+                    },
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                          suffixIcon: Icon(Icons.calendar_today)),
+                      child: Text(DateFormat('dd/MM/yyyy').format(_obsTime)),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Menu Aksi — Kolaborasi Interprofesional. Skala 0–4: '
+                    '0 sangat berat · 1 berat · 2 sedang · 3 ringan · 4 normal.',
+                    style: TextStyle(fontSize: 11.5, color: AppColors.inkMuted),
+                  ),
+                  const SizedBox(height: 18),
+
+                  // ── 6 Pillar-8 items ────────────────────────────────────────
+                  for (var i = 0; i < catalog.items.length; i++)
+                    _ItemTile(
+                      index: i + 1,
+                      title: catalog.items[i].text,
+                      value: _scores[catalog.items[i].itemCode],
+                      onChanged: (v) => setState(
+                          () => _scores[catalog.items[i].itemCode] = v),
+                    ),
+                  const SizedBox(height: 8),
+
+                  // live score preview
+                  const _SectionTitle('Ringkasan Skor (Otomatis)'),
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: scoreColor.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(16),
+                      border:
+                          Border.all(color: scoreColor.withValues(alpha: 0.2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              '${pct.toStringAsFixed(1)}%',
+                              style: TextStyle(
+                                  fontSize: 38,
+                                  fontWeight: FontWeight.w800,
+                                  color: scoreColor),
+                            ),
+                            const SizedBox(width: 16),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: scoreColor,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(category,
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600)),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text('$total / ${catalog.maxTotal} poin',
+                            style: const TextStyle(
+                                fontSize: 12, color: AppColors.inkMuted)),
+                        if (alarms.isNotEmpty) ...[
+                          const SizedBox(height: 10),
+                          Text(
+                              '⚠ ${alarms.length} item perlu perhatian (skor 0–1)',
+                              style: const TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.abnormal)),
+                          for (final a in alarms)
+                            Text('• ${a.text}',
+                                style: const TextStyle(
+                                    fontSize: 11.5, color: AppColors.ink)),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  const _SectionTitle('Catatan (Opsional)'),
+                  TextFormField(
+                    controller: _catatanCtrl,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                        hintText: 'Catatan kolaborasi & handover...'),
+                  ),
+
+                  if (_error != null) ...[
+                    const SizedBox(height: 12),
+                    Text(_error!,
+                        style: const TextStyle(color: AppColors.abnormal)),
+                  ],
+                  const SizedBox(height: 24),
+
+                  ElevatedButton(
+                    onPressed: (_loading || _scores.isEmpty) ? null : _submit,
+                    child: _loading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                                color: Colors.white, strokeWidth: 2))
+                        : const Text('Simpan Aksi'),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -257,7 +283,8 @@ class _ItemTile extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          ScoreChips(value: value, min: 0, max: kMaxPerItem, onChanged: onChanged),
+          ScoreChips(
+              value: value, min: 0, max: kMaxPerItem, onChanged: onChanged),
         ],
       ),
     );

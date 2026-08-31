@@ -15,6 +15,15 @@ class AuthState {
   bool get isAuthenticated => token != null;
   String get role => token?.role ?? '';
 
+  /// Roles allowed to create/modify clinical data.
+  /// Mirrors the backend's PerawatOrAdmin guard, and web's lib/format.ts canWrite().
+  /// Gate write-action UI on this: the API returns 403 either way, but showing a
+  /// dokter a button that can only fail is a dead end, not a safeguard.
+  bool get canWrite => role == 'perawat' || role == 'admin';
+
+  /// Only a dokter may write doctor notes (backend: DokterOnly).
+  bool get isDokter => role == 'dokter';
+
   AuthState copyWith({TokenResponse? token, bool? isLoading, String? error}) =>
       AuthState(
         token: token ?? this.token,

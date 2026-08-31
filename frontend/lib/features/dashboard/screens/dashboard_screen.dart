@@ -270,6 +270,8 @@ class _IncubatorCard extends ConsumerWidget {
                 ),
               ] else if (baby == null) ...[
                 const SizedBox(height: 8),
+                // PerawatOrAdmin on the backend -- hidden from dokter.
+                if (ref.watch(authProvider).canWrite)
                 OutlinedButton.icon(
                   icon: const Icon(Icons.add, size: 16),
                   label: const Text('Register Bayi'),

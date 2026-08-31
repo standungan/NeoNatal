@@ -4,10 +4,16 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:neonatal_care/core/api/api_client.dart';
 import 'package:neonatal_care/core/api/api_endpoints.dart';
-import 'package:neonatal_care/core/models/involvement_model.dart';
+import 'package:neonatal_care/core/models/pillar_catalog.dart';
 import 'package:neonatal_care/core/models/scoring.dart';
 import 'package:neonatal_care/core/theme/app_theme.dart';
 import 'package:neonatal_care/core/widgets/score_chips.dart';
+
+final _involvementCatalogProvider =
+    FutureProvider.autoDispose<PillarCatalog>((ref) async {
+  final res = await ApiClient().dio.get(ApiEndpoints.involvementCatalog);
+  return PillarCatalog.fromJson(res.data as Map<String, dynamic>);
+});
 
 /// Keterlibatan Orang Tua — Pilar 6 "Kerjasama dengan Keluarga" (6 items, 0–4).
 class InvolvementScreen extends ConsumerStatefulWidget {
@@ -52,8 +58,9 @@ class _InvolvementScreenState extends ConsumerState<InvolvementScreen> {
         data: {
           'observation_time': _obsTime.toIso8601String(),
           'scores': _scores,
-          'catatan':
-              _catatanCtrl.text.trim().isEmpty ? null : _catatanCtrl.text.trim(),
+          'catatan': _catatanCtrl.text.trim().isEmpty
+              ? null
+              : _catatanCtrl.text.trim(),
           'durasi_menyusui': int.tryParse(_menyusuiCtrl.text),
           'durasi_interaksi': int.tryParse(_interaksiCtrl.text),
           'kondisi_bayi': _kondisiBayi,
@@ -75,182 +82,204 @@ class _InvolvementScreenState extends ConsumerState<InvolvementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final total = _scores.values.fold<int>(0, (s, v) => s + v);
-    final pct = percentageFor(total, kInvolvementMaxTotal);
-    final category = categoryFor(pct);
-    final scoreColor = categoryColor(category);
-    final alarms = kInvolvementItems
-        .where((it) => _scores[it[0]] != null && _scores[it[0]]! <= 1)
-        .toList();
+    final catalogAsync = ref.watch(_involvementCatalogProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Keterlibatan Orang Tua')),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const _SectionTitle('Waktu Observasi'),
-              GestureDetector(
-                onTap: () async {
-                  final d = await showDatePicker(
-                    context: context,
-                    initialDate: _obsTime,
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime.now(),
-                  );
-                  if (d != null && mounted) setState(() => _obsTime = d);
-                },
-                child: InputDecorator(
-                  decoration: const InputDecoration(
-                      suffixIcon: Icon(Icons.calendar_today)),
-                  child: Text(DateFormat('dd/MM/yyyy').format(_obsTime)),
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Pilar 6 — Kerjasama dengan Keluarga. Skala 0–4: '
-                '0 sangat berat · 1 berat · 2 sedang · 3 ringan · 4 normal.',
-                style: TextStyle(fontSize: 11.5, color: AppColors.inkMuted),
-              ),
-              const SizedBox(height: 18),
-
-              // ── 6 Pillar-6 items ────────────────────────────────────────
-              for (var i = 0; i < kInvolvementItems.length; i++)
-                _ItemTile(
-                  index: i + 1,
-                  title: kInvolvementItems[i][1],
-                  value: _scores[kInvolvementItems[i][0]],
-                  onChanged: (v) =>
-                      setState(() => _scores[kInvolvementItems[i][0]] = v),
-                ),
-              const SizedBox(height: 8),
-
-              // live score preview
-              const _SectionTitle('Ringkasan Skor (Otomatis)'),
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: scoreColor.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: scoreColor.withValues(alpha: 0.2)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          '${pct.toStringAsFixed(1)}%',
-                          style: TextStyle(
-                              fontSize: 38,
-                              fontWeight: FontWeight.w800,
-                              color: scoreColor),
-                        ),
-                        const SizedBox(width: 16),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: scoreColor,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(category,
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600)),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text('$total / $kInvolvementMaxTotal poin',
-                        style: const TextStyle(
-                            fontSize: 12, color: AppColors.inkMuted)),
-                    if (alarms.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      Text('⚠ ${alarms.length} item perlu perhatian (skor 0–1)',
-                          style: const TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.abnormal)),
-                      for (final a in alarms)
-                        Text('• ${a[1]}',
-                            style: const TextStyle(
-                                fontSize: 11.5, color: AppColors.ink)),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // optional context
-              const _SectionTitle('Konteks (Opsional)'),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _menyusuiCtrl,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                          labelText: 'Durasi menyusui', suffixText: 'menit'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _interaksiCtrl,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                          labelText: 'Durasi interaksi', suffixText: 'menit'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _kondisiBayi,
-                hint: const Text('Kondisi bayi saat interaksi'),
-                decoration: const InputDecoration(),
-                items: const [
-                  DropdownMenuItem(value: 'Tenang', child: Text('Tenang')),
-                  DropdownMenuItem(value: 'Aktif', child: Text('Aktif')),
-                  DropdownMenuItem(value: 'Rewel', child: Text('Rewel')),
-                  DropdownMenuItem(value: 'Tidur', child: Text('Tidur')),
-                ],
-                onChanged: (v) => setState(() => _kondisiBayi = v),
-              ),
-              const SizedBox(height: 20),
-
-              const _SectionTitle('Catatan (Opsional)'),
-              TextFormField(
-                controller: _catatanCtrl,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                    hintText: 'Catatan kerjasama & keterlibatan keluarga...'),
-              ),
-
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Text(_error!, style: const TextStyle(color: AppColors.abnormal)),
-              ],
-              const SizedBox(height: 24),
-
-              ElevatedButton(
-                onPressed: (_loading || _scores.isEmpty) ? null : _submit,
-                child: _loading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2))
-                    : const Text('Simpan Keterlibatan'),
-              ),
-              const SizedBox(height: 16),
-            ],
+      body: catalogAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text('Gagal memuat katalog: $e',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.abnormal)),
           ),
         ),
+        data: (catalog) {
+          final total = _scores.values.fold<int>(0, (s, v) => s + v);
+          final pct = percentageFor(total, catalog.maxTotal);
+          final category = categoryFor(pct);
+          final scoreColor = categoryColor(category);
+          final alarms = catalog.items
+              .where((it) =>
+                  _scores[it.itemCode] != null && _scores[it.itemCode]! <= 1)
+              .toList();
+
+          return Form(
+            key: _formKey,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _SectionTitle('Waktu Observasi'),
+                  GestureDetector(
+                    onTap: () async {
+                      final d = await showDatePicker(
+                        context: context,
+                        initialDate: _obsTime,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime.now(),
+                      );
+                      if (d != null && mounted) setState(() => _obsTime = d);
+                    },
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                          suffixIcon: Icon(Icons.calendar_today)),
+                      child: Text(DateFormat('dd/MM/yyyy').format(_obsTime)),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Pilar 6 — Kerjasama dengan Keluarga. Skala 0–4: '
+                    '0 sangat berat · 1 berat · 2 sedang · 3 ringan · 4 normal.',
+                    style: TextStyle(fontSize: 11.5, color: AppColors.inkMuted),
+                  ),
+                  const SizedBox(height: 18),
+
+                  // ── 6 Pillar-6 items ────────────────────────────────────────
+                  for (var i = 0; i < catalog.items.length; i++)
+                    _ItemTile(
+                      index: i + 1,
+                      title: catalog.items[i].text,
+                      value: _scores[catalog.items[i].itemCode],
+                      onChanged: (v) => setState(
+                          () => _scores[catalog.items[i].itemCode] = v),
+                    ),
+                  const SizedBox(height: 8),
+
+                  // live score preview
+                  const _SectionTitle('Ringkasan Skor (Otomatis)'),
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: scoreColor.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(16),
+                      border:
+                          Border.all(color: scoreColor.withValues(alpha: 0.2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              '${pct.toStringAsFixed(1)}%',
+                              style: TextStyle(
+                                  fontSize: 38,
+                                  fontWeight: FontWeight.w800,
+                                  color: scoreColor),
+                            ),
+                            const SizedBox(width: 16),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: scoreColor,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(category,
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600)),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text('$total / ${catalog.maxTotal} poin',
+                            style: const TextStyle(
+                                fontSize: 12, color: AppColors.inkMuted)),
+                        if (alarms.isNotEmpty) ...[
+                          const SizedBox(height: 10),
+                          Text(
+                              '⚠ ${alarms.length} item perlu perhatian (skor 0–1)',
+                              style: const TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.abnormal)),
+                          for (final a in alarms)
+                            Text('• ${a.text}',
+                                style: const TextStyle(
+                                    fontSize: 11.5, color: AppColors.ink)),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // optional context
+                  const _SectionTitle('Konteks (Opsional)'),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _menyusuiCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                              labelText: 'Durasi menyusui',
+                              suffixText: 'menit'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _interaksiCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                              labelText: 'Durasi interaksi',
+                              suffixText: 'menit'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: _kondisiBayi,
+                    hint: const Text('Kondisi bayi saat interaksi'),
+                    decoration: const InputDecoration(),
+                    items: const [
+                      DropdownMenuItem(value: 'Tenang', child: Text('Tenang')),
+                      DropdownMenuItem(value: 'Aktif', child: Text('Aktif')),
+                      DropdownMenuItem(value: 'Rewel', child: Text('Rewel')),
+                      DropdownMenuItem(value: 'Tidur', child: Text('Tidur')),
+                    ],
+                    onChanged: (v) => setState(() => _kondisiBayi = v),
+                  ),
+                  const SizedBox(height: 20),
+
+                  const _SectionTitle('Catatan (Opsional)'),
+                  TextFormField(
+                    controller: _catatanCtrl,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                        hintText:
+                            'Catatan kerjasama & keterlibatan keluarga...'),
+                  ),
+
+                  if (_error != null) ...[
+                    const SizedBox(height: 12),
+                    Text(_error!,
+                        style: const TextStyle(color: AppColors.abnormal)),
+                  ],
+                  const SizedBox(height: 24),
+
+                  ElevatedButton(
+                    onPressed: (_loading || _scores.isEmpty) ? null : _submit,
+                    child: _loading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                                color: Colors.white, strokeWidth: 2))
+                        : const Text('Simpan Keterlibatan'),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -305,7 +334,8 @@ class _ItemTile extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          ScoreChips(value: value, min: 0, max: kMaxPerItem, onChanged: onChanged),
+          ScoreChips(
+              value: value, min: 0, max: kMaxPerItem, onChanged: onChanged),
         ],
       ),
     );

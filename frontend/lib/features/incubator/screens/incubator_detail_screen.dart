@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:neonatal_care/core/api/api_client.dart';
 import 'package:neonatal_care/core/api/api_endpoints.dart';
 import 'package:neonatal_care/core/models/baby_model.dart';
+import 'package:neonatal_care/core/providers/auth_provider.dart';
 import 'package:neonatal_care/core/theme/app_theme.dart';
 import 'package:neonatal_care/core/widgets/status_badge.dart';
 
@@ -42,7 +43,8 @@ class IncubatorDetailScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => ref.invalidate(_incubatorDetailProvider(incubatorId)),
+            onPressed: () =>
+                ref.invalidate(_incubatorDetailProvider(incubatorId)),
           ),
         ],
       ),
@@ -105,7 +107,7 @@ class _IncubatorInfoCard extends StatelessWidget {
               width: 50,
               height: 50,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha:0.1),
+                color: AppColors.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Center(
@@ -194,9 +196,10 @@ class _BabyInfoCard extends ConsumerWidget {
               _kv('Berat Lahir',
                   baby.birthWeight != null ? '${baby.birthWeight} gram' : '-'),
               if (baby.currentAssignment != null) ...[
-                _kv('Inkubator',
+                _kv(
+                    'Inkubator',
                     'No. ${baby.currentAssignment!.incubatorNo}'
-                    '${baby.currentAssignment!.location != null ? ' — ${baby.currentAssignment!.location}' : ''}'),
+                        '${baby.currentAssignment!.location != null ? ' — ${baby.currentAssignment!.location}' : ''}'),
                 _kv(
                   'Tanggal Masuk',
                   DateFormat('dd MMM yyyy HH:mm')
@@ -226,8 +229,8 @@ class _BabyInfoCard extends ConsumerWidget {
             SizedBox(
               width: 120,
               child: Text(label,
-                  style: const TextStyle(
-                      color: AppColors.inkMuted, fontSize: 13)),
+                  style:
+                      const TextStyle(color: AppColors.inkMuted, fontSize: 13)),
             ),
             Expanded(
               child: Text(value,
@@ -238,12 +241,13 @@ class _BabyInfoCard extends ConsumerWidget {
       );
 }
 
-class _EmptyBabyCard extends StatelessWidget {
+// ConsumerWidget (not Stateless) so the register button can be role-gated.
+class _EmptyBabyCard extends ConsumerWidget {
   final String incubatorNo;
   const _EmptyBabyCard({required this.incubatorNo});
 
   @override
-  Widget build(BuildContext context) => Card(
+  Widget build(BuildContext context, WidgetRef ref) => Card(
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -254,37 +258,76 @@ class _EmptyBabyCard extends StatelessWidget {
                   style: const TextStyle(
                       color: AppColors.inkMuted, fontWeight: FontWeight.w600)),
               const SizedBox(height: 12),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.add),
-                label: const Text('Register Bayi Baru'),
-                onPressed: () => context.push('/baby/register'),
-              ),
+              // Registration is PerawatOrAdmin on the backend; a dokter tapping
+              // this would only reach a form that 403s on submit.
+              if (ref.watch(authProvider).canWrite)
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.add),
+                  label: const Text('Register Bayi Baru'),
+                  onPressed: () => context.push('/baby/register'),
+                ),
             ],
           ),
         ),
       );
 }
 
-class _ActionMenu extends StatelessWidget {
+class _ActionMenu extends ConsumerWidget {
   final String babyId;
   const _ActionMenu({required this.babyId});
 
   @override
-  Widget build(BuildContext context) {
-    const actions = [
-      ('Tanda Vital',       Icons.monitor_heart,  AppColors.primary),
-      ('Observasi',         Icons.checklist,       Color(0xFF0EA5E9)),
-      ('Keterlibatan OT',   Icons.people,          AppColors.normal),
-      ('Kolaborasi',        Icons.groups,          Color(0xFF14B8A6)),
-      ('Lihat Laporan',     Icons.bar_chart,       Color(0xFF8B5CF6)),
-    ];
+  Widget build(BuildContext context, WidgetRef ref) {
+    final auth = ref.watch(authProvider);
 
-    final routes = [
-      '/baby/$babyId/monitoring',
-      '/baby/$babyId/observation',
-      '/baby/$babyId/involvement',
-      '/baby/$babyId/aksi',
-      '/baby/$babyId/report',
+    // Label, icon, colour and route in ONE record: these used to be two parallel
+    // lists kept in sync by hand, which is how a role-gated entry can silently
+    // shift every route by one.
+    //
+    // Visibility mirrors the backend guards exactly -- the four data-entry
+    // actions are PerawatOrAdmin, Observasi Dokter is DokterOnly, and the report
+    // is readable by AnyRole. A dokter used to be shown all four write actions
+    // and could only discover the 403 after filling the form in.
+    final actions = <(String, IconData, Color, String)>[
+      if (auth.canWrite) ...[
+        (
+          'Tanda Vital',
+          Icons.monitor_heart,
+          AppColors.primary,
+          '/baby/$babyId/monitoring'
+        ),
+        (
+          'Observasi',
+          Icons.checklist,
+          const Color(0xFF0EA5E9),
+          '/baby/$babyId/observation'
+        ),
+        (
+          'Keterlibatan OT',
+          Icons.people,
+          AppColors.normal,
+          '/baby/$babyId/involvement'
+        ),
+        (
+          'Kolaborasi',
+          Icons.groups,
+          const Color(0xFF14B8A6),
+          '/baby/$babyId/aksi'
+        ),
+      ],
+      if (auth.isDokter)
+        (
+          'Observasi Dokter',
+          Icons.medical_information,
+          const Color(0xFFF59E0B),
+          '/baby/$babyId/doctor-note'
+        ),
+      (
+        'Lihat Laporan',
+        Icons.bar_chart,
+        const Color(0xFF8B5CF6),
+        '/baby/$babyId/report'
+      ),
     ];
 
     return Card(
@@ -303,12 +346,12 @@ class _ActionMenu extends StatelessWidget {
               spacing: 4,
               runSpacing: 12,
               children: List.generate(actions.length, (i) {
-                final (label, icon, color) = actions[i];
+                final (label, icon, color, route) = actions[i];
                 return SizedBox(
                   width: 72,
                   child: InkWell(
                     borderRadius: BorderRadius.circular(12),
-                    onTap: () => context.push(routes[i]),
+                    onTap: () => context.push(route),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 6),
                       child: Column(

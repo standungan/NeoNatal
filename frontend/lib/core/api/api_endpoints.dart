@@ -28,11 +28,16 @@ class ApiEndpoints {
 
   // observation (Monitoring Bayi — 6 pillars / 42 items)
   static const observationCatalog = '/api/v1/observation/catalog';
+  static const involvementCatalog = '/api/v1/involvement/catalog';
+  static const aksiCatalog = '/api/v1/aksi/catalog';
   static String observation(String babyId)         => '/api/v1/babies/$babyId/observation';
 
   // involvement
   static String involvement(String babyId)         => '/api/v1/babies/$babyId/involvement';
   static String involvementSummary(String babyId)  => '/api/v1/babies/$babyId/involvement/summary';
+
+  // doctor notes (Catatan Dokter — dokter only for POST)
+  static String doctorNotes(String babyId) => '/api/v1/babies/$babyId/doctor-notes';
 
   // aksi (Kolaborasi Interprofesional)
   static String aksi(String babyId)                => '/api/v1/babies/$babyId/aksi';
