@@ -21,7 +21,7 @@ export function MenuAksiTabs({ babyId }: { babyId: string }) {
     { seg: "monitoring", label: "💓 Input Tanda Vital", show: writable },
     { seg: "observation", label: "🩺 Monitoring Bayi (Observasi)", show: writable },
     { seg: "involvement", label: "👨‍👩‍👧 Keterlibatan", show: writable },
-    { seg: "aksi", label: "🤝 Kolaborasi", show: role === "admin" },
+    { seg: "aksi", label: "🤝 Kolaborasi", show: writable },
     { seg: "doctor-note", label: "🩺 Observasi Dokter", show: role === "dokter" },
   ].filter((t) => t.show);
 
