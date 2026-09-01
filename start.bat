@@ -10,6 +10,14 @@ echo.
 
 REM %~dp0 = folder of this .bat (repo root), so paths stay portable.
 
+REM ---- 0. Node.js -- must be reachable on PATH ----
+REM npx (used for the dashboard below) shells out to bare "node". If Node is
+REM not installed system-wide, point NODE_HOME at a portable Node folder
+REM before running this script -- no machine-specific path is baked in here.
+if defined NODE_HOME if exist "%NODE_HOME%\node.exe" set "PATH=%NODE_HOME%;%PATH%"
+where node >nul 2>nul
+if errorlevel 1 echo   [!] Node.js not found on PATH - the Dashboard window will fail (install Node 22+ or set NODE_HOME).
+
 REM ---- 1. Backend (FastAPI) -- must start first; the dashboard proxies to it ----
 start "NeoNatal Backend :8000" cmd /k "cd /d %~dp0backend && venv\Scripts\uvicorn.exe app.main:app --host 0.0.0.0 --port 8000 --reload"
 
@@ -17,7 +25,7 @@ REM give the backend a few seconds to come up
 timeout /t 5 /nobreak >nul
 
 REM ---- 2. Web Dashboard (Next.js) ----
-start "NeoNatal Dashboard :3000" cmd /k "cd /d %~dp0web && npm run dev"
+start "NeoNatal Dashboard :3000" cmd /k "cd /d %~dp0web && npx next dev -H 0.0.0.0"
 
 timeout /t 3 /nobreak >nul
 

@@ -4,6 +4,9 @@
 !.env.example
 !*.env.example
 
+# Firmware secrets — WiFi credentials + IoT device key (see secrets.example.h)
+incubator_iot/allsensors/secrets.h
+
 # ───────────────────────────── Python / FastAPI ──────────────────────────
 backend/venv/
 **/__pycache__/
@@ -19,6 +22,8 @@ backend/uploads/*
 
 # ───────────────────────────── Node / Next.js (web) ──────────────────────
 node_modules/
+incubator_iot/backend/dist/
+incubator_iot/frontend/dist/
 web/.next/
 web/out/
 web/build/
