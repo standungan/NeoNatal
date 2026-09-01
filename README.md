@@ -57,7 +57,7 @@ It ships with **two clients sharing one backend and one design language**:
 
 ## ✨ Features
 
-**Vital-sign monitoring** _(fields aligned with the [8-Pillar NICU framework](docs/8%20pillar%20NICU.md))_
+**Vital-sign monitoring** _(fields aligned with the [8-Pillar NICU framework](docs/clinical/8%20pillar%20NICU.md))_
 - Baby registration with parent and birth details
 - Vitals — suhu bayi/inkubator, kelembapan, heart rate, **respiratory rate**, SpO₂, expression & movement scores
 - **Pain/stress score** (NIPS 0–7) and **sleep & comfort** (duration, quality, agitation)

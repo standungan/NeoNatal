@@ -375,7 +375,7 @@ Single call powering the home screen: aggregate counts + every incubator with it
 | `agitation_episodes` | count | 5 |
 
 > The **Pillar** column maps each vital to the IoT clinical framework in
-> [docs/8 pillar NICU.md](../docs/8%20pillar%20NICU.md) (there, Pillar 6 = *Pain & Stress*).
+> [docs/clinical/8 pillar NICU.md](../docs/clinical/8%20pillar%20NICU.md) (there, Pillar 6 = *Pain & Stress*).
 > This is a **different numbering** from the nurse-observation instrument used by
 > *Observation / Involvement / Aksi* below, whose own Pillar 6 = *Kerjasama dengan Keluarga*
 > and Pillar 8 = *Kolaborasi Interprofesional*. Two separate 8-pillar frameworks — don't
@@ -613,7 +613,7 @@ accordingly, and render `items[].percentage` (or `pillars[].percentage` for obse
 **Score scales** — expression/movement/sleep-quality: 1–5; pain: 0–7 (NIPS); all scored-instrument
 items (observation/involvement/aksi): 0–3.
 
-See [docs/8 pillar NICU.md](../docs/8%20pillar%20NICU.md) for the clinical framework behind these fields.
+See [docs/clinical/8 pillar NICU.md](../docs/clinical/8%20pillar%20NICU.md) for the clinical framework behind these fields.
 
 ---
 

@@ -38,7 +38,7 @@ Roles: **admin** (users + audit), **perawat** (all data entry), **dokter** (read
 
 All three scored instruments (observation/involvement/aksi) share a 5-band `category` (Sangat Baik ≥85 … Sangat Kurang <40) and expose a `…/catalog` endpoint (single source of truth in `services/*_catalog.py`). Any observation item scored 0 flips the incubator to `warning`.
 
-> **Two different "8-pillar" frameworks exist** and their numbers collide — don't cross-reference: (a) the IoT clinical framework in `docs/8 pillar NICU.md` (Pillar 6 = Pain/Stress) used by the **monitoring** field annotations; (b) the nurse-observation instrument (Pillar 6 = Kerjasama, Pillar 8 = Kolaborasi) used by observation/involvement/aksi.
+> **Two different "8-pillar" frameworks exist** and their numbers collide — don't cross-reference: (a) the IoT clinical framework in `docs/clinical/8 pillar NICU.md` (Pillar 6 = Pain/Stress) used by the **monitoring** field annotations; (b) the nurse-observation instrument (Pillar 6 = Kerjasama, Pillar 8 = Kolaborasi) used by observation/involvement/aksi.
 
 ---
 
@@ -72,7 +72,7 @@ Also: **nested `backend` `main` is 5 commits ahead of its origin** (pre-existing
 
 ## `updates02` feature status (the active work)
 
-Source spec: `updates02/Reguster bayi dan rekam medis ibu.pdf` — turns the simple baby registration into a full NICU intake + structured maternal medical record.
+Source spec: `docs/specs/updates02/Reguster bayi dan rekam medis ibu.pdf` — turns the simple baby registration into a full NICU intake + structured maternal medical record.
 
 **Design decisions (locked with the user):**
 - Mother record → **new `maternal_records` table** (1:1 with baby). `parents` keeps only name/father/phone.
