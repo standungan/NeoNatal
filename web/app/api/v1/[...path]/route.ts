@@ -31,7 +31,13 @@ async function handle(
     cache: "no-store",
   });
 
-  const payload = await upstream.arrayBuffer();
+  // 204/205/304 are "null body status" codes: constructing a Response with a
+  // body and one of these throws, which surfaced as a 500 from this proxy even
+  // though the upstream call had succeeded. Affects every 204 endpoint —
+  // discharge, reset-password, and the delete routes.
+  const nullBody =
+    upstream.status === 204 || upstream.status === 205 || upstream.status === 304;
+  const payload = nullBody ? null : await upstream.arrayBuffer();
   const out = new NextResponse(payload, { status: upstream.status });
 
   for (const h of ["content-type", "content-disposition"]) {
