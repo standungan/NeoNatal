@@ -1,3 +1,5 @@
+import hashlib
+import secrets
 from datetime import datetime, timedelta, timezone
 
 from jose import JWTError, jwt
@@ -27,3 +29,19 @@ def decode_access_token(token: str) -> dict:
         return jwt.decode(token, settings.secret_key, algorithms=[settings.jwt_algorithm])
     except JWTError:
         return {}
+
+
+def hash_device_key(plain: str) -> str:
+    """SHA-256 (hex) of an IoT device key.
+
+    Deliberately NOT bcrypt. Device keys are 256-bit random tokens, not
+    human-chosen passwords, so there is no dictionary attack to slow down — and
+    this runs on the ingest hot path, once per device every few seconds. bcrypt
+    would add ~100 ms per reading to defend against nothing.
+    """
+    return hashlib.sha256(plain.encode()).hexdigest()
+
+
+def generate_device_key() -> str:
+    """Opaque device key. 32 random bytes → 43 URL-safe chars, baked into firmware."""
+    return secrets.token_urlsafe(32)

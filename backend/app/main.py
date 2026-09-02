@@ -1,3 +1,6 @@
+import asyncio
+import contextlib
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -16,15 +19,35 @@ from app.api.v1 import (
     monitoring,
     observation,
     reports,
+    telemetry,
     users,
 )
 from app.core.config import settings
+from app.jobs import retention
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    """Start the sensor-retention loop alongside the app.
+
+    Single-process assumption, the same one the SSE fan-out makes: compose runs
+    uvicorn without `--workers`, so exactly one loop exists. Set
+    SENSOR_RETENTION_INTERVAL_HOURS=0 and drive it from cron if that changes.
+    """
+    task = asyncio.create_task(retention.run_forever())
+    try:
+        yield
+    finally:
+        task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await task
+
 
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -50,6 +73,9 @@ app.include_router(aksi.router,        prefix="/api/v1",             tags=["Aksi
 app.include_router(doctor_notes.router, prefix="/api/v1",            tags=["Doctor Notes"])
 app.include_router(dashboard.router,   prefix="/api/v1/dashboard",   tags=["Dashboard"])
 app.include_router(reports.router,     prefix="/api/v1",             tags=["Reports"])
+app.include_router(telemetry.router,   prefix="/api/v1",             tags=["Telemetry"])
+# Prototype firmware posts to /api/sensors; gated by LEGACY_SENSOR_INGEST.
+app.include_router(telemetry.legacy_router, prefix="/api",           tags=["Telemetry (legacy)"])
 app.include_router(audit.router,       prefix="/api/v1/audit-logs",  tags=["Audit"])
 
 

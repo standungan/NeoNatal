@@ -25,6 +25,16 @@ CREATE TYPE jenis_persalinan AS ENUM ('normal', 'sc', 'vakum', 'forceps');
 CREATE TYPE kondisi_umum AS ENUM ('baik', 'cukup', 'buruk');
 CREATE TYPE jenis_kehamilan AS ENUM ('tunggal', 'kembar');
 
+-- updates03 — IoT telemetry provenance
+CREATE TYPE sensor_source AS ENUM ('sensor', 'simulator');
+
+-- updates03 P4 — only alert types a real sensor can raise. apnea/door_open/
+-- environment need hardware that does not exist, and a type nothing can emit is
+-- dead schema.
+CREATE TYPE sensor_alert_type AS ENUM
+    ('desaturation', 'bradycardia', 'tachycardia', 'temp_out_of_range');
+CREATE TYPE sensor_alert_severity AS ENUM ('warning', 'critical');
+
 -- =============================================================================
 -- TABLE: users
 -- =============================================================================
@@ -293,6 +303,57 @@ CREATE TABLE doctor_notes (
 );
 
 -- =============================================================================
+-- TABLE: devices  (updates03 — one IoT sensor unit per incubator)
+-- =============================================================================
+
+CREATE TABLE devices (
+    device_id        UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    -- UNIQUE is what enforces "one device per incubator"
+    -- SET NULL, not CASCADE: the physical unit outlives the incubator row, so it
+    -- keeps its key and gets a diagnosable 409 instead of needing a reflash
+    incubator_id     UUID UNIQUE REFERENCES incubators(incubator_id) ON DELETE SET NULL,
+    -- SHA-256 of the device key; the plaintext is shown once at provisioning
+    device_key_hash  VARCHAR(64) NOT NULL UNIQUE,
+    label            VARCHAR(100),
+    firmware_version VARCHAR(20),
+    last_seen_at     TIMESTAMPTZ,                            -- drives the online/offline badge
+    -- IP is provenance, never identity: DHCP reassigns it and any LAN host can
+    -- claim it. last_ip says where a reading came from; allowed_ip is an optional
+    -- coarse filter (single address or CIDR) for the unauthenticated legacy route.
+    last_ip          VARCHAR(45),
+    allowed_ip       VARCHAR(45),
+    is_active        BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- =============================================================================
+-- TABLE: sensor_readings  (updates03 — high-frequency IoT telemetry)
+-- =============================================================================
+-- Separate from monitoring_records on purpose: that table is clinical and
+-- attested (recorded_by NOT NULL), this one is machine output with no human in
+-- the loop. Column types mirror it exactly so vitals auto-fill is a straight copy.
+-- All metrics nullable: NULL means "the sensor had nothing to report".
+
+CREATE TABLE sensor_readings (
+    reading_id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    incubator_id         UUID NOT NULL REFERENCES incubators(incubator_id) ON DELETE CASCADE,
+    -- denormalized from the active assignment at ingest; NULL for an idle unit
+    baby_id              UUID REFERENCES babies(baby_id) ON DELETE SET NULL,
+    device_id            UUID REFERENCES devices(device_id) ON DELETE SET NULL,
+    -- server-assigned: the ESP8266 has no RTC and runs no NTP
+    recorded_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    suhu_bayi            NUMERIC(4,1),                       -- °C, DS18B20
+    suhu_inkubator       NUMERIC(4,1),                       -- °C, DHT22
+    kelembapan_inkubator NUMERIC(5,2),                       -- % RH, DHT22
+    heart_rate           SMALLINT,                           -- bpm, MAX30102
+    spo2                 NUMERIC(5,2),                       -- %, MAX30102
+    respiratory_rate     SMALLINT,                           -- no sensor yet; parity column
+    source               sensor_source NOT NULL DEFAULT 'sensor',
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- =============================================================================
 -- TABLE: audit_logs
 -- Immutable trail of all user actions
 -- =============================================================================
@@ -332,6 +393,76 @@ CREATE INDEX ix_doctor_notes_baby        ON doctor_notes (baby_id, observation_t
 CREATE INDEX idx_assignment_baby         ON baby_incubator_assignments (baby_id);
 CREATE INDEX idx_assignment_incubator    ON baby_incubator_assignments (incubator_id);
 
+-- sensor_readings — the chart backfill: newest N for one incubator
+CREATE INDEX idx_sensor_readings_incubator_time ON sensor_readings (incubator_id, recorded_at DESC);
+
+-- =============================================================================
+-- TABLE: sensor_reading_minutes  (updates03 P4 — 1-minute rollups)
+-- =============================================================================
+-- Raw readings are dropped after the retention window; these keep the shape of
+-- the history at ~1/20th the rows. avg AND min/max, because a one-minute mean
+-- would smooth away a ten-second desaturation — the event worth keeping.
+CREATE TABLE sensor_reading_minutes (
+    bucket_id      UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    incubator_id   UUID NOT NULL REFERENCES incubators(incubator_id) ON DELETE CASCADE,
+    baby_id        UUID REFERENCES babies(baby_id) ON DELETE SET NULL,
+    minute         TIMESTAMPTZ NOT NULL,
+    -- how many raw samples this row stands for; 4 samples is weaker evidence than 20
+    sample_count   SMALLINT NOT NULL,
+    suhu_bayi_avg              NUMERIC(4,1),
+    suhu_bayi_min              NUMERIC(4,1),
+    suhu_bayi_max              NUMERIC(4,1),
+    suhu_inkubator_avg         NUMERIC(4,1),
+    suhu_inkubator_min         NUMERIC(4,1),
+    suhu_inkubator_max         NUMERIC(4,1),
+    kelembapan_inkubator_avg   NUMERIC(5,2),
+    kelembapan_inkubator_min   NUMERIC(5,2),
+    kelembapan_inkubator_max   NUMERIC(5,2),
+    heart_rate_avg             NUMERIC(5,1),
+    heart_rate_min             NUMERIC(5,1),
+    heart_rate_max             NUMERIC(5,1),
+    spo2_avg                   NUMERIC(5,2),
+    spo2_min                   NUMERIC(5,2),
+    spo2_max                   NUMERIC(5,2),
+    -- makes the rollup idempotent: re-running a window updates instead of duplicating
+    CONSTRAINT uq_sensor_minutes_incubator_minute UNIQUE (incubator_id, minute)
+);
+
+CREATE INDEX idx_sensor_minutes_incubator_time
+    ON sensor_reading_minutes (incubator_id, minute DESC);
+
+-- =============================================================================
+-- TABLE: sensor_alerts  (updates03 P4 — threshold breaches raised at ingest)
+-- =============================================================================
+CREATE TABLE sensor_alerts (
+    alert_id        UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    incubator_id    UUID NOT NULL REFERENCES incubators(incubator_id) ON DELETE CASCADE,
+    -- which baby was in the incubator when this fired; nullable because an empty
+    -- incubator can still alert on air temperature
+    baby_id         UUID REFERENCES babies(baby_id) ON DELETE SET NULL,
+    alert_type      sensor_alert_type NOT NULL,
+    metric_key      VARCHAR(40) NOT NULL,
+    severity        sensor_alert_severity NOT NULL DEFAULT 'warning',
+    -- the reading that opened it and the bound it crossed, so the alert stays
+    -- readable even after an admin edits the thresholds
+    value           NUMERIC(6,2),
+    threshold       NUMERIC(6,2),
+    started_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    resolved_at     TIMESTAMPTZ,
+    acknowledged_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    acknowledged_at TIMESTAMPTZ,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- the alert feed for one incubator, newest first
+CREATE INDEX idx_sensor_alerts_incubator_time
+    ON sensor_alerts (incubator_id, started_at DESC);
+
+-- At most ONE open alert per incubator per type. This is what makes the engine
+-- idempotent: a breach lasting a minute refreshes one row rather than opening 20.
+CREATE UNIQUE INDEX idx_sensor_alerts_open_unique
+    ON sensor_alerts (incubator_id, alert_type) WHERE resolved_at IS NULL;
+
 -- audit_logs — queried by user and time
 CREATE INDEX idx_audit_user_time         ON audit_logs (user_id, created_at DESC);
 CREATE INDEX idx_audit_table_record      ON audit_logs (table_name, record_id);
@@ -362,4 +493,8 @@ CREATE TRIGGER trg_babies_updated_at
 
 CREATE TRIGGER trg_parents_updated_at
     BEFORE UPDATE ON parents
+    FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER trg_devices_updated_at
+    BEFORE UPDATE ON devices
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();

@@ -31,6 +31,17 @@ class IncubatorRepository:
         )
         return list(result.scalars().all())
 
+    async def get_by_no(self, incubator_no: str) -> Incubator | None:
+        """Look up by the human-facing number ("01"), not the UUID.
+
+        Used by the legacy ingest route, whose firmware identifies itself with a
+        label like "inc1" rather than a key.
+        """
+        result = await self.db.execute(
+            select(Incubator).where(Incubator.incubator_no == incubator_no)
+        )
+        return result.scalar_one_or_none()
+
     async def get_by_id(self, incubator_id: uuid.UUID) -> Incubator | None:
         result = await self.db.execute(
             select(Incubator).where(Incubator.incubator_id == incubator_id)

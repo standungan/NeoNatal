@@ -1,13 +1,15 @@
 import uuid
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.security import decode_access_token
+from app.core.security import decode_access_token, hash_device_key
+from app.models.device import Device
 from app.models.user import User
+from app.repositories.device_repository import DeviceRepository
 from app.repositories.user_repository import UserRepository
 
 bearer_scheme = HTTPBearer()
@@ -56,3 +58,30 @@ AdminOnly = Annotated[User, require_roles("admin")]
 PerawatOrAdmin = Annotated[User, require_roles("perawat", "admin")]
 DokterOnly = Annotated[User, require_roles("dokter")]
 AnyRole = CurrentUser
+
+
+async def get_current_device(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    x_device_key: Annotated[str | None, Header()] = None,
+) -> Device:
+    """Authenticate an IoT device from its `X-Device-Key` header.
+
+    Deliberately separate from the user/JWT guards above: a device is not a user,
+    has no role, and must never be able to reach anything but the ingest endpoint.
+    """
+    if not x_device_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Header X-Device-Key wajib diisi",
+        )
+
+    device = await DeviceRepository(db).get_by_key_hash(hash_device_key(x_device_key))
+    if not device or not device.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Device key tidak dikenal atau tidak aktif",
+        )
+    return device
+
+
+CurrentDevice = Annotated[Device, Depends(get_current_device)]
