@@ -10,6 +10,7 @@ from app.repositories.assignment_repository import AssignmentRepository
 from app.repositories.incubator_repository import IncubatorRepository
 from app.repositories.monitoring_repository import MonitoringRepository
 from app.schemas.monitoring import MonitoringCreate, MonitoringResponse, PhotoUploadResponse
+from app.services import alert_service
 from app.services.audit_service import log_action
 from app.services.storage_service import save_photo
 
@@ -109,7 +110,17 @@ async def create_monitoring(
     )
     assignment = await AssignmentRepository(db).get_active_by_baby(baby_id)
     if assignment:
-        new_inc_status = "warning" if vital_status == "warning" else "terisi"
+        if vital_status == "warning":
+            new_inc_status = "warning"
+        else:
+            # Normal manual vitals do NOT resolve an open IoT threshold alert.
+            # `status='warning'` has three producers, and clearing one module's
+            # flag from another hides a live alarm — here it would mean a nurse
+            # charting a normal reading silently dismissing the sensor.
+            still_alerting = await alert_service.has_open_alert(
+                assignment.incubator_id, db
+            )
+            new_inc_status = "warning" if still_alerting else "terisi"
         if assignment.incubator.status != new_inc_status:
             assignment.incubator.status = new_inc_status
             await IncubatorRepository(db).update(assignment.incubator)
