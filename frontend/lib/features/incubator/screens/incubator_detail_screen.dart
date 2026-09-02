@@ -8,6 +8,7 @@ import 'package:neonatal_care/core/models/baby_model.dart';
 import 'package:neonatal_care/core/providers/auth_provider.dart';
 import 'package:neonatal_care/core/theme/app_theme.dart';
 import 'package:neonatal_care/core/widgets/status_badge.dart';
+import 'package:neonatal_care/features/incubator/widgets/sensor_chart_card.dart';
 
 // ── Providers (must live at top level, not inside build) ──────────────────────
 
@@ -74,6 +75,8 @@ class IncubatorDetailScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _IncubatorInfoCard(inc: inc),
+                const SizedBox(height: 12),
+                SensorChartCard(incubatorId: inc['incubator_id'] as String),
                 const SizedBox(height: 12),
                 if (babyId != null)
                   _BabyInfoCard(babyId: babyId)

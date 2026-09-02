@@ -16,6 +16,13 @@ class ApiEndpoints {
   static const incubators          = '/api/v1/incubators';
   static const incubatorsAvailable = '/api/v1/incubators/available';
   static String incubator(String id) => '/api/v1/incubators/$id';
+  // IoT telemetry (updates03). Readings are the chart backfill, oldest first;
+  // thresholds drive the normal-range band on each panel.
+  static String incubatorReadings(String id) =>
+      '/api/v1/incubators/$id/readings';
+  static String incubatorThresholds(String id) =>
+      '/api/v1/incubators/$id/thresholds';
+  static String incubatorStream(String id) => '/api/v1/incubators/$id/stream';
 
   // babies
   static const babies = '/api/v1/babies';
