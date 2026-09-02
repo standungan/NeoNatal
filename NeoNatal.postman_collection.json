@@ -15,6 +15,7 @@
     { "key": "role", "value": "", "type": "string" },
     { "key": "baby_id", "value": "cccccccc-0003-0003-0003-000000000001", "type": "string" },
     { "key": "incubator_id", "value": "bbbbbbbb-0002-0002-0002-000000000001", "type": "string" },
+    { "key": "device_key", "value": "" },
     { "key": "monitoring_id", "value": "", "type": "string" },
     { "key": "new_user_id", "value": "", "type": "string" }
   ],
@@ -140,6 +141,360 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": { "mode": "raw", "raw": "{\n  \"location\": \"NICU Ruang A (updated)\",\n  \"status\": \"tidak_tersedia\"\n}" },
             "url": { "raw": "{{base_url}}/api/v1/incubators/{{incubator_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "incubators", "{{incubator_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Telemetry (IoT)",
+      "description": "P0 — device ingest. Run **Provision device** first: it mints the key and stores it in `{{device_key}}`, which every request below uses. The key is shown only once — re-provisioning is the only way to get another.\n\nAuth here is the `X-Device-Key` header, **not** a Bearer token. A device is not a user and can reach nothing but this one endpoint.",
+      "item": [
+        {
+          "name": "Provision device (admin — key shown once)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/incubators/{{incubator_id}}/device",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "incubators",
+                "{{incubator_id}}",
+                "device"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"ESP8266 \\u2014 bed 1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "201. Test script saves `device_key` into the collection variable."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// device_key is returned exactly once — capture it now.",
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('device_key', pm.response.json().device_key);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get device for incubator",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/incubators/{{incubator_id}}/device",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "incubators",
+                "{{incubator_id}}",
+                "device"
+              ]
+            },
+            "description": "Null when no device is installed — drives the 'device belum terpasang' empty state."
+          }
+        },
+        {
+          "name": "Ingest — full reading (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Device-Key",
+                "value": "{{device_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/telemetry",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "telemetry"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"suhu_bayi\": 36.8,\n  \"suhu_inkubator\": 34.2,\n  \"kelembapan_inkubator\": 62,\n  \"heart_rate\": 138,\n  \"spo2\": 97\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Stored. `baby_id` is resolved server-side from the active assignment; `recorded_at` is server time (the ESP8266 has no RTC)."
+          }
+        },
+        {
+          "name": "Ingest — probe off the baby (201, HR/SpO2 → NULL)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Device-Key",
+                "value": "{{device_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/telemetry",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "telemetry"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"suhu_bayi\": 36.8,\n  \"suhu_inkubator\": 34.2,\n  \"kelembapan_inkubator\": 62,\n  \"heart_rate\": 0,\n  \"spo2\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "0 is not a survivable vital sign — it means 'no reading'. Normalised to NULL so the chart breaks the line instead of drawing a cliff to zero."
+          }
+        },
+        {
+          "name": "Ingest — nothing to report (202, no row)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Device-Key",
+                "value": "{{device_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/telemetry",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "telemetry"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"suhu_bayi\": null,\n  \"suhu_inkubator\": null,\n  \"kelembapan_inkubator\": null,\n  \"heart_rate\": 0,\n  \"spo2\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Device alive (`last_seen_at` touched) but every sensor came back empty, so nothing is written."
+          }
+        },
+        {
+          "name": "Ingest — bad key (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Device-Key",
+                "value": "not-a-real-key"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/telemetry",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "telemetry"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"heart_rate\": 130\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Ingest — unbound device (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Device-Key",
+                "value": "{{device_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/telemetry",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "telemetry"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"heart_rate\": 130\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Only reachable after the device's incubator row is deleted — the FK is SET NULL, so the unit keeps its key and gets a diagnosable 409 instead of a 401."
+          }
+        },
+        {
+          "name": "Ingest — out of range (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Device-Key",
+                "value": "{{device_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/telemetry",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "telemetry"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"spo2\": 150\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Ingest — stale firmware payload (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Device-Key",
+                "value": "{{device_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/telemetry",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "telemetry"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"incubator_id\": \"INC-01\",\n  \"baby_id\": \"BABY-01\",\n  \"sensors\": {\n    \"heart_rate\": 120,\n    \"spo2\": 97,\n    \"ds18b20_temp\": 36.8\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "The prototype's old shape. Rejected outright rather than half-accepted, so an un-reflashed device is obvious instead of silently posting nothing useful."
+          }
+        },
+        {
+          "name": "Revoke device (admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/incubators/{{incubator_id}}/device",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "incubators",
+                "{{incubator_id}}",
+                "device"
+              ]
+            },
+            "description": "204. Past readings survive (`device_id` → NULL)."
           }
         }
       ]

@@ -5,7 +5,9 @@
 !*.env.example
 
 # Firmware secrets — WiFi credentials + IoT device key (see secrets.example.h)
-hardware/allsensors/secrets.h
+# Any secrets.h anywhere under the firmware tree, not just the top level — an
+# archived copy in a subfolder slipped past the narrower rule once.
+hardware/**/secrets.h
 
 # ───────────────────────────── Python / FastAPI ──────────────────────────
 backend/venv/
