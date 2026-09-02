@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { DashboardResponse, IncubatorDashboardItem } from "@/lib/types";
+import { isDeviceOnline } from "@/lib/types";
+import { Sparkline } from "@/components/sparkline";
 import { Card, StatCard, StatusBadge, PageState } from "@/components/ui";
 import { useAuth } from "@/components/providers";
 import { canWrite } from "@/lib/format";
@@ -14,6 +16,9 @@ export default function DashboardPage() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["dashboard"],
     queryFn: async () => (await api.get<DashboardResponse>("/dashboard")).data,
+    // The device badge is only meaningful if it decays; without polling it
+    // would show whatever was true when the page happened to load.
+    refetchInterval: 15_000,
   });
 
   return (
@@ -94,6 +99,14 @@ function IncubatorCard({ item }: { item: IncubatorDashboardItem }) {
           <StatusBadge status={item.status} />
         </div>
 
+        {item.has_device && (
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <DeviceBadge lastSeenAt={item.device_last_seen_at} />
+            {/* Direction at a glance; the numbers below give the values. */}
+            <Sparkline values={item.sparkline} className="text-primary/70" />
+          </div>
+        )}
+
         {v && (
           <div className="mt-3 grid grid-cols-3 gap-2 border-t border-line pt-3">
             <Vital label="Suhu" value={v.suhu_bayi != null ? `${v.suhu_bayi}°C` : "-"} warn={v.vital_status === "warning"} />
@@ -122,5 +135,25 @@ function Icon({ path }: { path: string }) {
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
       <path d={path} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+  );
+}
+
+/**
+ * Small "is the rig alive?" indicator. Only rendered when a device is actually
+ * bound — an incubator with no sensor unit shows nothing rather than a
+ * permanently grey dot, so the badge always means something.
+ */
+function DeviceBadge({ lastSeenAt }: { lastSeenAt: string | null }) {
+  const online = isDeviceOnline(lastSeenAt);
+  return (
+    <div className="mt-2 flex items-center gap-1.5">
+      <span
+        aria-hidden
+        className={`h-1.5 w-1.5 rounded-full ${online ? "bg-ok" : "bg-danger"}`}
+      />
+      <span className="text-[11px] font-semibold text-muted">
+        {online ? "Sensor aktif" : lastSeenAt ? "Sensor offline" : "Sensor belum aktif"}
+      </span>
+    </div>
   );
 }

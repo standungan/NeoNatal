@@ -50,6 +50,15 @@ export interface IncubatorDashboardItem {
   status: IncubatorStatus;
   current_baby: BabySummary | null;
   latest_vitals: LatestVitals | null;
+  /** An IoT sensor unit is bound to this incubator. */
+  has_device: boolean;
+  /** Last telemetry POST. null = device installed but has never reported. */
+  device_last_seen_at: string | null;
+  /**
+   * Recent skin-temperature samples, oldest first. Nulls are kept in place so
+   * the trace can break where the sensor reported nothing.
+   */
+  sparkline: (number | null)[];
 }
 
 export interface DashboardResponse {
@@ -402,3 +411,94 @@ export interface AuditLog {
   details: Record<string, unknown> | null;
   created_at: string;
 }
+
+// ── IoT device (updates03) ───────────────────────────────────────────────────
+
+export interface Device {
+  device_id: string;
+  incubator_id: string | null;
+  label: string | null;
+  firmware_version: string | null;
+  last_seen_at: string | null;
+  /** Where the last reading came from. Provenance only — never identity. */
+  last_ip: string | null;
+  /** Optional single IP or CIDR permitted on the unauthenticated legacy route. */
+  allowed_ip: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+/**
+ * Only ever returned by POST /incubators/{id}/device. `device_key` is the
+ * plaintext key, and this is the single moment it exists anywhere outside the
+ * firmware — the server stores only its SHA-256.
+ */
+export interface DeviceProvisionResponse extends Device {
+  device_key: string;
+}
+
+/**
+ * A device is considered online if it reported within this window. It POSTs
+ * every 3s, so this is generous enough to absorb a missed beat or two plus the
+ * dashboard's own poll latency, without a healthy rig flickering offline.
+ */
+export const DEVICE_ONLINE_WINDOW_MS = 30_000;
+
+export function isDeviceOnline(lastSeenAt: string | null | undefined): boolean {
+  if (!lastSeenAt) return false;
+  return Date.now() - new Date(lastSeenAt).getTime() < DEVICE_ONLINE_WINDOW_MS;
+}
+
+/**
+ * One stored sample. Every metric is nullable and null is meaningful: the
+ * sensor had nothing to report (probe off the baby, DHT22 read failure), which
+ * is NOT the same as zero. Charts must break the line, never plot a 0.
+ */
+export interface SensorReading {
+  reading_id: string;
+  incubator_id: string;
+  baby_id: string | null;
+  recorded_at: string;
+  suhu_bayi: number | null;
+  suhu_inkubator: number | null;
+  kelembapan_inkubator: number | null;
+  heart_rate: number | null;
+  spo2: number | null;
+  respiratory_rate: number | null;
+  source: "sensor" | "simulator";
+}
+
+/**
+ * One alert episode raised by the IoT threshold engine.
+ *
+ * `value`/`threshold` are frozen at the moment it opened, so the entry still
+ * reads correctly after an admin edits the incubator's thresholds.
+ * Acknowledging is not resolving: `resolved_at` is set by readings, never by a click.
+ */
+export interface SensorAlert {
+  alert_id: string;
+  incubator_id: string;
+  baby_id: string | null;
+  baby_name: string | null;
+  alert_type:
+    | "desaturation"
+    | "bradycardia"
+    | "tachycardia"
+    | "temp_out_of_range";
+  metric_key: string;
+  severity: "warning" | "critical";
+  value: number | null;
+  threshold: number | null;
+  started_at: string;
+  resolved_at: string | null;
+  acknowledged_by: string | null;
+  acknowledged_by_name: string | null;
+  acknowledged_at: string | null;
+}
+
+export const ALERT_LABELS: Record<SensorAlert["alert_type"], string> = {
+  desaturation: "Saturasi turun",
+  bradycardia: "Bradikardia",
+  tachycardia: "Takikardia",
+  temp_out_of_range: "Suhu di luar batas",
+};

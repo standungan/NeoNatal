@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Card, SectionTitle } from "@/components/ui";
+import { SensorFillBanner } from "@/components/sensor-fill";
 import {
   Field,
   NumberInput,
@@ -92,6 +93,20 @@ export default function MonitoringEntryPage() {
           <DateTimeField label="Waktu Observasi" value={obsTime} onChange={setObsTime} />
 
           <SectionTitle>Tanda Vital</SectionTitle>
+
+          {/* Offers the live reading; filling is a click, never automatic —
+              a charted observation must be something the nurse asserted. */}
+          <SensorFillBanner
+            babyId={id}
+            onFill={(v) => {
+              setSuhuBayi(v.suhuBayi);
+              setSuhuInk(v.suhuInkubator);
+              setKelembapan(v.kelembapan);
+              setHr(v.heartRate);
+              setSpo2(v.spo2);
+            }}
+          />
+
           <div className="grid grid-cols-2 gap-3">
             <Field label="Suhu Bayi (°C)"><NumberInput value={suhuBayi} onChange={(e) => setSuhuBayi(e.target.value)} placeholder="36.8" /></Field>
             <Field label="Suhu Inkubator (°C)"><NumberInput value={suhuInk} onChange={(e) => setSuhuInk(e.target.value)} placeholder="33.5" /></Field>

@@ -11,6 +11,9 @@ import { useAuth } from "@/components/providers";
 import { ObservationSummaryCard } from "@/components/observation";
 import { errorMessage } from "@/components/form";
 import { IncubatorThresholdsCard } from "@/components/incubator-thresholds";
+import { DeviceCard } from "@/components/device-card";
+import { SensorChartCard } from "@/components/sensor-chart";
+import { AlertFeedCard } from "@/components/alert-feed";
 
 // Statuses an admin may set by hand (occupied/warning are system-managed).
 const MANUAL_STATUSES = ["kosong", "tidak_tersedia"] as const;
@@ -191,6 +194,14 @@ export default function IncubatorDetailPage() {
                 )}
               </Card>
             )}
+
+            {/* Visible to every role: a nurse needs to know whether the
+                vitals feed is live. Provision/revoke inside are admin-only. */}
+            <DeviceCard incubatorId={id} />
+
+            <SensorChartCard incubatorId={id} />
+
+            <AlertFeedCard incubatorId={id} />
 
             {role === "admin" && <IncubatorThresholdsCard incubatorId={id} />}
           </div>
