@@ -37,6 +37,17 @@ class IncubatorDashboardItem(BaseModel):
     current_baby: BabySummary | None = None
     latest_vitals: LatestVitals | None = None
 
+    # IoT sensor unit bound to this incubator. Two fields rather than one
+    # nullable timestamp, because "no device installed" and "device installed
+    # but never reported" are different problems: the first needs provisioning,
+    # the second needs someone to go and look at the rig.
+    has_device: bool = False
+    device_last_seen_at: datetime | None = None
+    # Recent skin-temperature samples, oldest first, for the card's sparkline.
+    # Nulls are kept in place so the trace breaks where the sensor said nothing —
+    # dropping them would draw a continuous line through a gap.
+    sparkline: list[float | None] = []
+
 
 class DashboardResponse(BaseModel):
     stats: DashboardStats

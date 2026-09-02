@@ -2,6 +2,8 @@ from datetime import date
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.repositories.device_repository import DeviceRepository
+from app.repositories.sensor_reading_repository import SensorReadingRepository
 from app.repositories.incubator_repository import IncubatorRepository
 from app.repositories.monitoring_repository import MonitoringRepository
 from app.schemas.dashboard import (
@@ -26,6 +28,12 @@ async def get_dashboard(db: AsyncSession) -> DashboardResponse:
         if a.status == "active"
     ]
     latest_vitals_map = await MonitoringRepository(db).get_latest_per_baby(active_baby_ids)
+
+    # One query for every incubator's device, not one per card.
+    incubator_ids = [inc.incubator_id for inc in incubators]
+    devices_map = await DeviceRepository(db).get_by_incubator_ids(incubator_ids)
+    # One windowed query for every card's sparkline, not one per card.
+    sparklines = await SensorReadingRepository(db).sparkline_by_incubator(incubator_ids)
 
     items: list[IncubatorDashboardItem] = []
     for inc in incubators:
@@ -57,6 +65,7 @@ async def get_dashboard(db: AsyncSession) -> DashboardResponse:
                     ),
                 )
 
+        device = devices_map.get(inc.incubator_id)
         items.append(IncubatorDashboardItem(
             incubator_id=inc.incubator_id,
             incubator_no=inc.incubator_no,
@@ -64,6 +73,9 @@ async def get_dashboard(db: AsyncSession) -> DashboardResponse:
             status=inc.status,
             current_baby=baby_summary,
             latest_vitals=vitals_summary,
+            has_device=device is not None,
+            device_last_seen_at=device.last_seen_at if device else None,
+            sparkline=sparklines.get(inc.incubator_id, []),
         ))
 
     stats = DashboardStats(
