@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The backend is plain HTTP on the ward LAN (http://<pc-ip>:8000), and Android 9+
+  blocks cleartext by default. Without this the APK builds and installs fine, then
+  every request fails with "CLEARTEXT communication not permitted" - which reaches
+  Flutter as a generic Dio connection error and looks like a wrong IP or a dead
+  server.
+
+  Cleartext is permitted broadly rather than pinned to specific addresses on
+  purpose. Android matches <domain> entries against a hostname or an exact IP and
+  cannot express a subnet, so an allow-list would have to name the server's exact
+  address - which is DHCP-assigned and has already moved twice. Pinning it would
+  swap one silent failure for another, harder one: the app would work until the
+  lease changed and then fail in a way indistinguishable from a dead backend.
+
+  REMOVE THIS once the backend is served over TLS. It is the reason this build is
+  a lab tool and not something to hand to a ward.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
