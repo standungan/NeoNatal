@@ -9,8 +9,56 @@ The project is not versioned with SemVer — entries are grouped by milestone da
 ## [Unreleased]
 
 ### Pending
-- **Phase 3 — Flutter registration screen** to match the `updates02` NICU-intake + maternal-record form (mirror the payload sent by `web/app/(app)/baby/register/page.tsx`).
-- **VPS redeploy** to bring the `updates02` feature + the PDF/navigation work to the live demo (currently the VPS is behind `main`).
+- **Push `main`** — 12 commits ahead of `origin/main`, nothing pushed.
+- **VPS redeploy** — the live demo is far behind: it has neither the later `updates02` work nor any IoT work.
+- **Reconstruct the authenticated firmware** (plan §9) so the unauthenticated `/api/sensors` compatibility route can be retired. The rig currently runs the prototype sketch.
+- **Mirror backend changes to the nested `backend-version2` repo** — the IoT work has not been.
+- `LatestVitals` and the monitoring/summary endpoints still serialise `Decimal` as JSON strings.
+
+## [2026-09-02] — IoT telemetry, end to end (updates03 P0–P4)
+
+One ESP8266 per incubator streams vitals into the stack: stored, streamed live, charted on
+both clients, alarmed against per-incubator thresholds, and aged out. Plan and rationale in
+`docs/specs/updates03/IMPLEMENTATION_PLAN.md`.
+
+The rule running through the whole feature: **a null is "no reading", never zero.** The
+firmware reports `0` for HR/SpO₂ when nothing is on the probe; that becomes NULL at ingest and
+stays NULL through storage, the stream, every chart, the alert engine and the vitals form.
+
+### Added
+- **Ingest & devices (P0):** `devices` + `sensor_readings`, `POST /api/v1/telemetry`
+  authenticated by `X-Device-Key` (SHA-256 stored, plaintext shown once), admin provisioning
+  and revocation, `last_ip` provenance and an optional `allowed_ip` filter. Server assigns the
+  timestamp and resolves `baby_id` from the active assignment — neither is the device's to claim.
+- **Backfill & chart (P1):** `GET /incubators/{id}/readings`, and small-multiple charts on the
+  incubator page with threshold bands from the existing per-incubator settings.
+- **Live push (P2):** SSE at `GET /incubators/{id}/stream` with a replayed ring buffer, plus
+  the BFF streaming passthrough.
+- **Flutter chart (P3):** the same five panels on the incubator screen, polling rather than SSE
+  because `dio` streaming does not work on Flutter web.
+- **Alerts (P4):** `sensor_alerts` with a 3-reading debounce in both directions, an alert feed
+  and acknowledgement (acknowledging is explicitly not resolving).
+- **Retention (P4):** 1-minute rollups keeping min/max as well as averages, then pruning raw
+  rows past a window; rollup always runs before prune, and prune only touches rows already
+  summarised.
+- **Vitals autofill (P4):** offered as an action with the reading's age shown, never a silent
+  pre-fill.
+- **Dashboard (P4):** device badge and per-incubator sparkline, both from one batched query.
+- **Five acceptance suites** in `backend/tests/` (129 assertions) and 8 Flutter widget tests.
+
+### Fixed
+- **The BFF turned every backend 204 into a 500**, breaking discharge, reset-password and all
+  delete routes. It survived because every automated check talked to FastAPI directly, and the
+  only sweep through the dashboard's own origin exercised GET routes.
+- **`status='warning'` has three independent producers** (alert engine, observation item scored
+  0, manual vitals). Both directions are now guarded so neither module silently clears another's
+  clinical flag.
+- **Perawat could not reach Kolaborasi** in the dashboard although the backend permits it.
+- **Flutter showed dokter five write actions** that could only 403.
+
+### Changed
+- `incubator_iot/` → `hardware/`; documents grouped under `docs/api|clinical|business|specs`.
+- Flutter aksi/involvement catalogs are now fetched rather than duplicated in Dart.
 
 ## [2026-07-30] — PDF report redesign & monitoring navigation fix
 
