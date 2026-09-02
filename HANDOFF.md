@@ -182,7 +182,16 @@ G:\_CODE26\pgsql\bin\pg_ctl.exe -D G:\_CODE26\pgsql\data -m fast stop
 ## The hardware rig
 
 - ESP8266 at `192.168.0.2` on the Advan router (`192.168.0.1`), WiFi SSID `neonatal_incubator`.
-  This PC is wired to the same router at `192.168.0.101`.
+  This PC is wired into a **LAN port of the same router** — the router bridges its WiFi and
+  LAN ports into one `192.168.0.x/24`, which is why a wireless device and a wired server talk
+  directly. (The PC's *WiFi* adapter sits on an unrelated `10.163.1.x` network that cannot
+  reach the rig at all — don't bake that address into anything.)
+- ⚠️ **The PC's Ethernet address is DHCP and has moved** (`192.168.0.101` → `192.168.0.119`
+  during 2026-09-02), while the firmware has `192.168.0.101` compiled in. Until that is pinned,
+  a power-cycled rig will post into the void. **Pending: DHCP reservations on the router**
+  (`http://192.168.0.1`) — `CC-96-E5-31-EC-2D` → `192.168.0.101` for this PC, and
+  `8C-CE-4E-C8-0C-25` → `192.168.0.2` for the ESP, which is also what makes the `allowed_ip`
+  filter dependable. Check the PC's current address with `ipconfig` before assuming.
 - **The flashed sketch is the PROTOTYPE**: it posts `{incubator_id:"inc1", baby_id:"baby1",
   sensors:{…}}` to `/api/sensors` with no auth. That is why the compatibility route exists,
   enabled by `LEGACY_SENSOR_INGEST=true` in `backend/.env` (**default false**, so a deployment
