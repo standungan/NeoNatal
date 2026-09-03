@@ -240,7 +240,24 @@ class _Panel extends StatelessWidget {
   static String _fmt(double v) =>
       v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
 
-  LineChartData _chartData(List<FlSpot> spots, double lo, double hi) {
+  LineChartData _chartData(List<FlSpot> spots, double dataLo, double dataHi) {
+    // A panel with no scaleGroup takes its range from the data alone, so a flat
+    // series - every reading identical, which is normal for heart rate and SpO2
+    // between events - collapses to the 0.5 floor below. The threshold band then
+    // spans far wider than that window and covers the plot edge to edge, which
+    // reads as a solid grey block rather than a chart. Fold the band into the
+    // range exactly as _sharedDomains already does for grouped panels, so the
+    // reading is shown sitting inside its normal range instead.
+    var lo = dataLo;
+    var hi = dataHi;
+    if (domain == null) {
+      for (final bound in [threshold?.min, threshold?.max]) {
+        if (bound == null) continue;
+        if (bound < lo) lo = bound;
+        if (bound > hi) hi = bound;
+      }
+    }
+
     final pad = ((hi - lo) * 0.12).clamp(0.5, double.infinity);
     final minY = domain?.min ?? (lo - pad);
     final maxY = domain?.max ?? (hi + pad);
