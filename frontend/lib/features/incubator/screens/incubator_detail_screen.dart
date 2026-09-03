@@ -76,14 +76,18 @@ class IncubatorDetailScreen extends ConsumerWidget {
               children: [
                 _IncubatorInfoCard(inc: inc),
                 const SizedBox(height: 12),
-                SensorChartCard(incubatorId: inc['incubator_id'] as String),
-                const SizedBox(height: 12),
+                // Order is deliberate: what a nurse does (aksi) sits above what
+                // they read (bayi, tren), so the common task needs no scrolling.
+                if (babyId != null) ...[
+                  _ActionMenu(babyId: babyId),
+                  const SizedBox(height: 12),
+                ],
                 if (babyId != null)
                   _BabyInfoCard(babyId: babyId)
                 else
                   _EmptyBabyCard(incubatorNo: inc['incubator_no'] as String),
                 const SizedBox(height: 12),
-                if (babyId != null) _ActionMenu(babyId: babyId),
+                SensorChartCard(incubatorId: inc['incubator_id'] as String),
               ],
             ),
           );
