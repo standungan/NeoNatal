@@ -8,9 +8,11 @@ import { errorMessage } from "@/components/form";
 import { Card, SectionTitle, Spinner } from "@/components/ui";
 import { formatDate } from "@/lib/format";
 import {
+  DEVICE_ONLINE_WINDOW_MS,
   isDeviceOnline,
   type Device,
   type DeviceProvisionResponse,
+  type SensorReading,
 } from "@/lib/types";
 
 /**
@@ -39,6 +41,29 @@ export function DeviceCard({ incubatorId }: { incubatorId: string }) {
     // Keeps the online/offline dot honest without a manual refresh.
     refetchInterval: 15_000,
   });
+
+  // The legacy ingest route (POST /api/sensors) resolves an incubator from a
+  // free-text payload label and stores readings with device_id NULL, so a rig
+  // can stream into an incubator that has no provisioned device at all. When
+  // that happens the empty state below would otherwise claim vitals are manual
+  // only, while the chart beside it plots live sensor data. Cheap enough to ask
+  // for one row, and only asked when there is no device to describe.
+  const strayFeed = useQuery({
+    queryKey: ["device-stray-feed", incubatorId],
+    queryFn: async () =>
+      (
+        await api.get<SensorReading[]>(
+          `/incubators/${incubatorId}/readings?limit=1`,
+        )
+      ).data,
+    enabled: !q.isLoading && !q.data,
+    refetchInterval: 15_000,
+  });
+
+  const strayAt = strayFeed.data?.[0]?.recorded_at ?? null;
+  const streamingWithoutDevice =
+    strayAt !== null &&
+    Date.now() - new Date(strayAt).getTime() < DEVICE_ONLINE_WINDOW_MS;
 
   const provision = useMutation({
     mutationFn: async () =>
@@ -115,6 +140,21 @@ export function DeviceCard({ incubatorId }: { incubatorId: string }) {
 
       {device ? (
         <DeviceStatus device={device} />
+      ) : streamingWithoutDevice ? (
+        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px]">
+          <span aria-hidden className="h-2 w-2 shrink-0 rounded-full bg-warn" />
+          <span className="font-bold text-ink">Mengirim tanpa terdaftar</span>
+          <span aria-hidden className="text-line">·</span>
+          <span className="text-muted">
+            terakhir kirim {formatDate(strayAt!, true)}
+          </span>
+          <p className="mt-1 w-full text-[12.5px] leading-relaxed text-muted">
+            Ada alat yang mengirim data ke inkubator ini lewat jalur label
+            firmware lama, tetapi belum dipasang sebagai perangkat. Grafik tetap
+            terisi, namun status online, alamat pengirim, dan pembatasan IP baru
+            aktif setelah perangkat dipasang.
+          </p>
+        </div>
       ) : (
         <p className="mt-2 text-sm text-muted">
           Belum ada perangkat terpasang pada inkubator ini. Data tanda vital
