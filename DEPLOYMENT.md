@@ -62,13 +62,22 @@ openssl rand -hex 32          # copy the output
 nano .env
 ```
 
-Three values must change:
+Four values must change:
 
 | Key | Set it to |
 |---|---|
 | `VPS_IP` | your server's public IP |
 | `POSTGRES_PASSWORD` | anything long — it never leaves the container network |
 | `SECRET_KEY` | the `openssl rand -hex 32` output |
+| `LEGACY_SENSOR_INGEST` | **`true`**, if your rigs run the current firmware — see below |
+
+`LEGACY_SENSOR_INGEST` ships as `false` because `/api/sensors` authenticates
+nobody: anything that can reach the port can write readings. But the firmware in
+`hardware/allsensors/allsensors.ino` posts to exactly that route, so leaving it
+`false` means every rig gets a 404 it has no way to report — the only symptom is
+a chart that never moves, with a dashboard that looks perfectly healthy beside
+it. Set it `true` and keep the API port off the public internet, or move the
+rigs to `/api/v1/telemetry` (step 6) and leave it `false`.
 
 Leave `COOKIE_SECURE=false`. Over plain HTTP a `secure` cookie is silently
 dropped by the browser, so login would appear to succeed and then bounce you
