@@ -78,6 +78,7 @@
 #include "heartRate.h"        // checkForBeat(): deteksi detak real-time
 #include "algorithm_by_RF.h"  // dipertahankan utk konstanta buffer RFA_BUFFER_SIZE
 #include "spo2_algorithm.h"   // algoritma Maxim (SparkFun Example8): BPM & SpO2 langsung
+#include "secrets.h"         // WIFI_SSID/PASSWORD, SERVER_URL, DEVICE_KEY (gitignored)
 
 // ============================================================================
 // KONSTANTA KALIBRASI & VALIDASI — semua yang perlu di-tune ada di blok ini
@@ -126,14 +127,19 @@
 // KONFIGURASI WIFI & BACKEND — WAJIB diisi sesuai jaringan & server kamu
 // ============================================================================
 // --- IDENTITAS PER-ALAT (ganti bagian ini tiap flash device berbeda) ---
-#define INCUBATOR_ID     "inc1"    // posisi inkubator (inc1/inc2) — TETAP, jangan diubah tiap ganti bayi
-#define BABY_ID          "baby1"   // label bayi saat ini — ubah lalu REFLASH tiap ganti bayi
+// Cuma dipakai utk hostname WiFi ('esp-inc1' di daftar client router). Identitas
+// yang dipakai backend adalah DEVICE_KEY di secrets.h, bukan label ini.
+#define INCUBATOR_ID     "inc1"    // posisi inkubator (inc1/inc2) — TETAP
 #define STATIC_IP_LAST   2         // oktet akhir IP statis alat (inc1=2, inc2=3). JANGAN 1 (itu router).
 
+// BABY_ID sudah DIHAPUS. Dulu ikut dikirim di payload dan harus di-REFLASH tiap
+// ganti bayi — langkah manual yang gampang kelewat, dan kalau kelewat, pembacaan
+// masuk ke bayi yang salah. Sekarang backend menentukan bayi dari penempatan
+// aktif di database, jadi ganti bayi cukup lewat aplikasi. Jangan dihidupkan lagi.
+
 // --- JARINGAN ---
-#define WIFI_SSID        "neonatal_incubator"   // WiFi router Advan
-#define WIFI_PASSWORD    "neonatal2026"
-#define SERVER_URL       "http://192.168.0.101:8000/api/sensors"  // = IP PC di Advan (enp2s0)
+// WIFI_SSID / WIFI_PASSWORD / SERVER_URL / DEVICE_KEY ada di secrets.h
+// (gitignored). Salin secrets.example.h -> secrets.h lalu isi.
 #define POST_INTERVAL_MS 3000               // kirim data ke backend tiap 3 detik
 
 // --- IP STATIS (nyalakan saat sudah pindah ke router Advan 192.168.0.x) ---
@@ -669,20 +675,28 @@ static void appendNum(String &json, const char *key, float v, int decimals) {
 int postToServer() {
   if (WiFi.status() != WL_CONNECTED) return -1;
 
+  // Payload jalur TERAUTENTIKASI (POST /api/v1/telemetry): datar, nama klinis,
+  // tanpa incubator_id/baby_id. Alat tidak lagi mengaku-ngaku miliknya siapa —
+  // backend memetakan DEVICE_KEY -> device -> inkubator -> bayi yang sedang
+  // ditempatkan. Itu sebabnya ganti bayi tak perlu reflash lagi.
   String json = "{";
-  json += "\"incubator_id\":\"" INCUBATOR_ID "\",";
-  json += "\"baby_id\":\"" BABY_ID "\",";
-  json += "\"sensors\":{";
-  json += "\"heart_rate\":"; json += displayBpm;                 json += ',';
-  json += "\"spo2\":";       json += (int)(displaySpo2 + 0.5f);  json += ',';
-  appendNum(json, "ds18b20_temp",   probeTempC,   1); json += ',';
-  appendNum(json, "dht22_temp",     roomTempC,    1); json += ',';
-  appendNum(json, "dht22_humidity", roomHumidity, 0);
-  json += "}}";
+  // 0 bpm / 0% artinya "jari tidak terbaca", BUKAN nilai nol. Kirim null biar
+  // grafik memutus garis; backend juga menormalkan 0 -> null, dua-duanya aman.
+  if (displayBpm  > 0) { json += "\"heart_rate\":"; json += displayBpm;                json += ','; }
+  else                   json += "\"heart_rate\":null,";
+  if (displaySpo2 > 0) { json += "\"spo2\":";       json += (int)(displaySpo2 + 0.5f); json += ','; }
+  else                   json += "\"spo2\":null,";
+  appendNum(json, "suhu_bayi",            probeTempC,   1); json += ',';
+  appendNum(json, "suhu_inkubator",       roomTempC,    1); json += ',';
+  appendNum(json, "kelembapan_inkubator", roomHumidity, 0);
+  json += "}";
 
   WiFiClient client;
   HTTPClient http;
   http.begin(client, SERVER_URL);
+  // Identitas alat. Header ini yang membuat pembacaan tercatat milik device —
+  // tanpa itu backend menolak 401, dan lewat /api/sensors ia diabaikan diam-diam.
+  http.addHeader("X-Device-Key", DEVICE_KEY);
   // Cap timeout: server tak terjangkau JANGAN sampai freeze loop 5s (default) —
   // itu yang bikin MAX30102 & button nge-lag. setTimeout() meng-cap connect+read
   // (dipakai sbg _client->setTimeout sebelum connect). POST sukses di LAN < 50ms.
