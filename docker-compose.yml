@@ -58,7 +58,7 @@ services:
       # Only matters for browsers/Flutter hitting :8000 directly. The dashboard
       # reaches the API server-side over the compose network, so it never
       # triggers CORS at all.
-      ALLOWED_ORIGINS: http://${VPS_IP},http://${VPS_IP}:${API_PORT:-8000}
+      ALLOWED_ORIGINS: http://${VPS_IP},http://${VPS_IP}:${API_PORT:-8001}
       # Off unless .env says otherwise: /api/sensors authenticates nobody, so it
       # is opt-in rather than something you inherit by deploying. With it off the
       # route 404s, which is what the prototype rigs will hit — see .env.example.
@@ -88,7 +88,7 @@ services:
       # The dashboard does NOT need this. It is published so you can reach
       # /health and /docs while bringing the box up. Close it once you're done
       # testing (see DEPLOYMENT.md → Security).
-      - "${API_PORT:-8000}:8000"
+      - "${API_PORT:-8001}:8000"
 
   web:
     build: ./web

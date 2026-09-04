@@ -38,7 +38,7 @@ deploy looks dead from home:
 ```bash
 sudo ufw allow OpenSSH
 sudo ufw allow 80/tcp        # = WEB_PORT  (dashboard)
-sudo ufw allow 8000/tcp      # = API_PORT  (Flutter app + sensor rigs)
+sudo ufw allow 8001/tcp      # = API_PORT  (Flutter app + sensor rigs)
 sudo ufw enable
 ```
 
@@ -69,25 +69,18 @@ Four values must change:
 | `VPS_IP` | your server's public IP |
 | `POSTGRES_PASSWORD` | anything long — it never leaves the container network |
 | `SECRET_KEY` | the `openssl rand -hex 32` output |
-| `LEGACY_SENSOR_INGEST` | **`true`**, if your rigs run the current firmware — see below |
+| `API_PORT` | **`8001`** — must match the APK and every rig's `SERVER_URL` |
 
-> **Change `API_PORT` and four other things must change with it**, or they
+> **Change `API_PORT` and three other things must change with it**, or they
 > silently point at a closed port: the `ufw` rule in step 1, the APK's
-> `--dart-define=API_BASE`, each rig's `SERVER_URL`, and any `:8000` copied from
-> the commands below. The dashboard is unaffected — it reaches the API over the
-> compose network, never the published port.
+> `--dart-define=API_BASE`, and each rig's `SERVER_URL`. The dashboard is
+> unaffected — it reaches the API over the compose network, never the published
+> port.
 
-`LEGACY_SENSOR_INGEST` ships as `false` because `/api/sensors` authenticates
-nobody: anything that can reach the port can write readings. But the firmware in
-`hardware/allsensors/allsensors.ino` posts to exactly that route, so leaving it
-`false` means every rig gets a 404 it has no way to report — the only symptom is
-a chart that never moves, with a dashboard that looks perfectly healthy beside
-it. Set it `true` and keep the API port off the public internet, or move the
-rigs to `/api/v1/telemetry` (step 6) and leave it `false`.
-
-Leave `COOKIE_SECURE=false`. Over plain HTTP a `secure` cookie is silently
-dropped by the browser, so login would appear to succeed and then bounce you
-back to `/login`.
+`LEGACY_SENSOR_INGEST` stays **`false`**. The firmware authenticates with a
+device key against `/api/v1/telemetry`, so `/api/sensors` — which authenticates
+nobody and would let anything that reaches the port write readings — stays shut.
+Only set it `true` if you still have a rig on the old label-based firmware.
 
 ## 3. Build and start
 
@@ -207,7 +200,7 @@ real you've entered.
 
 ## 5. Test from home
 
-1. `http://<vps-ip>:<API_PORT>/health` → `{"status":"ok","version":"1.0.0"}` — proves the backend is up
+1. `http://<vps-ip>:8001/health` → `{"status":"ok","version":"1.0.0"}` — proves the backend is up
 2. `http://<vps-ip>/` → redirects to `/login`
 3. Log in as `admin@neonatal.rs` / `Password123!`
 4. The dashboard shows incubator stats — **this is the real test**, it proves the browser → Next → FastAPI → Postgres chain works end to end
@@ -246,14 +239,14 @@ answers.
 > httpOnly `nc_token` cookie and ignores the `Authorization: Bearer` header the
 > app actually sends. The symptom reads as a broken token, not a wrong port, so
 > it is an expensive hour to debug. Use whatever `API_PORT` you set in `.env` —
-> `:8000` by default, `:8001` if you changed it — never `WEB_PORT`.
+> `API_PORT`, which this deployment sets to **`:8001`** — never `WEB_PORT`.
 
 `API_BASE` is baked in **at build time**, not read at runtime, so an installed
 APK cannot be repointed — it must be rebuilt and reinstalled:
 
 ```bash
 cd frontend
-flutter build apk --split-per-abi --release   --dart-define=API_BASE=http://<server-ip>:<API_PORT>
+flutter build apk --split-per-abi --release   --dart-define=API_BASE=http://<server-ip>:8001
 ```
 
 Install `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk` (about 19 MB;
@@ -275,40 +268,59 @@ Three things that will bite:
 
 ### The sensor rigs (ESP8266)
 
-The active sketch is `hardware/allsensors/allsensors.ino`. Its configuration is
-**hardcoded in the sketch itself**, lines 128-141 — it does *not* `#include
-"secrets.h"`, whatever the presence of `secrets.example.h` suggests (that belongs
-to `old_allsensors.ino`). Editing `secrets.h` alone changes nothing.
+The sketch is `hardware/allsensors/allsensors.ino`. It authenticates: it POSTs
+the clinical payload to `/api/v1/telemetry` with an `X-Device-Key` header, so the
+backend knows which physical unit sent each reading and stores it with a real
+`device_id`.
 
-Reflash each rig with:
+**Per rig, in order:**
 
-| Line | What to change |
-|---|---|
-| `INCUBATOR_ID` | `"inc1"`, `"inc7"`, … — must match an existing `incubator_no` |
-| `WIFI_SSID` / `WIFI_PASSWORD` | the ward network |
-| `SERVER_URL` | `http://<server-ip>:<API_PORT>/api/sensors` |
-| `STATIC_SUBNET` / `STATIC_IP_LAST` | must match the new network, or set `USE_STATIC_IP 0` for DHCP |
+1. **Mint its key.** As admin, open that incubator in the dashboard and click
+   **Pasang Perangkat**. The key is shown **once** — the server keeps only its
+   SHA-256, so losing it means revoke and re-provision.
+2. **Create `secrets.h`** in the sketch folder (it is gitignored, so a fresh
+   clone has none — the build fails outright without it):
 
-That endpoint is the **legacy ingest route**, and it is disabled by default. With
-`LEGACY_SENSOR_INGEST` unset the rigs get:
+   ```bash
+   cd hardware/allsensors
+   cp secrets.example.h secrets.h
+   ```
 
-```json
-{"detail":"Legacy sensor ingest is disabled. Use POST /api/v1/telemetry with X-Device-Key."}
-```
+3. **Fill it in** — all four values:
 
-— an HTTP 404 the firmware cannot report, so the only symptom is a dashboard
-that never updates. Set `LEGACY_SENSOR_INGEST=true` in `.env` and
-`docker compose up -d backend`, then confirm a rig-shaped payload is accepted:
+   | Key | Set it to |
+   |---|---|
+   | `WIFI_SSID` / `WIFI_PASSWORD` | the ward network (2.4 GHz — the ESP8266 has no 5 GHz radio) |
+   | `SERVER_URL` | `http://<server-ip>:8001/api/v1/telemetry` |
+   | `DEVICE_KEY` | the key from step 1 — **different for every rig** |
 
-```bash
-curl -X POST http://<server-ip>:<API_PORT>/api/sensors -H "Content-Type: application/json"   -d '{"incubator_id":"inc1","sensors":{"heart_rate":138,"spo2":97,"ds18b20_temp":36.5,"dht22_temp":33.2,"dht22_humidity":60}}'
-```
+4. **Set the per-device lines** in `allsensors.ino`:
 
-`{"ok":true,"stored":true,...}` means it is live. Read
-[.env.example](.env.example) before enabling it — that route authenticates
-nobody, so anything able to reach the port can write readings. The durable fix is
-reflashing to the authenticated path (`POST /api/v1/telemetry` with an
-`X-Device-Key` header), which `old_allsensors.ino` already implements.
+   | Line | Change to |
+   |---|---|
+   | `INCUBATOR_ID` | `"inc1"`, `"inc7"`, … — WiFi hostname only on this route |
+   | `STATIC_IP_LAST` | unique per rig (inc1=2, inc2=3); never `1`, that is the router |
+   | `STATIC_SUBNET` | must match the ward network, or set `USE_STATIC_IP 0` for DHCP |
+
+5. **Flash, and watch the serial monitor.** The sketch prints every POST:
+
+   | `[POST]` | Meaning |
+   |---|---|
+   | **201** | stored, with device identity attached |
+   | **202** | device alive, all sensors null — nothing worth storing |
+   | **401** | `DEVICE_KEY` wrong, or that device was revoked |
+   | **409** | key valid but the device is not bound to any incubator |
+   | **404** | `SERVER_URL` points somewhere that is not `/api/v1/telemetry` |
+   | **-1** | WiFi down — never reached the server |
+
+One key per incubator, enforced by a UNIQUE constraint: you cannot bind two rigs
+to the same incubator, and pasting one rig's key into another makes both report
+as the same device.
+
+Because the backend resolves the baby from the **active assignment**, moving a
+baby between incubators is an app action — no reflashing. The old firmware sent a
+hardcoded `BABY_ID` and had to be reflashed on every admission; that field is
+gone deliberately.
 
 ### Register a device on each incubator
 
@@ -368,12 +380,14 @@ docker compose up -d --build
 loaded but the seed didn't, or the volume predates the seed mount. Reload it
 with the `psql` command in step 4.
 
-**Dashboard is fine, but no sensor data arrives.** In order of likelihood:
-`LEGACY_SENSOR_INGEST` is not `true` (the rigs get a 404 they cannot report —
-`curl` the endpoint per step 6 to confirm); the rig's `SERVER_URL` still points
-at the old machine; or its `INCUBATOR_ID` names an `incubator_no` that does not
-exist on this server, which answers `404 Inkubator '...' tidak dikenal`. Check
-what is actually arriving with `docker compose logs -f backend`.
+**Dashboard is fine, but no sensor data arrives.** Read the rig's serial monitor
+first — it prints the HTTP code of every POST, which names the cause directly:
+`401` means the key is wrong or was revoked, `409` means the key is valid but its
+device is not bound to an incubator, `404` means `SERVER_URL` is not
+`/api/v1/telemetry`, and `-1` means the rig never reached WiFi. If the rig shows
+nothing at all, `docker compose logs -f backend` shows whether requests are
+arriving. A rig flashed with another rig's key reports as that device, so two
+incubators appear to share one feed.
 
 **The Flutter app cannot reach the server, but the dashboard can.** The app is
 the only client that goes to FastAPI directly, so it is the only one CORS and
@@ -422,7 +436,7 @@ Things that are fine for a home-testing deploy and **not** fine beyond it:
 - **Traffic is unencrypted.** The JWT is in cleartext on every request.
 - **Port 8000 is open to the internet.** It's there for `/docs` and `/health`
   while you bring the box up. The dashboard does not need it — close it with
-  `sudo ufw delete allow <API_PORT>/tcp` and drop the `ports:` block from the
+  `sudo ufw delete allow 8001/tcp` and drop the `ports:` block from the
   `backend` service once you're done poking around.
 - **The old `SECRET_KEY` is burned.** `backend/.env` sits in the public
   `neonatal-backend` repo's git history. Never reuse that key; generate a fresh

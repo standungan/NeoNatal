@@ -16,7 +16,7 @@
 // --- Backend ---
 // IP LAN of the machine running the FastAPI backend (`ipconfig` / `hostname -I`).
 // The ESP and that machine must be on the same network.
-#define SERVER_URL     "http://192.168.1.10:8000/api/v1/telemetry"
+#define SERVER_URL     "http://192.168.1.10:8001/api/v1/telemetry"
 
 // --- Device key ---
 // Minted once by an admin:
