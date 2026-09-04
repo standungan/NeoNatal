@@ -143,7 +143,9 @@ VPS_IP=localhost
 ```
 
 Dashboard then lands on `http://localhost:8080`, API docs on
-`http://localhost:8001/docs`. Generate `SECRET_KEY` and `POSTGRES_PASSWORD` for
+`http://localhost:8001/docs`. Note which is which: `WEB_PORT` is the dashboard a
+human opens, `API_PORT` is the API the Flutter app and the sensor rigs talk to.
+Those two audiences never share a port — see step 6. Generate `SECRET_KEY` and `POSTGRES_PASSWORD` for
 this too — a local rehearsal is not a reason to paste in the compromised key
 (see step 2).
 
@@ -207,6 +209,16 @@ succeeded while every device is quietly talking to a machine that no longer
 answers.
 
 ### The Flutter app
+
+> **Use `API_PORT`, never `WEB_PORT`.** `API_BASE` is the FastAPI origin — the app
+> appends `/api/v1/…` itself. Pointing it at the dashboard port looks like it
+> works, because `POST /api/v1/auth/login` is unauthenticated and the BFF proxies
+> it happily (HTTP 200). Every screen *after* login then fails with
+> `403 {"detail":"Not authenticated"}`, because the BFF authenticates from the
+> httpOnly `nc_token` cookie and ignores the `Authorization: Bearer` header the
+> app actually sends. The symptom reads as a broken token, not a wrong port, so
+> it is an expensive hour to debug. In a default deploy that means **`:8000`**,
+> not `:80`.
 
 `API_BASE` is baked in **at build time**, not read at runtime, so an installed
 APK cannot be repointed — it must be rebuilt and reinstalled:
