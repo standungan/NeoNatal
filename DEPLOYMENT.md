@@ -414,9 +414,6 @@ docker compose restart backend
 docker compose down                   # stop (keeps data)
 docker compose down -v                # stop AND delete the database
 
-# Deploy an update
-git pull && docker compose up -d --build
-
 # Back up the database
 set -a; . ./.env; set +a
 docker compose exec -T db pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" \
@@ -426,6 +423,94 @@ docker compose exec -T db pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" \
 docker run --rm -v neonatal_uploads:/data -v "$PWD:/out" alpine \
   tar czf "/out/uploads-$(date +%F).tar.gz" -C /data .
 ```
+
+---
+
+## Starting automatically after a reboot
+
+All three services already declare `restart: unless-stopped`, so Docker brings
+them back on its own — **but only if Docker itself starts at boot.** On a fresh
+Ubuntu install from `get.docker.com` that is usually already true; confirm rather
+than assume, because the failure only shows up after a power cut:
+
+```bash
+sudo systemctl enable docker      # start Docker at boot
+sudo systemctl is-enabled docker  # must print: enabled
+```
+
+Then actually test it, once, while you are still sitting in front of it:
+
+```bash
+sudo reboot
+# wait, ssh back in, then:
+docker compose ps                 # all three Up, db healthy
+curl -s localhost:8001/health     # {"status":"ok",...}
+```
+
+Two things that catch people out:
+
+- **`unless-stopped` respects a manual stop.** If you ran `docker compose down`
+  or `docker compose stop`, those containers stay down across reboots — by
+  design. `docker compose up -d` re-arms them.
+- **`docker compose up -d` must have been run from this directory at least
+  once.** The restart policy lives on the containers, not on the compose file;
+  there is nothing to restart until they have been created.
+
+Data survives reboots regardless: Postgres lives in the `pgdata` named volume and
+uploads in `uploads`, neither of which is touched by a restart.
+
+The sensor rigs need no equivalent — an ESP8266 runs its sketch from flash the
+moment it gets power, and reconnects to WiFi on its own.
+
+---
+
+## Updating a running deployment
+
+```bash
+cd ~/NeoNatal
+
+# 1. Back up first — the update may include a migration, and migrations are
+#    one-way. See "Back up the database" above.
+set -a; . ./.env; set +a
+docker compose exec -T db pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"   | gzip > "backup-$(date +%F-%H%M).sql.gz"
+
+# 2. Pull and rebuild. Only changed layers rebuild, so this is usually quick.
+git pull
+docker compose up -d --build
+
+# 3. Verify before walking away.
+docker compose ps
+docker compose exec -T backend python tests/smoke_check.py    # expect 39/39
+```
+
+**Migrations apply themselves.** The backend runs `alembic upgrade head` on every
+start, so a schema change in the pull is applied when the container comes up.
+That is safe to repeat — `upgrade head` on an already-current database does
+nothing. Watch it land with `docker compose logs backend | tail -20`.
+
+**Never use `docker compose down -v` to "start clean".** The `-v` deletes the
+`pgdata` volume, and with it every patient record on the box. `up -d --build`
+already replaces the containers; the volumes are what you are trying to keep.
+
+**If an update breaks the deployment**, roll the code back and rebuild:
+
+```bash
+git log --oneline -5          # find the commit that was working
+git checkout <that-commit>
+docker compose up -d --build
+```
+
+Code rolls back cleanly. A **migration** does not — Alembic downgrades are not
+maintained here, so if the bad update changed the schema, restore the dump from
+step 1 instead:
+
+```bash
+gunzip -c backup-YYYY-MM-DD-HHMM.sql.gz   | docker compose exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+```
+
+**After any update that changed the Flutter app or the firmware**, remember those
+are not updated by `git pull` on the server — the APK must be rebuilt and
+reinstalled on each phone, and each rig reflashed. Step 6 covers both.
 
 ---
 
