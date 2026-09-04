@@ -127,8 +127,10 @@
 // KONFIGURASI WIFI & BACKEND — WAJIB diisi sesuai jaringan & server kamu
 // ============================================================================
 // --- IDENTITAS PER-ALAT (ganti bagian ini tiap flash device berbeda) ---
-// Cuma dipakai utk hostname WiFi ('esp-inc1' di daftar client router). Identitas
-// yang dipakai backend adalah DEVICE_KEY di secrets.h, bukan label ini.
+// Dipakai utk hostname WiFi ('esp-inc1' di daftar client router) DAN dikirim di
+// payload: di jalur /api/sensors label inilah yang menentukan pembacaan ini
+// masuk ke inkubator mana. Harus cocok dengan incubator_no yang ada di database
+// ('inc7' -> '07'); kalau tidak, backend menjawab 404 dan data hilang diam-diam.
 #define INCUBATOR_ID     "inc1"    // posisi inkubator (inc1/inc2) — TETAP
 #define STATIC_IP_LAST   2         // oktet akhir IP statis alat (inc1=2, inc2=3). JANGAN 1 (itu router).
 
