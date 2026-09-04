@@ -721,11 +721,15 @@ void maybePostToServer() {
   if (millis() - lastPostMs < intervalMs) return;
   lastPostMs = millis();
   int code = postToServer();
-  // Backoff saat gagal (mis. WiFi meng-isolasi client / server mati): naikkan
-  // interval s/d 30s biar POST blocking tak bikin device nge-lag tiap 3 detik.
-  // Sekali sukses -> balik ke interval normal.
-  intervalMs = (code > 0) ? (uint32_t)POST_INTERVAL_MS
-                          : min(intervalMs * 2, (uint32_t)30000);
+  // Sukses = HTTP 2xx saja. 201 = tersimpan, 202 = alat hidup tapi semua sensor
+  // null — dua-duanya normal. Selain itu backoff s/d 30s: bukan cuma kegagalan
+  // jaringan (code < 0), tapi juga penolakan server. Alat dengan DEVICE_KEY salah
+  // dapat 401 setiap kali; tanpa ini ia menghantam server tiap 3 detik selamanya,
+  // karena 401 juga "code > 0". Backoff bikin salah-konfigurasi jadi berisik di
+  // serial tapi tidak membanjiri jaringan bangsal.
+  bool ok = (code >= 200 && code < 300);
+  intervalMs = ok ? (uint32_t)POST_INTERVAL_MS
+                  : min(intervalMs * 2, (uint32_t)30000);
 }
 
 // ============================================================================
