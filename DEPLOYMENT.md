@@ -184,6 +184,100 @@ real you've entered.
 5. Open a baby → **Laporan** → charts render, **Export PDF** downloads
 6. Log in as `dr.anisa@neonatal.rs` and try `/admin/users` → bounced to `/dashboard` by `proxy.ts`
 
+### One command that checks the whole backend
+
+Clicking around proves the happy path. This proves every module and every RBAC
+negative, in about ten seconds, from inside the container — no ports, no
+tunnelling, no editing the script (its `BASE` is `localhost:8000`, which *inside*
+the backend container is the app itself):
+
+```bash
+docker compose exec -T backend python tests/smoke_check.py
+```
+
+Expect `39/39 passed`. Anything less names the endpoint that broke. Run it after
+every deploy; it is the fastest way to tell "the server is fine, my browser
+isn't" from the reverse.
+
+## 6. Point the devices at the server
+
+**Do not skip this.** Both clients have the old address compiled in. Neither
+fails loudly — the dashboard keeps working, so it is easy to believe the deploy
+succeeded while every device is quietly talking to a machine that no longer
+answers.
+
+### The Flutter app
+
+`API_BASE` is baked in **at build time**, not read at runtime, so an installed
+APK cannot be repointed — it must be rebuilt and reinstalled:
+
+```bash
+cd frontend
+flutter build apk --split-per-abi --release   --dart-define=API_BASE=http://<server-ip>:8000
+```
+
+Install `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk` (about 19 MB;
+the fat APK is 55 MB and holds three architectures you do not need).
+
+Three things that will bite:
+
+- **Flutter is the only client CORS applies to.** The dashboard reaches the API
+  server-side over the compose network, so it never triggers CORS at all. The app
+  calls FastAPI directly from the device, so `ALLOWED_ORIGINS` must contain the
+  address you compiled in — compose builds it from `VPS_IP`, so setting that
+  correctly in `.env` covers it. Get it wrong and every request fails with a
+  generic connection error that looks exactly like a dead server.
+- **Cleartext HTTP is permitted deliberately.** Android 9+ blocks it by default;
+  the app ships `res/xml/network_security_config.xml` to allow it, because the
+  backend is plain HTTP. Without that the app installs, runs, and fails every
+  request with `CLEARTEXT communication not permitted`.
+- **minSdk is 24**, so Android 7.0 or newer. Older tablets will not install it.
+
+### The sensor rigs (ESP8266)
+
+The active sketch is `hardware/allsensors/allsensors.ino`. Its configuration is
+**hardcoded in the sketch itself**, lines 128-141 — it does *not* `#include
+"secrets.h"`, whatever the presence of `secrets.example.h` suggests (that belongs
+to `old_allsensors.ino`). Editing `secrets.h` alone changes nothing.
+
+Reflash each rig with:
+
+| Line | What to change |
+|---|---|
+| `INCUBATOR_ID` | `"inc1"`, `"inc7"`, … — must match an existing `incubator_no` |
+| `WIFI_SSID` / `WIFI_PASSWORD` | the ward network |
+| `SERVER_URL` | `http://<server-ip>:8000/api/sensors` |
+| `STATIC_SUBNET` / `STATIC_IP_LAST` | must match the new network, or set `USE_STATIC_IP 0` for DHCP |
+
+That endpoint is the **legacy ingest route**, and it is disabled by default. With
+`LEGACY_SENSOR_INGEST` unset the rigs get:
+
+```json
+{"detail":"Legacy sensor ingest is disabled. Use POST /api/v1/telemetry with X-Device-Key."}
+```
+
+— an HTTP 404 the firmware cannot report, so the only symptom is a dashboard
+that never updates. Set `LEGACY_SENSOR_INGEST=true` in `.env` and
+`docker compose up -d backend`, then confirm a rig-shaped payload is accepted:
+
+```bash
+curl -X POST http://<server-ip>:8000/api/sensors -H "Content-Type: application/json"   -d '{"incubator_id":"inc1","sensors":{"heart_rate":138,"spo2":97,"ds18b20_temp":36.5,"dht22_temp":33.2,"dht22_humidity":60}}'
+```
+
+`{"ok":true,"stored":true,...}` means it is live. Read
+[.env.example](.env.example) before enabling it — that route authenticates
+nobody, so anything able to reach the port can write readings. The durable fix is
+reflashing to the authenticated path (`POST /api/v1/telemetry` with an
+`X-Device-Key` header), which `old_allsensors.ino` already implements.
+
+### Registering a device is separate from data arriving
+
+Telemetry on the legacy route stores readings with `device_id` NULL, so an
+incubator can stream live while its **Perangkat IoT** card still reads
+"Mengirim tanpa terdaftar". To bind a device, an **admin** opens the incubator
+and clicks **Pasang Perangkat**. That is what populates online status, last-seen
+and sender IP; the chart fills either way.
+
 ---
 
 ## Troubleshooting
@@ -220,6 +314,24 @@ docker compose up -d --build
 **Login page works but there are no users.** Same cause as above — the schema
 loaded but the seed didn't, or the volume predates the seed mount. Reload it
 with the `psql` command in step 4.
+
+**Dashboard is fine, but no sensor data arrives.** In order of likelihood:
+`LEGACY_SENSOR_INGEST` is not `true` (the rigs get a 404 they cannot report —
+`curl` the endpoint per step 6 to confirm); the rig's `SERVER_URL` still points
+at the old machine; or its `INCUBATOR_ID` names an `incubator_no` that does not
+exist on this server, which answers `404 Inkubator '...' tidak dikenal`. Check
+what is actually arriving with `docker compose logs -f backend`.
+
+**The Flutter app cannot reach the server, but the dashboard can.** The app is
+the only client that goes to FastAPI directly, so it is the only one CORS and
+cleartext rules apply to. Either `API_BASE` was compiled with the old address
+(rebuild — it cannot be changed after install), or `VPS_IP` in `.env` does not
+match it so `ALLOWED_ORIGINS` excludes it. Both surface as a generic connection
+error indistinguishable from a dead backend.
+
+**An incubator's chart updates but its device card says no device.** Working as
+designed — the legacy route stores readings with no device attached. An admin
+must click **Pasang Perangkat** on that incubator. See step 6.
 
 **`docker compose exec db psql ...` says role does not exist.** The `pgdata`
 volume was created with different credentials on an earlier run. Wipe and redo:
