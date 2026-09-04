@@ -1,5 +1,10 @@
 # FastAPI backend — container image for Render (or any container host).
-FROM python:3.13-slim
+# 3.10, not 3.13: every suite in tests/ has only ever been run on 3.10 (the local
+# venv is 3.10.11), every pin in requirements.txt resolves a cp310 wheel, and
+# nothing in app/ uses 3.11+ syntax. Shipping 3.13 would put a runtime into the
+# hospital that no test has ever executed on. Move it up deliberately, after
+# running the suites on the new version - not as an unexamined default.
+FROM python:3.10-slim
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
