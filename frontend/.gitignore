@@ -43,3 +43,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+# Gradle's own build dir, a sibling of the three above. `flutter build apk`
+# creates it and it is not covered by /build/ up the file, which is anchored to
+# frontend/build/ only.
+/android/build/
