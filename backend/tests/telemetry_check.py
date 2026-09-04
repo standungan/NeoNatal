@@ -158,6 +158,17 @@ async def main():
         1,
     )
 
+    # Remove the row this run just orphaned. The unbind above is deliberate - it
+    # is the only way to exercise the 409 path - but leaving it behind makes the
+    # suite accumulate permanent, unreachable device rows: 16 had piled up before
+    # this cleanup existed, every one of them from a previous run of this file.
+    # Scoped to this run's own key hash, so a concurrent run's device is safe and
+    # any pre-existing orphans are left alone rather than silently swept up.
+    await conn.execute(
+        "DELETE FROM devices WHERE device_key_hash=$1 AND incubator_id IS NULL",
+        hashlib.sha256(KEY3.encode()).hexdigest(),
+    )
+
     await conn.close()
 
     print(f"\n{sum(results)}/{len(results)} passed")
