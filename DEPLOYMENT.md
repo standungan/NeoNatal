@@ -37,8 +37,8 @@ deploy looks dead from home:
 
 ```bash
 sudo ufw allow OpenSSH
-sudo ufw allow 80/tcp
-sudo ufw allow 8000/tcp
+sudo ufw allow 80/tcp        # = WEB_PORT  (dashboard)
+sudo ufw allow 8000/tcp      # = API_PORT  (Flutter app + sensor rigs)
 sudo ufw enable
 ```
 
@@ -70,6 +70,12 @@ Four values must change:
 | `POSTGRES_PASSWORD` | anything long — it never leaves the container network |
 | `SECRET_KEY` | the `openssl rand -hex 32` output |
 | `LEGACY_SENSOR_INGEST` | **`true`**, if your rigs run the current firmware — see below |
+
+> **Change `API_PORT` and four other things must change with it**, or they
+> silently point at a closed port: the `ufw` rule in step 1, the APK's
+> `--dart-define=API_BASE`, each rig's `SERVER_URL`, and any `:8000` copied from
+> the commands below. The dashboard is unaffected — it reaches the API over the
+> compose network, never the published port.
 
 `LEGACY_SENSOR_INGEST` ships as `false` because `/api/sensors` authenticates
 nobody: anything that can reach the port can write readings. But the firmware in
@@ -163,6 +169,19 @@ this too — a local rehearsal is not a reason to paste in the compromised key
 No action needed — step 3 already loaded 8 users, 9 incubators, 8 babies and
 about four days of monitoring, observation, involvement and aksi records.
 
+**What the seed does NOT contain: sensor readings, or any IoT device.** Both
+tables are empty by design — that data can only come from real hardware. So on a
+brand-new deployment every incubator shows:
+
+> Tren Sensor — *"Belum ada data sensor untuk inkubator ini. Grafik akan muncul
+> otomatis setelah perangkat mulai mengirim."*
+>
+> Perangkat IoT — *"Belum ada perangkat terpasang pada inkubator ini."*
+
+That is a correct, healthy deployment, not a fault. The clinical side of the app
+is fully populated and clickable; only the two IoT panels are empty, and they
+fill the moment a rig starts posting (step 6). Do not go looking for a bug here.
+
 Every seeded account uses the password **`Password123!`**:
 
 | Role | Email |
@@ -188,7 +207,7 @@ real you've entered.
 
 ## 5. Test from home
 
-1. `http://<vps-ip>:8000/health` → `{"status":"ok","version":"1.0.0"}` — proves the backend is up
+1. `http://<vps-ip>:<API_PORT>/health` → `{"status":"ok","version":"1.0.0"}` — proves the backend is up
 2. `http://<vps-ip>/` → redirects to `/login`
 3. Log in as `admin@neonatal.rs` / `Password123!`
 4. The dashboard shows incubator stats — **this is the real test**, it proves the browser → Next → FastAPI → Postgres chain works end to end
@@ -226,15 +245,15 @@ answers.
 > `403 {"detail":"Not authenticated"}`, because the BFF authenticates from the
 > httpOnly `nc_token` cookie and ignores the `Authorization: Bearer` header the
 > app actually sends. The symptom reads as a broken token, not a wrong port, so
-> it is an expensive hour to debug. In a default deploy that means **`:8000`**,
-> not `:80`.
+> it is an expensive hour to debug. Use whatever `API_PORT` you set in `.env` —
+> `:8000` by default, `:8001` if you changed it — never `WEB_PORT`.
 
 `API_BASE` is baked in **at build time**, not read at runtime, so an installed
 APK cannot be repointed — it must be rebuilt and reinstalled:
 
 ```bash
 cd frontend
-flutter build apk --split-per-abi --release   --dart-define=API_BASE=http://<server-ip>:8000
+flutter build apk --split-per-abi --release   --dart-define=API_BASE=http://<server-ip>:<API_PORT>
 ```
 
 Install `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk` (about 19 MB;
@@ -267,7 +286,7 @@ Reflash each rig with:
 |---|---|
 | `INCUBATOR_ID` | `"inc1"`, `"inc7"`, … — must match an existing `incubator_no` |
 | `WIFI_SSID` / `WIFI_PASSWORD` | the ward network |
-| `SERVER_URL` | `http://<server-ip>:8000/api/sensors` |
+| `SERVER_URL` | `http://<server-ip>:<API_PORT>/api/sensors` |
 | `STATIC_SUBNET` / `STATIC_IP_LAST` | must match the new network, or set `USE_STATIC_IP 0` for DHCP |
 
 That endpoint is the **legacy ingest route**, and it is disabled by default. With
@@ -282,7 +301,7 @@ that never updates. Set `LEGACY_SENSOR_INGEST=true` in `.env` and
 `docker compose up -d backend`, then confirm a rig-shaped payload is accepted:
 
 ```bash
-curl -X POST http://<server-ip>:8000/api/sensors -H "Content-Type: application/json"   -d '{"incubator_id":"inc1","sensors":{"heart_rate":138,"spo2":97,"ds18b20_temp":36.5,"dht22_temp":33.2,"dht22_humidity":60}}'
+curl -X POST http://<server-ip>:<API_PORT>/api/sensors -H "Content-Type: application/json"   -d '{"incubator_id":"inc1","sensors":{"heart_rate":138,"spo2":97,"ds18b20_temp":36.5,"dht22_temp":33.2,"dht22_humidity":60}}'
 ```
 
 `{"ok":true,"stored":true,...}` means it is live. Read
@@ -291,13 +310,26 @@ nobody, so anything able to reach the port can write readings. The durable fix i
 reflashing to the authenticated path (`POST /api/v1/telemetry` with an
 `X-Device-Key` header), which `old_allsensors.ino` already implements.
 
-### Registering a device is separate from data arriving
+### Register a device on each incubator
 
-Telemetry on the legacy route stores readings with `device_id` NULL, so an
-incubator can stream live while its **Perangkat IoT** card still reads
-"Mengirim tanpa terdaftar". To bind a device, an **admin** opens the incubator
-and clicks **Pasang Perangkat**. That is what populates online status, last-seen
-and sender IP; the chart fills either way.
+Worth doing even though the legacy route never checks the key, because the
+**device row** — not the key — is what makes the status card work. `ingest_legacy`
+stamps `last_seen_at` and `last_ip` on whatever device is bound to that
+incubator, so without one the card stays blank while the chart runs.
+
+As **admin**, open each incubator in use and click **Pasang Perangkat**. Copy the
+key it shows if you like — you will need it if you ever move to the authenticated
+route — but the rigs do not use it today.
+
+| | No device registered | Device registered |
+|---|---|---|
+| Chart | fills | fills |
+| Device card | "Mengirim tanpa terdaftar" | **Online**, last IP, last-send time |
+| Restrict-sender-IP option | unavailable | available |
+| Reading's `device_id` | NULL | NULL either way |
+
+On this route "Online" means *something* posted for that incubator, not that
+*this* device did — nothing on the legacy path proves identity.
 
 ---
 
@@ -390,7 +422,7 @@ Things that are fine for a home-testing deploy and **not** fine beyond it:
 - **Traffic is unencrypted.** The JWT is in cleartext on every request.
 - **Port 8000 is open to the internet.** It's there for `/docs` and `/health`
   while you bring the box up. The dashboard does not need it — close it with
-  `sudo ufw delete allow 8000/tcp` and drop the `ports:` block from the
+  `sudo ufw delete allow <API_PORT>/tcp` and drop the `ports:` block from the
   `backend` service once you're done poking around.
 - **The old `SECRET_KEY` is burned.** `backend/.env` sits in the public
   `neonatal-backend` repo's git history. Never reuse that key; generate a fresh
