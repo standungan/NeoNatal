@@ -106,6 +106,47 @@ So the backend container stamps Alembic at head on first start rather than
 upgrading to it, then upgrades normally on every start after. Migrations you add
 from here on work as expected.
 
+You can watch it happen the first time the backend starts:
+
+```
+no alembic_version -> schema came from schema.sql; stamping head
+INFO  [alembic.runtime.migration] Running stamp_revision  -> e8c4b2f91d37
+```
+
+### What has actually been run (2026-09-04)
+
+This file used to describe a stack nobody had brought up. It has now been
+exercised end to end on a Windows workstation with Docker Desktop:
+
+- both images build, including the Next.js production build in `web/Dockerfile`
+- `db` reaches `healthy` before the backend starts, so the init scripts finish
+  first and the backend never sees a half-built schema
+- the stamp-then-upgrade above fires as written on an empty volume
+- `backend/tests/smoke_check.py` passes **39/39** against the containers
+- login through the dashboard's BFF works, and the BFF reaches the backend over
+  the compose network and returns all 9 seeded incubators
+
+Two things remain unproven: `docker-compose.tls.yml` (it needs a real domain, so
+Let's Encrypt has never been exercised), and this stack on Linux — the rehearsal
+above ran on Docker Desktop's WSL2 VM, which is Linux, but not the VPS's distro.
+
+### Rehearsing on a workstation first
+
+Worth doing before touching the server. It is the same two commands, with one
+change: if you already run the backend and Next dev server natively, give the
+containers different ports in `.env` so the two stacks do not mask each other.
+
+```bash
+WEB_PORT=8080
+API_PORT=8001
+VPS_IP=localhost
+```
+
+Dashboard then lands on `http://localhost:8080`, API docs on
+`http://localhost:8001/docs`. Generate `SECRET_KEY` and `POSTGRES_PASSWORD` for
+this too — a local rehearsal is not a reason to paste in the compromised key
+(see step 2).
+
 ## 4. Demo accounts
 
 No action needed — step 3 already loaded 8 users, 9 incubators, 8 babies and
@@ -228,6 +269,11 @@ Things that are fine for a home-testing deploy and **not** fine beyond it:
 ---
 
 ## Adding HTTPS later
+
+> **Untested.** Everything above the line has been run; this has not — it needs a
+> real domain before Let's Encrypt can be exercised at all. Expect to debug it on
+> the day, and use `STAGING=1` for the first attempt so a failed run does not burn
+> Let's Encrypt's rate limit for that domain.
 
 Once you point a domain at the VPS, [docker-compose.tls.yml](docker-compose.tls.yml)
 adds nginx + Let's Encrypt on top of the same stack. Its header has the exact
