@@ -1,0 +1,227 @@
+<title>Panduan Neonatal Care</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@600;700&display=swap">
+<style>
+:root{
+  --ink:#0F172A; --ink-muted:#55637A; --ink-faint:#94A3B8;
+  --surface:#F4F7FB; --card:#FFFFFF; --line:#E9EEF5; --line-strong:#D7E0EC;
+  --primary:#2563EB; --accent:#0EA5E9; --ok:#10B981; --warn:#F59E0B; --bad:#EF4444;
+  --sans:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;
+  --serif:"IBM Plex Serif",Georgia,"Times New Roman",serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ink:#E8EEF7; --ink-muted:#9DAABF; --ink-faint:#6B7C93;
+  --surface:#0B1220; --card:#111A2B; --line:#1E2A3E; --line-strong:#2B3A52;
+  --primary:#5B9BFF; --accent:#38BDF8; --ok:#34D399; --warn:#FBBF24; --bad:#F87171;
+}}
+:root[data-theme="dark"]{
+  --ink:#E8EEF7; --ink-muted:#9DAABF; --ink-faint:#6B7C93;
+  --surface:#0B1220; --card:#111A2B; --line:#1E2A3E; --line-strong:#2B3A52;
+  --primary:#5B9BFF; --accent:#38BDF8; --ok:#34D399; --warn:#FBBF24; --bad:#F87171;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:16px;line-height:1.68;-webkit-font-smoothing:antialiased}
+header.mast{background:var(--card);border-bottom:1px solid var(--line)}
+.mast-in{max-width:1120px;margin:0 auto;padding:34px 28px 26px}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-faint);margin:0 0 10px}
+.mast-in h1{font-family:var(--serif);font-size:33px;line-height:1.14;margin:0 0 10px;
+  letter-spacing:-.01em;text-wrap:balance}
+.mast-in p.lede{margin:0;color:var(--ink-muted);max-width:62ch}
+.wrap{display:grid;grid-template-columns:236px minmax(0,1fr);gap:44px;
+  max-width:1120px;margin:0 auto;padding:0 28px 90px}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding-top:32px}
+nav.toc a{display:block;text-decoration:none;color:var(--ink-muted);font-size:13.5px;
+  padding:4px 9px;border-radius:6px;line-height:1.35}
+nav.toc a:hover,nav.toc a:focus-visible{background:var(--card);color:var(--ink)}
+nav.toc a.sub{padding-left:20px;font-size:12.5px;color:var(--ink-faint)}
+main{padding-top:32px;max-width:74ch}
+h2{font-family:var(--serif);font-size:25px;margin:44px 0 10px;padding-bottom:10px;
+  border-bottom:2px solid var(--line-strong);scroll-margin-top:14px;text-wrap:balance}
+h2:first-child{margin-top:0}
+h3{font-family:var(--sans);font-weight:600;font-size:17.5px;margin:30px 0 8px;
+  scroll-margin-top:14px;color:var(--ink)}
+h4{font-family:var(--mono);font-size:12px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--ink-faint);margin:22px 0 6px}
+p{margin:0 0 14px}
+ul,ol{margin:0 0 15px;padding-left:22px}
+li{margin:0 0 6px}
+code{font-family:var(--mono);font-size:13.5px;background:var(--line);padding:1.5px 5px;
+  border-radius:4px}
+strong{font-weight:600}
+hr{border:0;border-top:1px solid var(--line);margin:34px 0}
+blockquote{margin:0 0 16px;padding:13px 17px;background:var(--card);
+  border:1px solid var(--line);border-left:3px solid var(--warn);border-radius:0 8px 8px 0}
+blockquote p{margin:0;color:var(--ink-muted);font-size:15px}
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:9px;margin:0 0 18px;
+  background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{text-align:left;font-weight:600;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-faint);padding:9px 13px;background:var(--surface);
+  border-bottom:1px solid var(--line)}
+td{padding:9px 13px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+figure.shot{margin:0 0 18px}
+.slot{border:1.5px dashed var(--line-strong);border-radius:9px;background:var(--card);
+  padding:26px 20px;display:flex;flex-direction:column;align-items:center;gap:7px;
+  text-align:center}
+.slot-tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--accent)}
+.slot-txt{color:var(--ink-muted);font-size:14px;max-width:46ch}
+@media(max-width:900px){
+  .wrap{grid-template-columns:1fr;gap:0}
+  nav.toc{position:static;height:auto;padding-top:12px;margin-bottom:20px}
+  main{max-width:none}
+}
+@media print{
+  :root{--ink:#000;--ink-muted:#333;--ink-faint:#666;--surface:#fff;--card:#fff;
+        --line:#ccc;--line-strong:#999}
+  body{font-size:10.5pt;line-height:1.5;background:#fff}
+  header.mast{border-bottom:2px solid #000}
+  .mast-in{padding:0 0 14pt}
+  nav.toc{display:none}
+  .wrap{display:block;max-width:none;padding:0}
+  main{max-width:none;padding-top:12pt}
+  h2{page-break-before:always;page-break-after:avoid;font-size:16pt}
+  h2:first-of-type{page-break-before:avoid}
+  h3{page-break-after:avoid;font-size:12pt}
+  table,figure,blockquote,.tblwrap{page-break-inside:avoid}
+  .slot{border:1pt dashed #999}
+  a{color:#000;text-decoration:none}
+  @page{margin:16mm 14mm}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+<header class="mast"><div class="mast-in">
+  <p class="eyebrow">Sistem Monitoring Bayi pada Inkubator</p>
+  <h1>Panduan Pengguna</h1>
+  <p class="lede">Untuk perawat, dokter, dan admin. Disusun per peran &mdash; cari bagian
+  Anda, lewati sisanya. Pemasangan server dan pemrograman alat ada di
+  <code>DEPLOYMENT.md</code>, bukan di sini.</p>
+</div></header>
+<div class="wrap">
+  <nav class="toc"><a href="#0-sebelum-mulai">0. Sebelum mulai</a><a class="sub" href="#apa-yang-dikerjakan-sistem-ini">Apa yang dikerjakan sistem ini</a><a class="sub" href="#perangkat-yang-bisa-dipakai">Perangkat yang bisa dipakai</a><a class="sub" href="#masuk-dan-keluar">Masuk dan keluar</a><a class="sub" href="#mengenal-dasbor">Mengenal dasbor</a><a class="sub" href="#siapa-boleh-melakukan-apa">Siapa boleh melakukan apa</a><a href="#1-untuk-perawat">1. Untuk Perawat</a><a class="sub" href="#alur-satu-sif">Alur satu sif</a><a class="sub" href="#mendaftarkan-bayi-baru">Mendaftarkan bayi baru</a><a class="sub" href="#membaca-detail-inkubator">Membaca detail inkubator</a><a class="sub" href="#mencatat-monitoring-tanda-vital">Mencatat monitoring tanda vital</a><a class="sub" href="#mencatat-aksi-kolaborasi-tim">Mencatat Aksi (kolaborasi tim)</a><a class="sub" href="#mencatat-keterlibatan-keluarga">Mencatat keterlibatan keluarga</a><a class="sub" href="#observasi-perkembangan">Observasi perkembangan</a><a class="sub" href="#memulangkan-bayi">Memulangkan bayi</a><a href="#2-untuk-dokter">2. Untuk Dokter</a><a class="sub" href="#melihat-kondisi-dan-tren">Melihat kondisi dan tren</a><a class="sub" href="#menulis-catatan-dokter">Menulis catatan dokter</a><a class="sub" href="#laporan-dan-ekspor-pdf">Laporan dan ekspor PDF</a><a href="#3-untuk-admin">3. Untuk Admin</a><a class="sub" href="#mengelola-pengguna">Mengelola pengguna</a><a class="sub" href="#mengelola-inkubator">Mengelola inkubator</a><a class="sub" href="#memasang-perangkat-iot">Memasang perangkat IoT</a><a class="sub" href="#mengatur-ambang-batas-sensor">Mengatur ambang batas sensor</a><a class="sub" href="#audit-log">Audit log</a><a href="#4-bila-terjadi-masalah">4. Bila terjadi masalah</a><a href="#lampiran">Lampiran</a><a class="sub" href="#daftar-istilah">Daftar istilah</a><a class="sub" href="#skor-maksimal-tiap-modul">Skor maksimal tiap modul</a><a class="sub" href="#yang-tidak-ada-di-panduan-ini">Yang tidak ada di panduan ini</a></nav>
+  <main><p>Sistem Monitoring Bayi pada Inkubator — panduan untuk perawat, dokter, dan admin.</p>
+<p>Panduan ini disusun per peran. Cari bagian Anda, dan lewati sisanya. Perintah pemasangan server, Docker, dan pemrograman alat <strong>tidak</strong> ada di sini — semuanya ada di <code>DEPLOYMENT.md</code>, yang pembacanya berbeda.</p>
+<hr>
+<h2 id="0-sebelum-mulai">0. Sebelum mulai</h2>
+<h3 id="apa-yang-dikerjakan-sistem-ini">Apa yang dikerjakan sistem ini</h3>
+<p>Tiga hal, dalam satu tempat:</p>
+<ol><li><strong>Memantau</strong> — alat di setiap inkubator mengirim suhu bayi, suhu inkubator, kelembapan, detak jantung, dan SpO₂ setiap tiga detik. Grafiknya muncul sendiri tanpa perlu dicatat.</li><li><strong>Mencatat asesmen</strong> — monitoring tanda vital, observasi perkembangan, keterlibatan keluarga, dan kolaborasi tim, mengikuti kerangka delapan pilar perawatan NICU.</li><li><strong>Melaporkan</strong> — semua catatan seorang bayi dirangkum jadi satu laporan yang bisa diekspor sebagai PDF.</li></ol>
+<p>Yang <strong>tidak</strong> dikerjakan sistem ini: ia tidak memberi diagnosis, tidak mengatur suhu inkubator, dan tidak menggantikan pemantauan langsung. Angka di layar adalah bahan pertimbangan, bukan pengganti pemeriksaan.</p>
+<h3 id="perangkat-yang-bisa-dipakai">Perangkat yang bisa dipakai</h3>
+<div class="tblwrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Dasbor web</strong></td><td>Peramban di komputer bangsal. Layar lebar, cocok untuk mengisi formulir panjang dan membaca laporan.</td></tr><tr><td><strong>Aplikasi Android</strong></td><td>Untuk di samping inkubator. Isi fiturnya sama persis dengan web.</td></tr></tbody></table></div>
+<p>Keduanya menampilkan data yang sama — apa pun yang dicatat di ponsel langsung terlihat di web, dan sebaliknya.</p>
+<h3 id="masuk-dan-keluar">Masuk dan keluar</h3>
+<p>Buka alamat sistem, masukkan <strong>email</strong> dan <strong>kata sandi</strong>, tekan <strong>Masuk</strong>.</p>
+<p>Kalau setelah menekan Masuk Anda kembali lagi ke halaman masuk tanpa pesan galat, itu bukan salah ketik — laporkan ke admin. (Penyebab teknisnya ada di <code>DEPLOYMENT.md</code>.)</p>
+<p>Tekan <strong>Keluar</strong> di kanan atas bila meninggalkan komputer. Sesi tidak tertutup sendiri saat layar terkunci, dan setiap catatan tersimpan atas nama akun yang sedang masuk.</p>
+<h3 id="mengenal-dasbor">Mengenal dasbor</h3>
+<figure class="shot"><div class="slot"><span class="slot-tag">Gambar</span><span class="slot-txt">Dasbor — kartu ringkasan di atas, daftar inkubator di bawah</span></div></figure>
+<p>Baris kartu di atas merangkum seluruh bangsal: jumlah total, terisi, kosong, warning, dan tidak tersedia. Di bawahnya, satu kartu per inkubator.</p>
+<p>Warna status berarti:</p>
+<div class="tblwrap"><table><thead><tr><th>Status</th><th>Arti</th></tr></thead><tbody><tr><td><strong>Terisi</strong></td><td>Ada bayi di dalamnya, semua nilai dalam batas normal.</td></tr><tr><td><strong>Kosong</strong></td><td>Siap dipakai, tidak ada bayi.</td></tr><tr><td><strong>Warning</strong></td><td>Ada bacaan sensor di luar ambang batas, <strong>atau</strong> modul lain menandainya. Buka detailnya untuk melihat sebabnya.</td></tr><tr><td><strong>Tidak Tersedia</strong></td><td>Ditandai admin sebagai tidak boleh dipakai — misalnya sedang diperbaiki.</td></tr></tbody></table></div>
+<p>Klik satu kartu untuk membuka <strong>Detail Inkubator</strong>.</p>
+<h3 id="siapa-boleh-melakukan-apa">Siapa boleh melakukan apa</h3>
+<div class="tblwrap"><table><thead><tr><th></th><th>Perawat</th><th>Dokter</th><th>Admin</th></tr></thead><tbody><tr><td>Melihat dasbor, bayi, grafik, laporan</td><td>ya</td><td>ya</td><td>ya</td></tr><tr><td>Mendaftarkan &amp; mengubah data bayi</td><td>ya</td><td>—</td><td>ya</td></tr><tr><td>Mencatat monitoring, aksi, keterlibatan</td><td>ya</td><td>—</td><td>ya</td></tr><tr><td>Menulis catatan dokter</td><td>—</td><td>ya</td><td>—</td></tr><tr><td>Mengelola pengguna</td><td>—</td><td>—</td><td>ya</td></tr><tr><td>Mengelola inkubator &amp; perangkat IoT</td><td>—</td><td>—</td><td>ya</td></tr><tr><td>Membaca audit log</td><td>—</td><td>—</td><td>ya</td></tr></tbody></table></div>
+<p>Menu yang bukan hak Anda tidak akan muncul. Kalau Anda membuka alamatnya langsung, sistem akan menolak — itu perilaku yang benar, bukan kerusakan.</p>
+<hr>
+<h2 id="1-untuk-perawat">1. Untuk Perawat</h2>
+<p>Bagian paling tebal, karena dipakai setiap sif.</p>
+<h3 id="alur-satu-sif">Alur satu sif</h3>
+<ol><li>Buka dasbor, lihat ada inkubator berstatus <strong>Warning</strong> atau tidak.</li><li>Untuk tiap bayi yang Anda pegang: buka detail inkubatornya, baca <strong>Tren Sensor</strong>.</li><li>Catat <strong>Monitoring</strong> sesuai jadwal bangsal.</li><li>Catat <strong>Aksi</strong> dan <strong>Keterlibatan</strong> keluarga bila ada.</li><li>Sebelum handover, pastikan semuanya sudah masuk — laporan mengambil dari catatan ini.</li></ol>
+<h3 id="mendaftarkan-bayi-baru">Mendaftarkan bayi baru</h3>
+<p><strong>Daftar Bayi → Daftar Bayi Baru.</strong></p>
+<figure class="shot"><div class="slot"><span class="slot-tag">Gambar</span><span class="slot-txt">Formulir pendaftaran bayi</span></div></figure>
+<p>Formulirnya panjang karena merekam riwayat ibu sekaligus, dan itu disengaja: data ini dipakai laporan dan tidak enak dikejar belakangan. Bagian yang wajib:</p>
+<ul><li><strong>Identitas bayi</strong> — nama, jenis kelamin, tanggal &amp; jam lahir, berat lahir (gram), golongan darah, jenis kelahiran, jenis persalinan</li><li><strong>Riwayat ibu</strong> — kehamilan ke-, jumlah persalinan hidup, jumlah kunjungan ANC, kehamilan tunggal/kembar, penyulit (hipertensi kehamilan, diabetes gestasional, infeksi selama hamil), indikasi persalinan prematur</li><li><strong>DPJP</strong> — dokter penanggung jawab, dipilih dari daftar</li><li><strong>Inkubator</strong> — hanya inkubator berstatus kosong yang muncul di pilihan</li></ul>
+<p>Setelah disimpan, inkubator yang dipilih otomatis berubah jadi <strong>Terisi</strong>, dan semua bacaan sensor dari alat di inkubator itu langsung tercatat atas nama bayi tersebut.</p>
+<blockquote><p><strong>Anda tidak perlu memberi tahu alat.</strong> Alat tidak tahu nama bayi dan memang tidak perlu tahu. Ia hanya melapor &quot;ini inkubator saya&quot;; sistem yang menentukan bayi mana yang sedang ada di sana. Karena itu memindahkan bayi cukup lewat aplikasi, tanpa menyentuh perangkat kerasnya.</p></blockquote>
+<h3 id="membaca-detail-inkubator">Membaca detail inkubator</h3>
+<figure class="shot"><div class="slot"><span class="slot-tag">Gambar</span><span class="slot-txt">Detail Inkubator — Menu Aksi, Informasi Bayi, Tren Sensor</span></div></figure>
+<p>Urutannya sengaja: <strong>Menu Aksi</strong> di atas (yang paling sering ditekan), lalu <strong>Informasi Bayi</strong>, lalu <strong>Tren Sensor</strong>.</p>
+<p>Pada <strong>Tren Sensor</strong>, satu panel per pengukuran, semuanya sesumbu waktu:</p>
+<ul><li>Angka besar di kanan atas tiap panel adalah <strong>nilai terakhir</strong>.</li><li>Pita abu-abu adalah <strong>rentang normal</strong> untuk pengukuran itu. Garis di dalam pita berarti aman.</li><li><strong>Garis yang terputus berarti sensor tidak mengirim nilai saat itu</strong> — misalnya probe lepas dari bayi. Itu bukan nilai nol. Grafik sengaja memutus garis supaya Anda tidak membaca &quot;0 bpm&quot; sebagai bradikardia berat.</li><li>Label <strong>Langsung</strong> berarti data masuk secara real-time; <strong>Berkala</strong> berarti halaman menyegarkan sendiri tiap beberapa detik.</li></ul>
+<p>Bila panel tampak sebagai grafik datar di tengah pita, itu normal: bacaan yang stabil memang menghasilkan garis lurus.</p>
+<h3 id="mencatat-monitoring-tanda-vital">Mencatat monitoring tanda vital</h3>
+<p><strong>Detail bayi → Monitoring.</strong></p>
+<figure class="shot"><div class="slot"><span class="slot-tag">Gambar</span><span class="slot-txt">Formulir monitoring</span></div></figure>
+<p>Isinya tiga kelompok:</p>
+<div class="tblwrap"><table><thead><tr><th>Kelompok</th><th>Isi</th></tr></thead><tbody><tr><td>Tanda vital</td><td>Suhu Bayi (°C), Suhu Inkubator (°C), Kelembapan Inkubator (%), Heart Rate (bpm), SpO₂ (%), Respiratory Rate (/mnt)</td></tr><tr><td>Tidur &amp; kenyamanan</td><td>Durasi Tidur (menit), Kualitas Tidur (1–5), Episode Gelisah</td></tr><tr><td>Nyeri</td><td>Skor Nyeri / NIPS (0–7), Skor Ekspresi (1–5), Skor Gerakan (1–5)</td></tr></tbody></table></div>
+<p>Ditambah <strong>Waktu Observasi</strong>, <strong>Catatan Observasi</strong> (opsional), dan <strong>Foto</strong> (opsional, JPEG/PNG/WebP maksimal 5 MB).</p>
+<p>Bila inkubator punya alat yang aktif, kolom tanda vital terisi otomatis dari bacaan terakhir. <strong>Periksa sebelum menyimpan</strong> — angka itu apa adanya dari sensor, dan sensor bisa keliru bila probe lepas. Ubah angkanya bila tidak sesuai kenyataan; yang Anda simpan adalah catatan klinis, bukan salinan sensor.</p>
+<p>Kosongkan kolom yang tidak Anda ukur. Kosong berarti &quot;tidak diukur&quot;; <strong>nol berarti &quot;diukur, hasilnya nol&quot;</strong> — dua hal yang sangat berbeda di laporan.</p>
+<h3 id="mencatat-aksi-kolaborasi-tim">Mencatat Aksi (kolaborasi tim)</h3>
+<p><strong>Detail bayi → Aksi.</strong></p>
+<p>Enam pernyataan, masing-masing dinilai <strong>0–4</strong>, total maksimal <strong>24</strong>:</p>
+<ol><li>Catatan CPPT lengkap</li><li>SBAR dilakukan saat handover</li><li>Instruksi dokter terdokumentasi</li><li>Perubahan kondisi bayi segera dilaporkan</li><li>Kolaborasi dokter-perawat berjalan baik</li><li>Seluruh tindakan terdokumentasi</li></ol>
+<p>Ini menilai <strong>mutu dokumentasi dan komunikasi tim</strong>, bukan kondisi bayi. Isi jujur — gunanya untuk perbaikan proses, dan skor bagus yang tidak benar menghilangkan gunanya.</p>
+<h3 id="mencatat-keterlibatan-keluarga">Mencatat keterlibatan keluarga</h3>
+<p><strong>Detail bayi → Keterlibatan.</strong></p>
+<p>Enam pernyataan, dinilai <strong>0–4</strong>, total maksimal <strong>24</strong>:</p>
+<ol><li>Ibu memberikan ASI/perah ASI</li><li>Keluarga memahami kondisi bayi</li><li>Keluarga terlibat dalam PMK (Perawatan Metode Kanguru)</li><li>Keluarga membantu perawatan dasar</li><li>Keluarga mengikuti edukasi</li><li>Keluarga memahami perawatan di rumah</li></ol>
+<p>Ditambah <strong>Durasi Menyusui</strong> dan <strong>Durasi Interaksi</strong> (menit, keduanya opsional), serta <strong>Kondisi Bayi Saat Interaksi</strong>: Tenang, Aktif, Rewel, atau Tidur.</p>
+<h3 id="observasi-perkembangan">Observasi perkembangan</h3>
+<p><strong>Detail bayi → Observasi.</strong></p>
+<p>Daftar panjang (sekitar 42 pernyataan, 0–4 tiap item) tentang lingkungan dan kenyamanan — tidur tanpa gangguan minimal 60 menit, kemudahan kembali tidur, kebisingan terkendali, pencahayaan sesuai, nesting terpasang benar, posisi bayi nyaman, dan seterusnya.</p>
+<p>Tidak harus diisi tiap sif. Ikuti jadwal bangsal.</p>
+<h3 id="memulangkan-bayi">Memulangkan bayi</h3>
+<p>Buka data bayi, pilih tindakan pemulangan. Inkubatornya kembali <strong>Kosong</strong> dan siap dipakai bayi berikutnya. Riwayat bacaan sensor dan seluruh catatan <strong>tetap tersimpan</strong> — memulangkan tidak menghapus apa pun.</p>
+<hr>
+<h2 id="2-untuk-dokter">2. Untuk Dokter</h2>
+<h3 id="melihat-kondisi-dan-tren">Melihat kondisi dan tren</h3>
+<p>Anda bisa membuka seluruh dasbor, detail inkubator, grafik sensor, dan semua catatan perawat. Yang tidak bisa Anda buka: manajemen pengguna dan audit log.</p>
+<p>Saat membaca grafik, ingat aturan garis putus: <strong>garis terputus berarti tidak ada bacaan</strong>, bukan nilai nol.</p>
+<h3 id="menulis-catatan-dokter">Menulis catatan dokter</h3>
+<p><strong>Detail bayi → Catatan Dokter.</strong></p>
+<p>Catatan Anda tampil di ringkasan bayi dan ikut masuk ke laporan. Hanya dokter yang bisa menulis di sini — perawat bisa membacanya.</p>
+<h3 id="laporan-dan-ekspor-pdf">Laporan dan ekspor PDF</h3>
+<p><strong>Detail bayi → Laporan.</strong></p>
+<p>Merangkum satu bayi: identitas dan riwayat kelahiran, riwayat monitoring, observasi terakhir, keterlibatan keluarga, skor aksi, dan catatan dokter.</p>
+<p>Tekan <strong>Export PDF</strong> untuk berkas yang bisa dicetak atau dilampirkan ke rekam medis. Isinya sama dengan yang di layar, pada saat tombol ditekan.</p>
+<hr>
+<h2 id="3-untuk-admin">3. Untuk Admin</h2>
+<h3 id="mengelola-pengguna">Mengelola pengguna</h3>
+<p><strong>Admin → Pengguna.</strong></p>
+<p>Tambah, ubah, nonaktifkan akun, dan tentukan perannya: <strong>admin</strong>, <strong>perawat</strong>, atau <strong>dokter</strong>. Peran menentukan menu yang muncul dan tindakan yang diizinkan.</p>
+<p>Beri peran sesuai pekerjaan sebenarnya. Peran admin memberi akses ke audit log dan seluruh data pasien di bangsal.</p>
+<h3 id="mengelola-inkubator">Mengelola inkubator</h3>
+<p><strong>Dasbor → Tambah Inkubator</strong>, atau buka satu inkubator untuk mengubahnya.</p>
+<p>Inkubator yang <strong>masih ada riwayat penempatan bayi tidak dapat dihapus</strong>. Tandai <strong>Tidak Tersedia</strong> bila alatnya rusak atau sedang diperbaiki — itu menyembunyikannya dari pilihan saat mendaftarkan bayi, tanpa membuang riwayatnya.</p>
+<h3 id="memasang-perangkat-iot">Memasang perangkat IoT</h3>
+<p><strong>Detail Inkubator → kartu Perangkat IoT → Pasang Perangkat.</strong></p>
+<figure class="shot"><div class="slot"><span class="slot-tag">Gambar</span><span class="slot-txt">Kartu Perangkat IoT setelah perangkat terpasang</span></div></figure>
+<p>Sistem membuat <strong>kunci perangkat</strong> dan menampilkannya <strong>satu kali saja</strong>. Server hanya menyimpan ringkasannya, jadi kunci itu tidak bisa dilihat lagi.</p>
+<ul><li><strong>Salin kunci itu sekarang</strong>, lalu berikan ke teknisi untuk dimasukkan ke alat.</li><li>Kalau hilang: <strong>Lepas Perangkat</strong>, lalu pasang lagi untuk mendapat kunci baru — dan alatnya harus diprogram ulang.</li><li><strong>Satu kunci untuk satu inkubator.</strong> Memakai kunci yang sama di dua alat membuat keduanya tercatat sebagai perangkat yang sama.</li></ul>
+<p>Arti tulisan pada kartu:</p>
+<div class="tblwrap"><table><thead><tr><th>Tulisan</th><th>Arti</th></tr></thead><tbody><tr><td><strong>Belum ada perangkat terpasang</strong></td><td>Belum pernah dipasang. Grafik akan kosong kecuali ada alat yang mengirim lewat jalur lama.</td></tr><tr><td><strong>Belum pernah mengirim data</strong></td><td>Perangkat terdaftar, tapi belum ada satu pun bacaan masuk. Biasanya alat belum diprogram atau salah alamat server.</td></tr><tr><td><strong>Online</strong></td><td>Ada bacaan masuk dalam 30 detik terakhir.</td></tr><tr><td><strong>Offline</strong></td><td>Pernah mengirim, tapi tidak dalam 30 detik terakhir.</td></tr><tr><td><strong>Mengirim tanpa terdaftar</strong></td><td>Ada alat yang mengirim untuk inkubator ini lewat jalur lama, tanpa terdaftar sebagai perangkat. Grafik terisi, tetapi status online dan alamat pengirim baru aktif setelah perangkat dipasang.</td></tr></tbody></table></div>
+<p><strong>Batasi alamat pengirim</strong> bersifat opsional dan bukan cara inkubator dipasangkan ke alat — itu hanya penyaring tambahan. Identitas alat ditentukan oleh kunci perangkat.</p>
+<h3 id="mengatur-ambang-batas-sensor">Mengatur ambang batas sensor</h3>
+<p><strong>Detail Inkubator → Ambang Batas Sensor.</strong></p>
+<p>Batas bawah dan atas tiap pengukuran. Di luar rentang ini, sistem menandai inkubator sebagai <strong>Warning</strong> dan mencatat peringatan. Nilai bawaan:</p>
+<div class="tblwrap"><table><thead><tr><th>Pengukuran</th><th>Bawah</th><th>Atas</th><th>Satuan</th></tr></thead><tbody><tr><td>Suhu Bayi (kulit)</td><td>36.0</td><td>37.5</td><td>°C</td></tr><tr><td>Suhu Inkubator (udara)</td><td>34.0</td><td>36.0</td><td>°C</td></tr><tr><td>Kelembapan</td><td>60</td><td>80</td><td>%</td></tr><tr><td>SpO₂</td><td>90</td><td>100</td><td>%</td></tr><tr><td>Detak Jantung</td><td>100</td><td>180</td><td>bpm</td></tr><tr><td>Laju Napas</td><td>30</td><td>60</td><td>x/mnt</td></tr></tbody></table></div>
+<p>Ambang berlaku <strong>per inkubator</strong>, jadi bisa disesuaikan untuk bayi dengan kebutuhan khusus. Kosongkan salah satu sisi untuk menonaktifkan batas itu saja.</p>
+<p>Ubah dengan hati-hati: melonggarkan ambang membuat peringatan berhenti muncul, dan tidak ada yang akan mengingatkan bahwa ambangnya yang diubah.</p>
+<h3 id="audit-log">Audit log</h3>
+<p><strong>Admin → Audit Log.</strong></p>
+<p>Catatan setiap perubahan data: siapa, kapan, tabel apa, dan baris mana. Bersifat tambah-saja — tidak bisa diubah atau dihapus dari dalam aplikasi. Gunakan untuk menelusuri &quot;siapa yang mengubah ini&quot;.</p>
+<hr>
+<h2 id="4-bila-terjadi-masalah">4. Bila terjadi masalah</h2>
+<p><strong>Tidak bisa masuk, kembali ke halaman masuk terus.</strong> Bila tidak ada pesan galat, ini masalah konfigurasi server, bukan kata sandi Anda. Hubungi admin dan sebutkan bahwa halaman masuk mengembalikan Anda tanpa pesan.</p>
+<p><strong>Grafik kosong padahal alat menyala.</strong> Urutan pemeriksaan: apakah kartu Perangkat IoT menunjukkan <strong>Online</strong>? Bila tertulis <strong>Belum pernah mengirim data</strong>, alat belum mengirim apa pun — kemungkinan alamat server pada alat salah, atau kunci perangkatnya bukan kunci dari server ini. Bila tertulis <strong>Mengirim tanpa terdaftar</strong>, data masuk tetapi perangkatnya belum dipasang. Keduanya ditangani admin/teknisi.</p>
+<p><strong>Kartu berbunyi &quot;Mengirim tanpa terdaftar&quot;.</strong> Bukan kerusakan. Ada alat yang mengirim lewat jalur lama. Minta admin menekan <strong>Pasang Perangkat</strong> pada inkubator itu.</p>
+<p><strong>Data yang baru dicatat tidak muncul.</strong> Muat ulang halaman. Bila tetap tidak ada, periksa apakah Anda mencatatnya pada bayi yang benar — mudah tertukar bila membuka beberapa tab.</p>
+<p><strong>Grafik satu panel tampak sebagai kotak abu-abu penuh.</strong> Sudah diperbaiki; bila masih terlihat, aplikasinya versi lama. Minta admin memperbarui.</p>
+<p><strong>Nilai sensor terasa tidak masuk akal.</strong> Percayai pemeriksaan langsung, bukan layar. Periksa pemasangan probe. Bacaan yang dikirim alat adalah apa adanya — sistem tidak memuluskan atau mengoreksinya.</p>
+<hr>
+<h2 id="lampiran">Lampiran</h2>
+<h3 id="daftar-istilah">Daftar istilah</h3>
+<div class="tblwrap"><table><thead><tr><th>Istilah</th><th>Arti</th></tr></thead><tbody><tr><td><strong>Aksi</strong></td><td>Modul penilaian kolaborasi tim — dokumentasi, handover, pelaporan. Bukan &quot;tindakan medis&quot;.</td></tr><tr><td><strong>Keterlibatan</strong></td><td>Modul penilaian partisipasi keluarga: ASI, PMK, edukasi.</td></tr><tr><td><strong>Observasi</strong></td><td>Modul penilaian lingkungan dan kenyamanan perkembangan bayi.</td></tr><tr><td><strong>PMK</strong></td><td>Perawatan Metode Kanguru.</td></tr><tr><td><strong>CPPT</strong></td><td>Catatan Perkembangan Pasien Terintegrasi.</td></tr><tr><td><strong>SBAR</strong></td><td>Situation–Background–Assessment–Recommendation, format serah terima.</td></tr><tr><td><strong>NIPS</strong></td><td>Neonatal Infant Pain Scale, skor nyeri 0–7.</td></tr><tr><td><strong>DPJP</strong></td><td>Dokter Penanggung Jawab Pelayanan.</td></tr><tr><td><strong>Perangkat IoT</strong></td><td>Alat sensor di inkubator yang mengirim data otomatis.</td></tr><tr><td><strong>Kunci perangkat</strong></td><td>Kode identitas alat. Ditampilkan sekali saat pemasangan.</td></tr><tr><td><strong>Ambang batas</strong></td><td>Rentang normal per pengukuran; di luar itu memicu Warning.</td></tr></tbody></table></div>
+<h3 id="skor-maksimal-tiap-modul">Skor maksimal tiap modul</h3>
+<div class="tblwrap"><table><thead><tr><th>Modul</th><th>Jumlah item</th><th>Skor per item</th><th>Maksimal</th></tr></thead><tbody><tr><td>Aksi (kolaborasi)</td><td>6</td><td>0–4</td><td>24</td></tr><tr><td>Keterlibatan (keluarga)</td><td>6</td><td>0–4</td><td>24</td></tr><tr><td>Observasi</td><td>42</td><td>0–4</td><td>168</td></tr></tbody></table></div>
+<h3 id="yang-tidak-ada-di-panduan-ini">Yang tidak ada di panduan ini</h3>
+<p>Pemasangan server, Docker, pembaruan sistem, pemrograman alat, dan sertifikat HTTPS ada di <code>DEPLOYMENT.md</code>. Rincian teknis endpoint API ada di <code>docs/api/api.html</code>.</p></main>
+</div>
