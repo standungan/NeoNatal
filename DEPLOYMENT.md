@@ -426,6 +426,176 @@ docker run --rm -v neonatal_uploads:/data -v "$PWD:/out" alpine \
 
 ---
 
+## Menjalankan tanpa Docker
+
+Docker hanya pembungkus. Di baliknya cuma tiga proses: PostgreSQL, uvicorn, dan
+Next.js. Semuanya bisa dijalankan langsung di Ubuntu.
+
+Pilih cara ini bila Docker tidak boleh dipasang di server, atau bila Anda ingin
+melihat prosesnya apa adanya. Konsekuensinya: setiap komponen dipasang dan
+diperbarui sendiri-sendiri, dan versi Python serta Node menjadi tanggung jawab Anda.
+
+### 1. PostgreSQL
+
+```bash
+sudo apt update && sudo apt install -y postgresql postgresql-contrib
+sudo -u postgres psql -c "CREATE USER neonatal_user WITH PASSWORD 'ganti-ini';"
+sudo -u postgres psql -c "CREATE DATABASE neonatal_db OWNER neonatal_user;"
+```
+
+### 2. Skema dan data awal
+
+**Ini bagian yang paling mudah salah.** Skema **tidak** dibangun Alembic — revisi
+`a7821a4243e6` hanya berisi `DROP INDEX` dan akan gagal di basis data kosong (lihat
+"How the database gets built"). Urutannya harus:
+
+```bash
+cd backend
+export PGPASSWORD='ganti-ini'
+psql -h localhost -U neonatal_user -d neonatal_db -v ON_ERROR_STOP=1 -f database/schema.sql
+psql -h localhost -U neonatal_user -d neonatal_db -v ON_ERROR_STOP=1 -f database/seed_data.sql
+```
+
+Lalu tandai Alembic sudah berada di kepala, **tanpa menjalankan migrasinya**:
+
+```bash
+python3 -m venv venv
+./venv/bin/pip install -r requirements.txt
+export DATABASE_URL="postgresql://neonatal_user:ganti-ini@localhost:5432/neonatal_db"
+./venv/bin/python -m alembic stamp head
+```
+
+Sesudah ini, pembaruan berikutnya cukup `alembic upgrade head` seperti biasa.
+
+> `config.py` mengubah sendiri `postgresql://` menjadi `postgresql+asyncpg://`,
+> jadi tulis saja bentuk biasa.
+
+### 3. Backend
+
+Buat `backend/.env`:
+
+```bash
+DATABASE_URL=postgresql://neonatal_user:ganti-ini@localhost:5432/neonatal_db
+SECRET_KEY=<hasil: openssl rand -hex 32>
+DEBUG=false
+ALLOWED_ORIGINS=http://<ip-server>,http://<ip-server>:8001
+STORAGE_BACKEND=local
+STORAGE_LOCAL_PATH=./uploads
+LEGACY_SENSOR_INGEST=false
+```
+
+Jalankan:
+
+```bash
+cd backend
+set -a; . ./.env; set +a
+./venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8001
+```
+
+**Catatan versi Python.** Seluruh pengujian dijalankan pada **Python 3.10**, dan
+image Docker sengaja dipatok ke versi itu. Ubuntu 24.04 membawa Python 3.12.
+Kemungkinan besar tetap jalan, tetapi belum pernah diuji — jalankan suite di
+`backend/tests/` sesudah pemasangan bila Anda memakai versi lain.
+
+### 4. Dashboard web
+
+```bash
+cd web
+npm ci
+npm run build
+API_BASE_URL=http://localhost:8001 COOKIE_SECURE=false PORT=80 npm start
+```
+
+`API_BASE_URL` dipakai dari sisi server saja — ia tidak pernah sampai ke peramban,
+karena itulah gunanya BFF. `COOKIE_SECURE` **wajib** `false` di HTTP polos, atau
+peramban membuang cookie sesi dan login akan tampak berhasil lalu memantul kembali
+ke halaman masuk.
+
+### 5. Supaya hidup lagi setelah server dinyalakan ulang
+
+Tanpa Docker, `restart: unless-stopped` tidak ada. Buat dua unit systemd.
+
+`/etc/systemd/system/neonatal-api.service`:
+
+```ini
+[Unit]
+Description=Neonatal Care API
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+User=neonatal
+WorkingDirectory=/opt/NeoNatal/backend
+EnvironmentFile=/opt/NeoNatal/backend/.env
+ExecStart=/opt/NeoNatal/backend/venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8001
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+`/etc/systemd/system/neonatal-web.service`:
+
+```ini
+[Unit]
+Description=Neonatal Care Dashboard
+After=network.target neonatal-api.service
+
+[Service]
+User=neonatal
+WorkingDirectory=/opt/NeoNatal/web
+Environment=API_BASE_URL=http://localhost:8001
+Environment=COOKIE_SECURE=false
+Environment=PORT=80
+ExecStart=/usr/bin/npm start
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now neonatal-api neonatal-web
+sudo systemctl status neonatal-api neonatal-web
+```
+
+Menyalakan di port 80 sebagai pengguna biasa akan ditolak. Beri izin sekali:
+
+```bash
+sudo setcap 'cap_net_bind_service=+ep' "$(readlink -f "$(command -v node)")"
+```
+
+Atau jalankan dashboard di port 3000 dan letakkan nginx di depannya.
+
+### 6. Memastikan berhasil
+
+```bash
+curl -s localhost:8001/health          # {"status":"ok",...}
+cd backend && ./venv/bin/python tests/smoke_check.py
+```
+
+Suite itu memakai `localhost:8000`; ubah `BASE` di barisnya bila Anda memakai 8001.
+Harapkan `39/39 passed`.
+
+### Perbandingan singkat
+
+| | Docker Compose | Tanpa Docker |
+|---|---|---|
+| Pemasangan | satu perintah | enam langkah |
+| Versi Python & Node | terkunci di image | mengikuti versi sistem |
+| Nyala lagi setelah reboot | bawaan | dua unit systemd |
+| Pencadangan | `docker compose exec db pg_dump` | `pg_dump` langsung |
+| Pembaruan | `git pull && up -d --build` | pull, pip install, npm build, restart dua servis |
+| Migrasi saat pembaruan | otomatis | jalankan `alembic upgrade head` sendiri |
+
+Basis datanya sama persis. Berpindah dari satu cara ke cara lain cukup dengan
+`pg_dump` lalu `psql`.
+
+---
+
 ## Starting automatically after a reboot
 
 All three services already declare `restart: unless-stopped`, so Docker brings
