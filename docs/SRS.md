@@ -113,18 +113,9 @@ dan batasan. Bab 8 memetakan komponen kontrak ke kebutuhan sebagai bukti kelengk
 Sistem berdiri sendiri di jaringan lokal rumah sakit, terdiri atas empat perangkat lunak
 yang berkomunikasi melalui HTTP:
 
-```
-                    ┌──────────────── Server lokal (Ubuntu) ─────────────────┐
-                    │                                                         │
-  Perangkat IoT ────┼──► Backend API (FastAPI) ──► Basis data (PostgreSQL)   │
-  (per inkubator)   │           ▲                                             │
-                    │           │                                             │
-  Peramban ─────────┼──► Dashboard Web (Next.js + BFF)                        │
-                    │           ▲                                             │
-                    └───────────┼─────────────────────────────────────────────┘
-                                │
-  Aplikasi Android ─────────────┘  (langsung ke Backend API)
-```
+![Arsitektur sistem: perangkat IoT, peramban, dan aplikasi Android terhadap Backend API, Dashboard Web, dan basis data di dalam server lokal rumah sakit](images/srs-arsitektur-sistem.png)
+
+*Gambar 1 — Arsitektur Sistem Pemantauan Inkubator Bayi Terintegrasi.*
 
 Dua jalur akses yang berbeda secara arsitektural:
 
@@ -133,6 +124,17 @@ Dua jalur akses yang berbeda secara arsitektural:
 - **Aplikasi Android dan perangkat IoT** menghubungi API secara langsung. Karena itu
   keduanya — dan hanya keduanya — tunduk pada kebijakan CORS dan pada mekanisme
   autentikasi masing-masing.
+
+Dua hal pada Gambar 1 adalah keputusan rancangan, bukan kebetulan gambar:
+
+- **Perangkat IoT hanya menyentuh Backend API.** Tidak ada jalur dari perangkat ke
+  Dashboard Web maupun ke basis data. Inilah yang membuat AE-15 dan NF-10 dapat
+  ditegakkan: alat dapat menulis telemetri, dan tidak dapat membaca data pasien mana pun.
+- **Peramban tidak pernah menghubungi Backend API secara langsung.** Seluruh permintaannya
+  melewati BFF, yang memegang token di sisi server. Itu sebabnya token tidak dapat diakses
+  skrip di peramban (F-6.6).
+
+Basis data tidak dipublikasikan ke jaringan; ia hanya dapat dijangkau dari dalam server.
 
 ### 2.2 Fungsi Produk (ringkas)
 
