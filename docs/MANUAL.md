@@ -50,7 +50,7 @@ saat layar terkunci, dan setiap catatan tersimpan atas nama akun yang sedang mas
 
 ### Mengenal dasbor
 
-[Gambar: Dasbor — kartu ringkasan di atas, daftar inkubator di bawah]
+![Dasbor: kartu ringkasan bangsal di atas, daftar inkubator di bawah](images/01-dasbor.png)
 
 Baris kartu di atas merangkum seluruh bangsal: jumlah total, terisi, kosong, warning,
 dan tidak tersedia. Di bawahnya, satu kartu per inkubator.
@@ -99,7 +99,7 @@ Bagian paling tebal, karena dipakai setiap sif.
 
 **Daftar Bayi → Daftar Bayi Baru.**
 
-[Gambar: Formulir pendaftaran bayi]
+![Formulir pendaftaran bayi](images/02-daftar-bayi.png)
 
 Formulirnya panjang karena merekam riwayat ibu sekaligus, dan itu disengaja: data ini
 dipakai laporan dan tidak enak dikejar belakangan. Bagian yang wajib:
@@ -122,10 +122,12 @@ bacaan sensor dari alat di inkubator itu langsung tercatat atas nama bayi terseb
 
 ### Membaca detail inkubator
 
-[Gambar: Detail Inkubator — Menu Aksi, Informasi Bayi, Tren Sensor]
+![Detail Inkubator: Menu Aksi di atas, lalu Informasi Bayi, lalu Tren Sensor](images/03-detail-inkubator.png)
 
 Urutannya sengaja: **Menu Aksi** di atas (yang paling sering ditekan), lalu **Informasi
 Bayi**, lalu **Tren Sensor**.
+
+![Tren Sensor: pita rentang normal, nilai terakhir di kanan, dan panel kosong untuk sensor yang belum mengirim](images/06-tren-sensor.png)
 
 Pada **Tren Sensor**, satu panel per pengukuran, semuanya sesumbu waktu:
 
@@ -145,7 +147,7 @@ memang menghasilkan garis lurus.
 
 **Detail bayi → Monitoring.**
 
-[Gambar: Formulir monitoring]
+![Formulir monitoring: tanda vital, tidur, dan skor nyeri](images/05-monitoring.png)
 
 Isinya tiga kelompok:
 
@@ -269,7 +271,7 @@ pilihan saat mendaftarkan bayi, tanpa membuang riwayatnya.
 
 **Detail Inkubator → kartu Perangkat IoT → Pasang Perangkat.**
 
-[Gambar: Kartu Perangkat IoT setelah perangkat terpasang]
+![Kartu Perangkat IoT: status Offline, alamat pengirim, dan waktu kirim terakhir](images/04-perangkat-iot.png)
 
 Sistem membuat **kunci perangkat** dan menampilkannya **satu kali saja**. Server hanya
 menyimpan ringkasannya, jadi kunci itu tidak bisa dilihat lagi.

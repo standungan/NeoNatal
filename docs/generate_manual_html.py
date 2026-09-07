@@ -6,10 +6,16 @@ is never edited by hand, it is regenerated.
     python docs/generate_manual_html.py
 
 Handles only the Markdown subset MANUAL.md actually uses - headings, paragraphs,
-tables, ordered and unordered lists, blockquotes, bold, inline code, and the
-[Gambar: ...] figure placeholders. Deliberately not a general Markdown parser: a
-known-small subset is easier to trust than a dependency.
+tables, ordered and unordered lists, blockquotes, bold, inline code, and images.
+Deliberately not a general Markdown parser: a known-small subset is easier to
+trust than a dependency.
+
+Images are inlined as base64 data URIs rather than linked. The Markdown keeps
+relative paths so GitHub renders it, but the HTML has to survive being published
+or emailed as a single file, where a relative path resolves to nothing. An image
+whose file is missing degrades to a labelled slot instead of a broken icon.
 """
+import base64
 import html
 import pathlib
 import re
@@ -23,7 +29,7 @@ e = html.escape
 
 
 def inline(t):
-    """Bold, inline code and the figure placeholder. Escape first, then re-introduce tags."""
+    """Bold and inline code. Escape first, then re-introduce the tags."""
     t = e(t)
     t = re.sub(r"`([^`]+)`", r"<code>\1</code>", t)
     t = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", t)
@@ -47,12 +53,20 @@ def convert(md):
             i += 1
             continue
 
-        # figure placeholder -> a labelled slot, so a missing screenshot is visible
-        m = re.match(r"^\[Gambar:\s*(.+?)\]$", s)
+        # ![alt](src) -> gambar disisipkan sebagai data URI, supaya HTML-nya mandiri
+        # dan tetap tampil saat diterbitkan atau dikirim sebagai satu berkas.
+        m = re.match(r"^!\[(.*?)\]\((.+?)\)$", s)
         if m:
-            out.append('<figure class="shot"><div class="slot">'
-                       '<span class="slot-tag">Gambar</span>'
-                       '<span class="slot-txt">%s</span></div></figure>' % e(m.group(1)))
+            alt, src = m.group(1), m.group(2)
+            f = (ROOT / src).resolve()
+            if f.exists():
+                b64 = base64.b64encode(f.read_bytes()).decode("ascii")
+                out.append('<figure class="shot"><img alt="%s" src="data:image/png;base64,%s">'
+                           '<figcaption>%s</figcaption></figure>' % (e(alt), b64, e(alt)))
+            else:
+                out.append('<figure class="shot"><div class="slot">'
+                           '<span class="slot-tag">Gambar belum ada</span>'
+                           '<span class="slot-txt">%s</span></div></figure>' % e(alt))
             i += 1
             continue
 
@@ -133,7 +147,7 @@ def convert(md):
         # paragraph
         buf = []
         while i < n and lines[i].strip() and not re.match(
-                r"^(#{1,4}\s|\||>|-\s|\d+\.\s|---|\[Gambar:)", lines[i].strip()):
+                r"^(#{1,4}\s|\||>|-\s|\d+\.\s|---|!\[)", lines[i].strip()):
             buf.append(lines[i].strip())
             i += 1
         if buf:
@@ -203,7 +217,11 @@ th{text-align:left;font-weight:600;font-size:11.5px;letter-spacing:.06em;text-tr
   border-bottom:1px solid var(--line)}
 td{padding:9px 13px;border-bottom:1px solid var(--line);vertical-align:top}
 tr:last-child td{border-bottom:0}
-figure.shot{margin:0 0 18px}
+figure.shot{margin:0 0 22px}
+figure.shot img{width:100%;height:auto;display:block;border:1px solid var(--line);
+  border-radius:9px;background:var(--card)}
+figure.shot figcaption{margin-top:7px;font-size:13px;color:var(--ink-faint);
+  font-style:italic;text-align:center}
 .slot{border:1.5px dashed var(--line-strong);border-radius:9px;background:var(--card);
   padding:26px 20px;display:flex;flex-direction:column;align-items:center;gap:7px;
   text-align:center}
@@ -268,9 +286,10 @@ def main():
 """ % (CSS, "".join(nav), body)
 
     OUT.write_text(page, encoding="utf-8")
-    figs = page.count('class="slot"')
-    print("  %s (%s bytes, %d bagian, %d slot gambar)"
-          % (OUT.name, format(len(page), ","), len(toc), figs))
+    imgs = page.count("<figure class=\"shot\"><img")
+    slots = page.count('class="slot"')
+    print("  %s (%s bytes, %d bagian, %d gambar, %d slot kosong)"
+          % (OUT.name, format(len(page), ","), len(toc), imgs, slots))
 
 
 if __name__ == "__main__":
