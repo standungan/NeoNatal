@@ -336,6 +336,69 @@ Disusun mengikuti tujuh komponen pekerjaan Kontrak Pasal 2.2.
   inkubator yang sama.
 - **F-4.25** Perawat dan admin dapat menandai telah membaca suatu peringatan.
 
+Gambar 2 menunjukkan urutan penanganan satu sampel telemetri, dari alat sampai grafik di
+layar. Urutannya diambil dari jalur kode yang sebenarnya, termasuk pemisahan antara bagian
+transaksional dan bagian penyebaran.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant R as Perangkat IoT
+    participant A as Backend API
+    participant D as Basis Data
+    participant K as Klien<br/>(dashboard & aplikasi)
+
+    R->>A: POST /api/v1/telemetry<br/>X-Device-Key + JSON (tiap 3 detik)
+
+    rect rgb(245, 247, 251)
+    Note over A: Bagian transaksional
+    A->>A: Validasi muatan (TelemetryIn)<br/>0 bpm / 0% → NULL, cek rentang fisiologis
+    alt Nilai di luar rentang fisiologis
+        A-->>R: 422 ditolak
+    end
+
+    A->>D: Cari perangkat dari SHA-256 kunci
+    alt Kunci tidak dikenal atau nonaktif
+        A-->>R: 401 ditolak
+    end
+    alt Perangkat tidak terikat inkubator
+        A-->>R: 409 belum terpasang
+    end
+
+    A->>D: Perbarui last_seen_at & last_ip
+    alt Semua sensor kosong
+        A-->>R: 202 alat hidup, tidak ada yang disimpan
+    end
+
+    A->>D: Cari penempatan AKTIF inkubator ini
+    D-->>A: baby_id (boleh NULL bila inkubator kosong)
+    A->>D: Simpan sensor_readings<br/>recorded_at ditetapkan server
+    end
+
+    rect rgb(250, 246, 238)
+    Note over A,K: Bagian penyebaran — baris sudah tersimpan
+    A-)K: Siarkan lewat SSE (grafik langsung)
+    A->>A: Evaluasi ambang batas inkubator
+    A->>D: Catat sensor_alerts bila di luar ambang
+    end
+
+    A-->>R: 201 tersimpan
+```
+
+*Gambar 2 — Alur penanganan satu sampel telemetri.*
+
+Empat hal pada Gambar 2 adalah keputusan rancangan yang perlu dibaca eksplisit:
+
+- **Alat tidak pernah menyebut bayi.** `baby_id` diambil dari penempatan aktif (langkah 12),
+  bukan dari muatan. Inilah yang membuat pemindahan bayi cukup dilakukan di aplikasi tanpa
+  memprogram ulang alat (F-4.20).
+- **Waktu ditetapkan server** (langkah 13), karena ESP8266 tidak memiliki RTC (F-4.19, C-2).
+- **`baby_id` boleh NULL** dan itu sah: inkubator kosong tetap melaporkan suhu udaranya.
+- **Penyebaran terjadi setelah penyimpanan, dan tidak dapat menggagalkannya.** Baris sudah
+  tersimpan sebelum SSE disiarkan dan peringatan dievaluasi, sehingga gangguan pada
+  pelanggan aliran maupun mesin peringatan tidak pernah mengubah ingest yang berhasil
+  menjadi galat.
+
 #### 4.5 Pelaporan
 
 - **F-4.26** Sistem menghasilkan laporan per bayi berisi identitas, riwayat kelahiran,
