@@ -1,302 +1,545 @@
 # Entity Relationship Diagram — Neonatal Care System
 
-> Database: **PostgreSQL** · ORM: **SQLAlchemy 2.0** (async) · Migrations: **Alembic**
-> Source of truth: `backend/app/models/`. This document reflects schema revisions up to
-> `c3a5e7f20b1d_monitoring_humidity` (8-pillar fields + incubator humidity).
+> Basis data: **PostgreSQL 16** · ORM: **SQLAlchemy 2.0** (async) · Migrasi: **Alembic**
+> Sumber kebenaran: `backend/database/schema.sql`
+> Dokumen ini mencerminkan revisi **`e8c4b2f91d37_sensor_minute_rollup`** — yaitu head
+> Alembic saat ini, mencakup seluruh pekerjaan IoT (perangkat, telemetri, peringatan,
+> agregat per menit).
 
-All primary keys are `UUID` (PostgreSQL `uuid` type, generated application-side via `uuid4()`),
-except where noted. All timestamps are `TIMESTAMP WITH TIME ZONE`.
+Seluruh primary key bertipe `UUID`. Seluruh kolom waktu bertipe `TIMESTAMPTZ`
+(dengan zona waktu). **16 tabel**, dikelompokkan menurut perannya:
 
-> **📊 How to view the diagram below.** It's written in [Mermaid](https://mermaid.js.org/). It renders
-> automatically on **GitHub** and in **VS Code** (install the *Markdown Preview Mermaid Support*
-> extension, then open Preview). If you only see raw `erDiagram` text, your viewer isn't rendering
-> Mermaid — paste the code block into <https://mermaid.live> to see it. The tables in §2 below describe
-> every field in plain text, so the diagram is optional.
+| Kelompok | Tabel |
+|---|---|
+| Identitas & akses | `users`, `audit_logs` |
+| Sarana | `incubators`, `devices` |
+| Pasien | `babies`, `parents`, `maternal_records`, `baby_incubator_assignments` |
+| Asesmen klinis | `monitoring_records`, `observations`, `parent_involvement_records`, `aksi_records`, `doctor_notes` |
+| Telemetri | `sensor_readings`, `sensor_reading_minutes`, `sensor_alerts` |
+
+> **Cara melihat diagram.** Ditulis dengan [Mermaid](https://mermaid.js.org/), dan
+> ter-*render* otomatis di **GitHub** serta di **VS Code** (pasang ekstensi *Markdown
+> Preview Mermaid Support*). Bila yang tampak hanya teks `erDiagram`, tempelkan blok
+> kodenya ke <https://mermaid.live>. Bagian 2 menjelaskan setiap kolom dalam bentuk tabel
+> biasa, jadi diagramnya bersifat pelengkap, bukan syarat.
 
 ---
 
 ## 1. Diagram
 
+Diagram menampilkan kolom kunci saja agar tetap terbaca. Daftar kolom lengkap ada di
+Bagian 2.
+
 ```mermaid
 erDiagram
-    users ||--o{ baby_incubator_assignments : "assigns (assigned_by)"
-    users ||--o{ monitoring_records          : "records (recorded_by)"
-    users ||--o{ parent_involvement_records  : "records (recorded_by)"
-    users ||--o{ observations                : "records (recorded_by)"
-    users ||--o{ aksi_records                : "records (recorded_by)"
-    users ||--o{ audit_logs                  : "performs"
+    users ||--o{ baby_incubator_assignments : "menempatkan (assigned_by)"
+    users ||--o{ baby_incubator_assignments : "DPJP (dpjp_id)"
+    users ||--o{ monitoring_records          : "mencatat"
+    users ||--o{ observations                : "mencatat"
+    users ||--o{ parent_involvement_records  : "mencatat"
+    users ||--o{ aksi_records                : "mencatat"
+    users ||--o{ doctor_notes                : "menulis"
+    users ||--o{ sensor_alerts               : "menandai dibaca"
+    users ||--o{ audit_logs                  : "melakukan"
 
-    babies ||--|| parents                     : "has one"
-    babies ||--o{ baby_incubator_assignments  : "placed in"
-    babies ||--o{ monitoring_records           : "monitored by"
-    babies ||--o{ parent_involvement_records   : "engaged in"
-    babies ||--o{ observations                 : "assessed by"
-    babies ||--o{ aksi_records                 : "logged for"
+    babies ||--|| parents                    : "punya satu"
+    babies ||--|| maternal_records           : "punya satu"
+    babies ||--o{ baby_incubator_assignments : "ditempatkan"
+    babies ||--o{ monitoring_records         : "dipantau"
+    babies ||--o{ observations               : "diobservasi"
+    babies ||--o{ parent_involvement_records : "keluarga terlibat"
+    babies ||--o{ aksi_records               : "dicatat aksinya"
+    babies ||--o{ doctor_notes               : "dicatat dokter"
+    babies ||--o{ sensor_readings            : "pembacaan miliknya"
+    babies ||--o{ sensor_reading_minutes     : "agregat miliknya"
+    babies ||--o{ sensor_alerts              : "peringatan baginya"
 
-    incubators ||--o{ baby_incubator_assignments : "houses"
+    incubators ||--o{ baby_incubator_assignments : "menampung"
+    incubators ||--o| devices                    : "dipasangi (maks 1)"
+    incubators ||--o{ sensor_readings            : "sumber pembacaan"
+    incubators ||--o{ sensor_reading_minutes     : "sumber agregat"
+    incubators ||--o{ sensor_alerts              : "memicu"
+
+    devices ||--o{ sensor_readings : "mengirim"
 
     users {
-        uuid     id PK
-        enum     role "admin | perawat | dokter"
-        varchar  email UK
-        varchar  password_hash
-        varchar  full_name
-        boolean  is_active
-        timestamptz created_at
-        timestamptz updated_at
+        uuid id PK
+        enum role "admin | perawat | dokter"
+        varchar email UK
+        varchar password_hash "bcrypt"
+        boolean is_active
     }
 
     incubators {
-        uuid     incubator_id PK
-        varchar  incubator_no UK
-        varchar  location "nullable"
-        enum     status "kosong | terisi | warning | tidak_tersedia"
-        timestamptz created_at
-        timestamptz updated_at
+        uuid incubator_id PK
+        varchar incubator_no UK
+        enum status "kosong | terisi | warning | tidak_tersedia"
+        jsonb alert_thresholds "ambang per inkubator"
+    }
+
+    devices {
+        uuid device_id PK
+        uuid incubator_id FK "UNIQUE, nullable, ON DELETE SET NULL"
+        varchar device_key_hash UK "SHA-256"
+        timestamptz last_seen_at
+        varchar last_ip
+        varchar allowed_ip
     }
 
     babies {
-        uuid     baby_id PK
-        varchar  baby_name
-        enum     gender "laki_laki | perempuan"
-        date     birth_date
-        numeric  birth_weight "grams, nullable"
-        numeric  birth_length "cm, nullable"
-        smallint gestational_age "weeks, nullable"
-        varchar  birth_type "nullable"
-        text     clinical_notes "nullable"
-        boolean  is_active
-        timestamptz created_at
-        timestamptz updated_at
+        uuid baby_id PK
+        varchar baby_name
+        enum gender
+        date birth_date
+        numeric birth_weight
+        boolean is_active
     }
 
     parents {
-        uuid     parent_id PK
-        uuid     baby_id FK,UK "1:1 with babies, ON DELETE CASCADE"
-        varchar  mother_name "nullable"
-        varchar  father_name "nullable"
-        varchar  mother_phone "nullable"
-        text     mother_medical_history "nullable"
-        text     birth_history "nullable"
-        text     delivery_history "nullable"
-        text     additional_notes "nullable"
-        timestamptz created_at
-        timestamptz updated_at
+        uuid parent_id PK
+        uuid baby_id FK "UNIQUE, ON DELETE CASCADE"
+        varchar mother_name
+        varchar father_name
+    }
+
+    maternal_records {
+        uuid maternal_record_id PK
+        uuid baby_id FK "UNIQUE, ON DELETE CASCADE"
+        smallint kehamilan_ke
+        jsonb indikasi_prematur
+        jsonb komplikasi_persalinan
     }
 
     baby_incubator_assignments {
-        uuid     assignment_id PK
-        uuid     baby_id FK
-        uuid     incubator_id FK
-        uuid     assigned_by FK "-> users.id"
-        timestamptz assigned_at
-        timestamptz discharged_at "nullable"
-        enum     status "active | discharged"
+        uuid assignment_id PK
+        uuid baby_id FK
+        uuid incubator_id FK
+        uuid assigned_by FK
+        uuid dpjp_id FK "nullable"
+        enum status "active | discharged"
+        timestamptz discharged_at
     }
 
     monitoring_records {
-        uuid     monitoring_id PK
-        uuid     baby_id FK
-        uuid     recorded_by FK "-> users.id"
+        uuid monitoring_id PK
+        uuid baby_id FK
+        uuid recorded_by FK
         timestamptz observation_time
-        numeric  suhu_bayi "C, nullable"
-        numeric  suhu_inkubator "C, nullable"
-        numeric  kelembapan_inkubator "%RH, nullable (Pillar 7)"
-        smallint heart_rate "bpm, nullable"
-        smallint respiratory_rate "breaths/min, nullable (Pillar 1)"
-        numeric  spo2 "%, nullable"
-        smallint expression_score "1-5, nullable"
-        smallint movement_score "1-5, nullable"
-        smallint pain_score "0-7 NIPS, nullable (Pillar 6)"
-        smallint sleep_duration_min "minutes, nullable (Pillar 5)"
-        smallint sleep_quality "1-5, nullable (Pillar 5)"
-        smallint agitation_episodes "count, nullable (Pillar 5)"
-        text     catatan "nullable"
-        varchar  foto_url "nullable"
-        timestamptz created_at
-    }
-
-    parent_involvement_records {
-        uuid     involvement_id PK
-        uuid     baby_id FK
-        uuid     recorded_by FK "-> users.id"
-        timestamptz observation_time
-        jsonb    scores "Pillar 6 {keluarga_1..6: 0-3}"
-        text     catatan "nullable"
-        smallint durasi_menyusui "minutes, nullable"
-        smallint durasi_interaksi "minutes, nullable"
-        varchar  kondisi_bayi "nullable"
-        int      total_score "0-18, computed"
-        numeric  percentage "0-100, computed"
-        varchar  category "band, computed"
-        timestamptz created_at
+        numeric suhu_bayi
+        smallint heart_rate
+        smallint pain_score "NIPS 0-7"
     }
 
     observations {
-        uuid     observation_id PK
-        uuid     baby_id FK
-        uuid     recorded_by FK "-> users.id"
-        timestamptz observation_time
-        jsonb    scores "6-pillar (Monitoring Bayi) {item_code: 0-3}"
-        text     catatan "nullable"
-        int      total_score "0-126, computed"
-        numeric  percentage "0-100, computed"
-        varchar  category "band, computed"
-        timestamptz created_at
+        uuid observation_id PK
+        uuid baby_id FK
+        uuid recorded_by FK
+        jsonb scores "42 butir"
+        integer total_score "maks 168"
+    }
+
+    parent_involvement_records {
+        uuid involvement_id PK
+        uuid baby_id FK
+        uuid recorded_by FK
+        jsonb scores "6 butir"
+        integer total_score "maks 24"
     }
 
     aksi_records {
-        uuid     aksi_id PK
-        uuid     baby_id FK
-        uuid     recorded_by FK "-> users.id"
-        timestamptz observation_time
-        jsonb    scores "Pilar 8 Kolaborasi {item_code: 0-3}"
-        text     catatan "nullable"
-        int      total_score "0-18, computed"
-        numeric  percentage "0-100, computed"
-        varchar  category "band, computed"
-        timestamptz created_at
+        uuid aksi_id PK
+        uuid baby_id FK
+        uuid recorded_by FK
+        jsonb scores "6 butir"
+        integer total_score "maks 24"
+    }
+
+    doctor_notes {
+        uuid note_id PK
+        uuid baby_id FK "ON DELETE CASCADE"
+        uuid recorded_by FK "dokter"
+        text catatan
+    }
+
+    sensor_readings {
+        uuid reading_id PK
+        uuid incubator_id FK "ON DELETE CASCADE"
+        uuid baby_id FK "nullable, dari penempatan aktif"
+        uuid device_id FK "nullable"
+        timestamptz recorded_at "ditetapkan server"
+        enum source "sensor | simulator"
+    }
+
+    sensor_reading_minutes {
+        uuid bucket_id PK
+        uuid incubator_id FK
+        uuid baby_id FK
+        timestamptz minute "UNIQUE bersama incubator_id"
+        smallint sample_count
+    }
+
+    sensor_alerts {
+        uuid alert_id PK
+        uuid incubator_id FK
+        uuid baby_id FK
+        enum alert_type
+        enum severity "warning | critical"
+        timestamptz resolved_at "NULL = masih terbuka"
+        uuid acknowledged_by FK
     }
 
     audit_logs {
-        uuid     log_id PK
-        uuid     user_id FK "-> users.id, ON DELETE SET NULL, nullable"
-        varchar  action
-        varchar  table_name "nullable"
-        uuid     record_id "nullable"
-        inet     ip_address "nullable"
-        jsonb    details "nullable"
-        timestamptz created_at
+        uuid log_id PK
+        uuid user_id FK "ON DELETE SET NULL"
+        varchar action
+        varchar table_name
+        uuid record_id
+        inet ip_address
     }
 ```
 
 ---
 
-## 2. Entities
+## 2. Rincian Kolom
 
-### 2.1 `users`
-System accounts. RBAC is enforced from the `role` column.
+### 2.1 `users` — akun pengguna
 
-| Column | Type | Notes |
+| Kolom | Tipe | Keterangan |
 |---|---|---|
-| `id` | UUID | PK |
-| `role` | ENUM(`user_role`) | `admin`, `perawat`, `dokter` |
-| `email` | VARCHAR(255) | **UNIQUE**, login identity |
-| `password_hash` | VARCHAR(255) | bcrypt (passlib) |
+| `id` | UUID PK | |
+| `role` | `user_role` | `admin` · `perawat` · `dokter` |
+| `email` | VARCHAR(255) UNIQUE | dipakai untuk masuk |
+| `password_hash` | VARCHAR(255) | hash bcrypt; kata sandi asli tidak pernah disimpan |
 | `full_name` | VARCHAR(255) | |
-| `is_active` | BOOLEAN | soft-disable; inactive users are rejected at login and on every request |
-| `created_at` / `updated_at` | TIMESTAMPTZ | server defaults |
+| `is_active` | BOOLEAN | akun nonaktif tidak dapat masuk |
+| `created_at`, `updated_at` | TIMESTAMPTZ | |
 
-### 2.2 `incubators`
-Physical incubator units.
+### 2.2 `incubators` — sarana
 
-| Column | Type | Notes |
+| Kolom | Tipe | Keterangan |
 |---|---|---|
-| `incubator_id` | UUID | PK |
-| `incubator_no` | VARCHAR(10) | **UNIQUE** label, e.g. `INC-01` |
-| `location` | VARCHAR(255) | nullable |
-| `status` | ENUM(`incubator_status`) | `kosong`, `terisi`, `warning`, `tidak_tersedia` (default `kosong`) |
-| `created_at` / `updated_at` | TIMESTAMPTZ | |
+| `incubator_id` | UUID PK | |
+| `incubator_no` | VARCHAR(10) UNIQUE | `01`, `02`, … — dipakai firmware lama sebagai label |
+| `location` | VARCHAR(255) | mis. "NICU Ruang A" |
+| `status` | `incubator_status` | `kosong` · `terisi` · `warning` · `tidak_tersedia` |
+| `alert_thresholds` | JSONB | ambang batas **per inkubator**; kosong berarti memakai bawaan |
+| `created_at`, `updated_at` | TIMESTAMPTZ | |
 
-### 2.3 `babies`
-Neonate master record.
+### 2.3 `devices` — perangkat IoT
 
-| Column | Type | Notes |
+| Kolom | Tipe | Keterangan |
 |---|---|---|
-| `baby_id` | UUID | PK |
+| `device_id` | UUID PK | |
+| `incubator_id` | UUID FK **UNIQUE**, nullable | `ON DELETE SET NULL` — lihat catatan 4.3 |
+| `device_key_hash` | VARCHAR(64) UNIQUE | SHA-256 dari kunci perangkat; kunci asli tidak dapat dibaca kembali |
+| `label` | VARCHAR(100) | mis. "IoT device — INC-01" |
+| `firmware_version` | VARCHAR(20) | |
+| `last_seen_at` | TIMESTAMPTZ | menggerakkan lencana daring/luring |
+| `last_ip` | VARCHAR(45) | provenans, **bukan** identitas |
+| `allowed_ip` | VARCHAR(45) | penyaring opsional untuk jalur lama |
+| `is_active` | BOOLEAN | |
+
+### 2.4 `babies` — identitas bayi
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `baby_id` | UUID PK | |
 | `baby_name` | VARCHAR(255) | |
-| `gender` | ENUM(`gender_type`) | `laki_laki`, `perempuan` |
-| `birth_date` | DATE | drives `age_in_days` (computed at API layer) |
-| `birth_weight` | NUMERIC(6,2) | grams, nullable |
-| `birth_length` | NUMERIC(5,1) | cm, nullable |
-| `gestational_age` | SMALLINT | weeks, nullable |
-| `birth_type` | VARCHAR(100) | nullable |
-| `clinical_notes` | TEXT | nullable |
-| `is_active` | BOOLEAN | set `false` on discharge |
-| `created_at` / `updated_at` | TIMESTAMPTZ | |
+| `gender` | `gender_type` | `laki_laki` · `perempuan` |
+| `birth_date` | DATE | |
+| `jam_lahir` | TIME | |
+| `birth_weight` | NUMERIC(6,2) | gram |
+| `birth_length` | NUMERIC(5,1) | cm |
+| `lingkar_kepala`, `lingkar_dada` | NUMERIC(4,1) | cm |
+| `gestational_age` | SMALLINT | minggu |
+| `usia_masuk_nicu_jam` | SMALLINT | jam |
+| `birth_type` | VARCHAR(100) | |
+| `golongan_darah` | `blood_type` | `A` · `B` · `AB` · `O` |
+| `no_rm_bayi` | VARCHAR(50) | nomor rekam medis |
+| `clinical_notes` | TEXT | |
+| `is_active` | BOOLEAN | |
 
-### 2.4 `parents`
-Parent / family context — strict **1:1** with a baby (created together during registration).
+### 2.5 `parents` — data orang tua (1 : 1 dengan bayi)
 
-| Column | Type | Notes |
+| Kolom | Tipe | Keterangan |
 |---|---|---|
-| `parent_id` | UUID | PK |
-| `baby_id` | UUID | FK → `babies.baby_id`, **UNIQUE**, `ON DELETE CASCADE` |
-| `mother_name`, `father_name`, `mother_phone` | VARCHAR | nullable |
-| `mother_medical_history`, `birth_history`, `delivery_history`, `additional_notes` | TEXT | nullable |
-| `created_at` / `updated_at` | TIMESTAMPTZ | |
+| `parent_id` | UUID PK | |
+| `baby_id` | UUID FK **UNIQUE** | `ON DELETE CASCADE` |
+| `mother_name`, `father_name` | VARCHAR(255) | |
+| `mother_phone` | VARCHAR(20) | |
+| `mother_medical_history`, `birth_history`, `delivery_history`, `additional_notes` | TEXT | |
 
-### 2.5 `baby_incubator_assignments`
-Join/history table linking a baby to an incubator over time. Only one row per baby should be `active`.
+### 2.6 `maternal_records` — rekam medis ibu (1 : 1 dengan bayi)
 
-| Column | Type | Notes |
-|---|---|---|
-| `assignment_id` | UUID | PK |
-| `baby_id` | UUID | FK → `babies` |
-| `incubator_id` | UUID | FK → `incubators` |
-| `assigned_by` | UUID | FK → `users.id` (the nurse/admin who placed the baby) |
-| `assigned_at` | TIMESTAMPTZ | |
-| `discharged_at` | TIMESTAMPTZ | nullable; set when discharged |
-| `status` | ENUM(`assignment_status`) | `active`, `discharged` |
+Tabel terlebar, karena merekam riwayat kehamilan sekaligus. Dikelompokkan:
 
-### 2.6 `monitoring_records`
-Per-observation vitals + comfort scores. Implements **IFCDC 8-Pillar** fields
-(respiratory rate = Pillar 1, sleep = Pillar 5, pain = Pillar 6, humidity = Pillar 7).
-
-Key check constraints (enforced in DB **and** Pydantic):
-`expression_score`/`movement_score`/`sleep_quality` ∈ [1,5]; `pain_score` ∈ [0,7].
-
-`vital_status` (`normal`/`warning`) is **derived at runtime** — it is not stored. See [SEQUENCE_DIAGRAMS.md](SEQUENCE_DIAGRAMS.md) §2.
-
-### 2.7 `parent_involvement_records`
-Keterlibatan Orang Tua = **Pillar 6 "Kerjasama dengan Keluarga"** (6 items, each **0–3**), stored as
-a `JSONB` `scores` map (`{keluarga_1..6: 0-3}`). `total_score` (0–18), `percentage`, and `category`
-are computed in the service layer from the fixed catalog. Contextual columns (`durasi_*`,
-`kondisi_bayi`, `catatan`) are optional and not scored.
-
-### 2.8 `observations`
-The **Monitoring Bayi** instrument — currently 6 pillars / 42 items, each **0–3**, stored as a
-`JSONB` `scores` map (`{item_code: 0-3}`). `total_score` (0–126), `percentage`, and `category` are
-computed from the catalog. Any item scored **0** flips the baby's active incubator to `warning`.
-Banding (all instruments): ≥85 Sangat Baik · 70–84 Baik · 55–69 Cukup · 40–54 Kurang · <40 Sangat Kurang.
-Two pillars of the original 8-pillar instrument live in their own tables: Pillar 6 → `parent_involvement_records` (§2.7), Pillar 8 → `aksi_records` (§2.9).
-
-### 2.9 `aksi_records`
-**Menu Aksi** — Pillar 8 "Kolaborasi Interprofesional" (6 items, each **0–3**), pulled out of Monitoring Bayi.
-`JSONB` `scores` (`{item_code: 0-3}`) with computed `total_score` (0–18), `percentage`, and `category`.
-No incubator side effect. Same layout as `observations`.
-
-### 2.10 `audit_logs`
-Append-only trail. `user_id` is `ON DELETE SET NULL` so the trail survives user deletion.
-`details` is a flexible `JSONB` payload; `ip_address` uses the native `INET` type.
-
----
-
-## 3. Relationship summary
-
-| Parent | Child | Cardinality | FK | On delete |
-|---|---|---|---|---|
-| `babies` | `parents` | 1 : 1 | `parents.baby_id` | CASCADE |
-| `babies` | `baby_incubator_assignments` | 1 : N | `baby_id` | — |
-| `incubators` | `baby_incubator_assignments` | 1 : N | `incubator_id` | — |
-| `users` | `baby_incubator_assignments` | 1 : N | `assigned_by` | — |
-| `babies` | `monitoring_records` | 1 : N | `baby_id` | — |
-| `users` | `monitoring_records` | 1 : N | `recorded_by` | — |
-| `babies` | `parent_involvement_records` | 1 : N | `baby_id` | — |
-| `users` | `parent_involvement_records` | 1 : N | `recorded_by` | — |
-| `babies` | `observations` | 1 : N | `baby_id` | — |
-| `users` | `observations` | 1 : N | `recorded_by` | — |
-| `babies` | `aksi_records` | 1 : N | `baby_id` | — |
-| `users` | `aksi_records` | 1 : N | `recorded_by` | — |
-| `users` | `audit_logs` | 1 : N | `user_id` | SET NULL |
-
----
-
-## 4. Enumerated types
-
-| PostgreSQL enum | Values |
+| Kelompok | Kolom |
 |---|---|
-| `user_role` | `admin`, `perawat`, `dokter` |
-| `incubator_status` | `kosong`, `terisi`, `warning`, `tidak_tersedia` |
-| `gender_type` | `laki_laki`, `perempuan` |
-| `assignment_status` | `active`, `discharged` |
+| Identitas ibu | `no_rm_ibu`, `umur_ibu`, `pendidikan`, `pekerjaan`, `alamat`, `golongan_darah` |
+| Riwayat obstetri | `kehamilan_ke`, `jumlah_persalinan_hidup`, `riwayat_abortus`, `riwayat_prematur`, `riwayat_bblr`, `riwayat_bayi_meninggal` |
+| Kehamilan ini | `usia_kehamilan_lahir`, `jenis_kehamilan`, `anc_rutin`, `jumlah_anc` |
+| Penyulit | `hipertensi_kehamilan`, `preeklamsia`, `diabetes_gestasional`, `infeksi_hamil`, `perdarahan_hamil`, `ketuban_pecah_dini` |
+| Paparan | `merokok`, `paparan_asap_rokok`, `konsumsi_alkohol`, `obat_tertentu`, `obat_tertentu_ket` |
+| Persalinan | `tanggal_persalinan`, `jenis_persalinan`, `tempat_persalinan`, `indikasi_prematur` (JSONB), `indikasi_prematur_lainnya`, `komplikasi_persalinan` (JSONB), `komplikasi_lainnya` |
+| Kondisi bayi lahir | `apgar_menit_1`, `apgar_menit_5` |
+| Kondisi ibu pascasalin | `kondisi_umum`, `masih_dirawat`, `komplikasi_postpartum`, `dapat_berjalan`, `dapat_menyusui` |
+
+`indikasi_prematur` dan `komplikasi_persalinan` berupa JSONB karena keduanya pilihan
+ganda yang daftarnya dapat bertambah tanpa mengubah skema.
+
+### 2.7 `baby_incubator_assignments` — penempatan bayi di inkubator
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `assignment_id` | UUID PK | |
+| `baby_id` | UUID FK | |
+| `incubator_id` | UUID FK | |
+| `assigned_by` | UUID FK → `users` | yang menempatkan |
+| `dpjp_id` | UUID FK → `users`, nullable | dokter penanggung jawab |
+| `assigned_at` | TIMESTAMPTZ | |
+| `discharged_at` | TIMESTAMPTZ, nullable | terisi saat pemulangan |
+| `status` | `assignment_status` | `active` · `discharged` |
+| `no_registrasi_nicu` | VARCHAR(30) UNIQUE | |
+| `rumah_sakit`, `ruang_nicu` | VARCHAR | |
+
+**Tabel inilah** yang menjawab "bayi mana yang sedang ada di inkubator ini" — dipakai server
+untuk menetapkan `baby_id` pada setiap pembacaan sensor.
+
+### 2.8 `monitoring_records` — monitoring tanda vital
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `monitoring_id` | UUID PK | |
+| `baby_id`, `recorded_by` | UUID FK | |
+| `observation_time` | TIMESTAMPTZ | waktu pengamatan, diisi pencatat |
+| `suhu_bayi`, `suhu_inkubator` | NUMERIC(4,1) | °C |
+| `kelembapan_inkubator` | NUMERIC(5,2) | % |
+| `heart_rate`, `respiratory_rate` | SMALLINT | bpm, x/mnt |
+| `spo2` | NUMERIC(5,2) | % |
+| `pain_score` | SMALLINT | NIPS, `CHECK 0–7` |
+| `expression_score`, `movement_score` | SMALLINT | `CHECK 1–5` |
+| `sleep_duration_min` | SMALLINT | menit |
+| `sleep_quality` | SMALLINT | `CHECK 1–5` |
+| `agitation_episodes` | SMALLINT | |
+| `catatan` | TEXT | |
+| `foto_url` | VARCHAR(500) | |
+
+Seluruh kolom vital **nullable**: kosong berarti *tidak diukur*, dan itu berbeda dari nol.
+
+### 2.9 `observations`, `parent_involvement_records`, `aksi_records` — asesmen berskor
+
+Ketiganya berstruktur sama:
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `<x>_id` | UUID PK | |
+| `baby_id`, `recorded_by` | UUID FK | |
+| `observation_time` | TIMESTAMPTZ | |
+| `scores` | JSONB | `{"kode_butir": nilai}` |
+| `total_score` | INTEGER | dihitung server |
+| `percentage` | NUMERIC(5,2) | |
+| `category` | VARCHAR(30) | kategori hasil |
+| `catatan` | TEXT | |
+
+Yang membedakan hanya katalog butirnya:
+
+| Tabel | Pilar | Jumlah butir | Skor/butir | Maksimum |
+|---|---|---|---|---|
+| `observations` | perkembangan & lingkungan | 42 | 0–4 | 168 |
+| `parent_involvement_records` | keluarga | 6 | 0–4 | 24 |
+| `aksi_records` | kolaborasi | 6 | 0–4 | 24 |
+
+`parent_involvement_records` menambah `durasi_menyusui`, `durasi_interaksi` (SMALLINT,
+menit) dan `kondisi_bayi` (VARCHAR).
+
+Butir asesmen **tidak** disimpan sebagai kolom, melainkan sebagai kunci di dalam `scores`.
+Katalognya ada di sisi aplikasi (`backend/app/services/*_catalog.py`), sehingga menambah
+atau mengubah butir tidak menuntut migrasi basis data.
+
+### 2.10 `doctor_notes` — catatan dokter
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `note_id` | UUID PK | |
+| `baby_id` | UUID FK | `ON DELETE CASCADE` |
+| `recorded_by` | UUID FK → `users` | hanya peran dokter yang boleh menulis |
+| `observation_time` | TIMESTAMPTZ | |
+| `catatan` | TEXT NOT NULL | |
+
+### 2.11 `sensor_readings` — telemetri mentah
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `reading_id` | UUID PK | |
+| `incubator_id` | UUID FK | `ON DELETE CASCADE` |
+| `baby_id` | UUID FK, nullable | **ditetapkan server** dari penempatan aktif |
+| `device_id` | UUID FK, nullable | NULL bila masuk lewat jalur lama |
+| `recorded_at` | TIMESTAMPTZ | **ditetapkan server** — ESP8266 tidak punya RTC |
+| `suhu_bayi`, `suhu_inkubator` | NUMERIC(4,1) | °C |
+| `kelembapan_inkubator` | NUMERIC(5,2) | % |
+| `heart_rate`, `respiratory_rate` | SMALLINT | |
+| `spo2` | NUMERIC(5,2) | |
+| `source` | `sensor_source` | `sensor` · `simulator` |
+
+Nilai NULL berarti sensor **tidak mengirim nilai**, bukan nol. Grafik memutus garis pada
+titik itu.
+
+### 2.12 `sensor_reading_minutes` — agregat per menit
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `bucket_id` | UUID PK | |
+| `incubator_id` | UUID FK | **UNIQUE bersama `minute`** |
+| `baby_id` | UUID FK, nullable | |
+| `minute` | TIMESTAMPTZ | awal menit |
+| `sample_count` | SMALLINT | jumlah sampel mentah dalam menit itu |
+| `<metrik>_avg` / `_min` / `_max` | NUMERIC | untuk `suhu_bayi`, `suhu_inkubator`, `kelembapan_inkubator`, `heart_rate`, `spo2` |
+
+Disimpan **permanen**. Pembacaan mentah dihapus setelah 7 hari, tetapi ringkasan per menit
+tetap ada, sehingga tren jangka panjang tidak hilang.
+
+### 2.13 `sensor_alerts` — peringatan ambang batas
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `alert_id` | UUID PK | |
+| `incubator_id` | UUID FK | `ON DELETE CASCADE` |
+| `baby_id` | UUID FK, nullable | |
+| `alert_type` | `sensor_alert_type` | `desaturation` · `bradycardia` · `tachycardia` · `temp_out_of_range` |
+| `metric_key` | VARCHAR(40) | metrik yang melanggar |
+| `severity` | `sensor_alert_severity` | `warning` · `critical` |
+| `value`, `threshold` | NUMERIC(6,2) | nilai terbaca dan batas yang dilanggar |
+| `started_at` | TIMESTAMPTZ | |
+| `resolved_at` | TIMESTAMPTZ, nullable | **NULL berarti masih terbuka** |
+| `acknowledged_by` | UUID FK → `users`, nullable | |
+| `acknowledged_at` | TIMESTAMPTZ, nullable | |
+
+### 2.14 `audit_logs` — jejak perubahan
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `log_id` | UUID PK | |
+| `user_id` | UUID FK, nullable | `ON DELETE SET NULL` — jejak tetap ada meski akun dihapus |
+| `action` | VARCHAR(50) | `CREATE` · `UPDATE` · `DELETE` |
+| `table_name` | VARCHAR(100) | |
+| `record_id` | UUID | baris yang diubah |
+| `ip_address` | INET | |
+| `details` | JSONB | |
+
+Bersifat **tambah-saja**: aplikasi tidak menyediakan jalan untuk mengubah atau menghapusnya.
+
+---
+
+## 3. Enum
+
+| Enum | Nilai |
+|---|---|
+| `user_role` | `admin` · `perawat` · `dokter` |
+| `incubator_status` | `kosong` · `terisi` · `warning` · `tidak_tersedia` |
+| `assignment_status` | `active` · `discharged` |
+| `gender_type` | `laki_laki` · `perempuan` |
+| `blood_type` | `A` · `B` · `AB` · `O` |
+| `pendidikan_type` | `tidak_sekolah` · `sd` · `smp` · `sma` · `diploma` · `s1` · `s2` · `s3` |
+| `jenis_persalinan` | `normal` · `sc` · `vakum` · `forceps` |
+| `jenis_kehamilan` | `tunggal` · `kembar` |
+| `kondisi_umum` | `baik` · `cukup` · `buruk` |
+| `sensor_source` | `sensor` · `simulator` |
+| `sensor_alert_type` | `desaturation` · `bradycardia` · `tachycardia` · `temp_out_of_range` |
+| `sensor_alert_severity` | `warning` · `critical` |
+
+---
+
+## 4. Kekangan dan Keputusan Rancangan
+
+Bagian ini menjelaskan kekangan yang **tidak terbaca dari daftar kolom**, tetapi menentukan
+perilaku sistem.
+
+### 4.1 Satu bayi, satu inkubator — ditegakkan basis data
+
+Dua *unique index* parsial pada `baby_incubator_assignments`:
+
+```sql
+uq_active_baby_assignment       ON (baby_id)       WHERE status = 'active'
+uq_active_incubator_assignment  ON (incubator_id)  WHERE status = 'active'
+```
+
+Artinya seorang bayi tidak dapat aktif di dua inkubator, dan sebuah inkubator tidak dapat
+menampung dua bayi — dan itu **dijamin basis data**, bukan sekadar dijaga aplikasi.
+Riwayat penempatan lama tetap tersimpan karena kekangannya hanya berlaku saat
+`status = 'active'`.
+
+### 4.2 Satu peringatan terbuka per jenis
+
+```sql
+idx_sensor_alerts_open_unique ON (incubator_id, alert_type) WHERE resolved_at IS NULL
+```
+
+Mencegah satu inkubator membanjiri daftar dengan peringatan yang sama berulang-ulang.
+Peringatan yang sudah selesai (`resolved_at` terisi) tidak lagi terkena kekangan, sehingga
+kejadian berikutnya tetap dapat dicatat.
+
+### 4.3 Perangkat bertahan hidup melewati inkubatornya
+
+```sql
+devices.incubator_id UUID UNIQUE REFERENCES incubators(...) ON DELETE SET NULL
+```
+
+`SET NULL`, bukan `CASCADE`, dan itu disengaja: unit fisiknya lebih awet daripada baris
+inkubator di basis data. Bila inkubator dihapus, perangkat **tetap ada beserta kuncinya**
+dan menjadi tidak terikat. Alat yang kemudian mengirim akan menerima **409** yang dapat
+didiagnosis, bukan **401** yang menyesatkan seolah kuncinya salah dan perlu diprogram ulang.
+
+Kekangan `UNIQUE` pada kolom yang sama menegakkan "satu perangkat per inkubator".
+
+### 4.4 Riwayat klinis tidak ikut terhapus
+
+| Relasi | Perilaku | Alasan |
+|---|---|---|
+| `sensor_readings.device_id` | `SET NULL` | pembacaan tetap sah meski perangkatnya dilepas |
+| `sensor_readings.baby_id` | `SET NULL` | pembacaan tetap terikat inkubatornya |
+| `audit_logs.user_id` | `SET NULL` | jejak audit tidak boleh hilang bersama akun |
+| `parents`, `maternal_records`, `doctor_notes` → `babies` | `CASCADE` | data ini tidak bermakna tanpa bayinya |
+| `sensor_readings`, `sensor_alerts`, `sensor_reading_minutes` → `incubators` | `CASCADE` | telemetri melekat pada inkubatornya |
+
+### 4.5 Retensi
+
+| Data | Umur simpan |
+|---|---|
+| `sensor_readings` (mentah) | **7 hari** |
+| `sensor_reading_minutes` (agregat) | permanen |
+| Seluruh asesmen klinis yang dicatat manusia | permanen, tidak pernah dihapus otomatis |
+
+Peringkasan dan pembersihan berjalan otomatis tiap **6 jam**.
+
+### 4.6 NULL bukan nol
+
+Berlaku di seluruh tabel telemetri dan monitoring. Kolom vital yang NULL berarti *tidak ada
+pembacaan*; nol berarti *terbaca nol*. Server menormalkan `heart_rate = 0` dan `spo2 = 0`
+dari perangkat menjadi NULL, karena nilai itu berarti probe tidak menyentuh bayi — bukan
+bradikardia berat.
+
+---
+
+## 5. Indeks Utama
+
+| Indeks | Tabel | Guna |
+|---|---|---|
+| `idx_sensor_readings_incubator_time` | `sensor_readings` | backfill grafik, terurut waktu menurun |
+| `idx_sensor_minutes_incubator_time` | `sensor_reading_minutes` | tren jangka panjang |
+| `idx_sensor_alerts_incubator_time` | `sensor_alerts` | riwayat peringatan per inkubator |
+| `idx_monitoring_baby_time` | `monitoring_records` | riwayat monitoring per bayi |
+| `idx_observation_baby_time` | `observations` | riwayat observasi |
+| `idx_involvement_baby_time` | `parent_involvement_records` | riwayat keterlibatan |
+| `idx_aksi_baby_time` | `aksi_records` | riwayat aksi |
+| `ix_doctor_notes_baby` | `doctor_notes` | catatan per bayi |
+| `idx_assignment_baby`, `idx_assignment_incubator` | `baby_incubator_assignments` | pencarian penempatan |
+| `idx_audit_user_time`, `idx_audit_table_record` | `audit_logs` | penelusuran jejak |
+
+---
+
+## 6. Riwayat Dokumen
+
+| Versi | Tanggal | Perubahan |
+|---|---|---|
+| 2.0 | 8 September 2026 | Disusun ulang dari `schema.sql` pada revisi `e8c4b2f91d37`. Menambahkan enam tabel yang sebelumnya tidak tercakup: `devices`, `sensor_readings`, `sensor_reading_minutes`, `sensor_alerts`, `maternal_records`, `doctor_notes`. Menambahkan Bagian 4 (kekangan dan keputusan rancangan) dan Bagian 5 (indeks). |
+| 1.0 | — | Versi awal, mencerminkan revisi `c3a5e7f20b1d`; memuat 10 tabel dan tidak mencakup pekerjaan IoT. |
