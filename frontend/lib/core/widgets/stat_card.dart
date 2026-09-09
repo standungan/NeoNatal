@@ -19,7 +19,7 @@ class StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -43,12 +43,20 @@ class StatCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 3),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w600,
-                color: AppColors.inkMuted,
+            // Lima kartu berbagi satu baris, jadi lebarnya hanya seperlima
+            // layar. Tanpa ini 'Warning' dan 'Nonaktif' patah di tengah kata
+            // ('Warnin' / 'g'). Dikecilkan seperlunya, tetap satu baris.
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label,
+                maxLines: 1,
+                softWrap: false,
+                style: const TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.inkMuted,
+                ),
               ),
             ),
           ],

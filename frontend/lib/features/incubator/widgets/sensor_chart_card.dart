@@ -261,6 +261,7 @@ class _Panel extends StatelessWidget {
     final pad = ((hi - lo) * 0.12).clamp(0.5, double.infinity);
     final minY = domain?.min ?? (lo - pad);
     final maxY = domain?.max ?? (hi + pad);
+    final step = (maxY - minY) / 4;
 
     return LineChartData(
       minY: minY,
@@ -271,6 +272,7 @@ class _Panel extends StatelessWidget {
       gridData: FlGridData(
         show: true,
         drawVerticalLine: false,
+        horizontalInterval: step,
         getDrawingHorizontalLine: (_) =>
             const FlLine(color: Color(0xFFEEF2F7), strokeWidth: 1),
       ),
@@ -294,23 +296,45 @@ class _Panel extends StatelessWidget {
           sideTitles: SideTitles(
             showTitles: true,
             reservedSize: 38,
-            getTitlesWidget: (v, meta) => Text(
-              _fmt(v),
-              style: const TextStyle(fontSize: 9.5, color: AppColors.inkMuted),
-            ),
+            interval: step,
+            // Tanpa interval yang tetap, fl_chart menandai tepi bawah sumbu
+            // sekaligus tick pertama; pada rentang sempit keduanya jatuh nyaris
+            // di titik yang sama dan angkanya bertumpuk ('26.0' menimpa '25.7').
+            // Kedua tepi dilewati, tersisa tiga label yang berjarak sama.
+            getTitlesWidget: (v, meta) {
+              if (v <= minY + step * 0.05 || v >= maxY - step * 0.05) {
+                return const SizedBox.shrink();
+              }
+              return Text(
+                _fmt(v),
+                style: const TextStyle(fontSize: 9.5, color: AppColors.inkMuted),
+              );
+            },
           ),
         ),
         bottomTitles: AxisTitles(
           sideTitles: SideTitles(
             showTitles: true,
             reservedSize: 22,
-            interval: (rows.length / 3).clamp(1, double.infinity),
+            // Dibagi atas jarak antar-titik terjauh, bukan jumlah baris, supaya
+            // tick terakhir jatuh tepat pada bacaan terbaru - jam yang paling
+            // ingin dilihat orang.
+            interval: ((rows.length - 1) / 3).clamp(1, double.infinity),
             getTitlesWidget: (v, meta) {
               final i = v.round();
               if (i < 0 || i >= rows.length) return const SizedBox.shrink();
-              return Text(
-                DateFormat('HH:mm:ss').format(rows[i].recordedAt),
-                style: const TextStyle(fontSize: 9, color: AppColors.inkMuted),
+              // Label paling kanan berpusat tepat di tepi kanvas, jadi separuhnya
+              // terpotong ('07:31:14' tinggal '07:31:14...'). fitInside menggeser
+              // label tepi ke dalam alih-alih memotongnya.
+              return SideTitleWidget(
+                axisSide: meta.axisSide,
+                space: 4,
+                fitInside:
+                    SideTitleFitInsideData.fromTitleMeta(meta, distanceFromEdge: 0),
+                child: Text(
+                  DateFormat('HH:mm:ss').format(rows[i].recordedAt),
+                  style: const TextStyle(fontSize: 9, color: AppColors.inkMuted),
+                ),
               );
             },
           ),
