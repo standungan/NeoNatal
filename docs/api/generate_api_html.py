@@ -171,25 +171,33 @@ total = sum(len(v) for v in groups.values())
 
 CSS = """
 :root{
-  --ink:#0F172A; --ink-muted:#64748B; --ink-faint:#94A3B8;
-  --surface:#F4F7FB; --card:#FFFFFF; --line:#E9EEF5; --line-strong:#D7E0EC;
-  --primary:#2563EB; --accent:#0EA5E9;
+  /* Diambil persis dari web/app/globals.css @theme — dokumen ini harus terlihat
+     seperti aplikasinya, bukan seperti dokumen yang kebetulan bertema mirip. */
+  --primary:#2563EB; --primary-dark:#1D4ED8; --accent:#0EA5E9;
+  --surface:#F4F7FB; --card:#FFFFFF; --ink:#0F172A;
+  --ink-muted:#64748B; --ink-faint:#94A3B8; --line:#E9EEF5; --line-strong:#D7E0EC;
   --ok:#10B981; --warn:#F59E0B; --bad:#EF4444;
-  --sans:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;
-  --serif:"IBM Plex Serif",Georgia,"Times New Roman",serif;
-  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  --sans:Manrope,ui-sans-serif,system-ui,-apple-system,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --radius-card:18px;
+  --shadow-card:0 8px 24px -6px rgba(30,41,59,.10), 0 2px 6px -2px rgba(15,23,42,.05);
+  --shadow-soft:0 4px 14px -4px rgba(16,24,40,.08);
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --ink:#E8EEF7; --ink-muted:#93A3B8; --ink-faint:#6B7C93;
-  --surface:#0B1220; --card:#111A2B; --line:#1E2A3E; --line-strong:#2B3A52;
-  --primary:#5B9BFF; --accent:#38BDF8;
+  --primary:#5B9BFF; --primary-dark:#3B82F6; --accent:#38BDF8;
+  --surface:#0B1220; --card:#111A2B; --ink:#E8EEF7;
+  --ink-muted:#9DAABF; --ink-faint:#6B7C93; --line:#1E2A3E; --line-strong:#2B3A52;
   --ok:#34D399; --warn:#FBBF24; --bad:#F87171;
+  --shadow-card:0 8px 24px -6px rgba(0,0,0,.45), 0 2px 6px -2px rgba(0,0,0,.30);
+  --shadow-soft:0 4px 14px -4px rgba(0,0,0,.35);
 }}
 :root[data-theme="dark"]{
-  --ink:#E8EEF7; --ink-muted:#93A3B8; --ink-faint:#6B7C93;
-  --surface:#0B1220; --card:#111A2B; --line:#1E2A3E; --line-strong:#2B3A52;
-  --primary:#5B9BFF; --accent:#38BDF8;
+  --primary:#5B9BFF; --primary-dark:#3B82F6; --accent:#38BDF8;
+  --surface:#0B1220; --card:#111A2B; --ink:#E8EEF7;
+  --ink-muted:#9DAABF; --ink-faint:#6B7C93; --line:#1E2A3E; --line-strong:#2B3A52;
   --ok:#34D399; --warn:#FBBF24; --bad:#F87171;
+  --shadow-card:0 8px 24px -6px rgba(0,0,0,.45), 0 2px 6px -2px rgba(0,0,0,.30);
+  --shadow-soft:0 4px 14px -4px rgba(0,0,0,.35);
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
@@ -204,7 +212,7 @@ header.masthead{border-bottom:1px solid var(--line);background:var(--card)}
 .mast-in{max-width:1180px;margin:0 auto;padding:34px 28px 26px}
 .eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;
   color:var(--ink-faint);margin:0 0 10px}
-h1{font-family:var(--serif);font-weight:700;font-size:32px;line-height:1.15;margin:0 0 10px;
+h1{font-family:var(--sans);font-weight:700;font-size:32px;line-height:1.15;margin:0 0 10px;
   text-wrap:balance;letter-spacing:-.01em}
 .sub{color:var(--ink-muted);margin:0;max-width:64ch}
 .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
@@ -212,9 +220,11 @@ h1{font-family:var(--serif);font-weight:700;font-size:32px;line-height:1.15;marg
   padding:4px 11px;color:var(--ink-muted);background:var(--surface)}
 .chip b{color:var(--ink);font-weight:600}
 .auth{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:14px;margin-top:22px}
-.auth div{border:1px solid var(--line);border-left:3px solid var(--primary);
-  border-radius:0 8px 8px 0;padding:13px 16px;background:var(--surface)}
-.auth div.dev{border-left-color:var(--accent)}
+.auth div{border:1px solid var(--line);border-radius:var(--radius-card);
+  padding:14px 17px;background:var(--surface)}
+.auth h3::before{content:'';display:inline-block;width:8px;height:8px;border-radius:50%;
+  background:var(--primary);margin-right:8px;vertical-align:middle}
+.auth div.dev h3::before{background:var(--accent)}
 .auth h3{margin:0 0 5px;font-size:13px;font-family:var(--mono);letter-spacing:.01em;font-weight:600}
 .auth p{margin:0;font-size:13.5px;color:var(--ink-muted)}
 .rail{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding-top:34px}
@@ -228,13 +238,13 @@ h1{font-family:var(--serif);font-weight:700;font-size:32px;line-height:1.15;marg
   font-variant-numeric:tabular-nums}
 main{padding-top:34px}
 .tag{margin:0 0 46px;scroll-margin-top:16px}
-.tag h2{font-family:var(--serif);font-size:21px;margin:0 0 7px;padding-bottom:9px;
+.tag h2{font-family:var(--sans);font-size:21px;margin:0 0 7px;padding-bottom:9px;
   border-bottom:2px solid var(--line-strong)}
 .tagnote{color:var(--ink-muted);font-size:13.5px;margin:0 0 16px;max-width:72ch}
 .tagnote code{font-family:var(--mono);font-size:12.5px;background:var(--line);
   padding:1px 5px;border-radius:4px}
-.ep{background:var(--card);border:1px solid var(--line);border-radius:10px;
-  padding:16px 18px;margin-bottom:12px}
+.ep{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-card);
+  padding:17px 19px;margin-bottom:12px;box-shadow:var(--shadow-soft)}
 .epline{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .m{font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.05em;color:#fff;
   padding:3px 8px;border-radius:5px}
@@ -297,7 +307,7 @@ q.addEventListener('input',function(){
 HTML = """<title>Neonatal Care API</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
 <style>%s</style>
 
 <header class="masthead"><div class="mast-in">
