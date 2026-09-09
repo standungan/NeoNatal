@@ -170,6 +170,12 @@ info = api["info"]
 total = sum(len(v) for v in groups.values())
 
 CSS = """
+/* Sengaja satu tema saja: TERANG, di perangkat apa pun.
+   Dashboard (web/app/globals.css) tidak mendefinisikan tema gelap sama sekali,
+   sehingga selalu terang. Menghormati prefers-color-scheme di sini justru membuat
+   dokumen dan aplikasi berbeda rupa pada perangkat bermode gelap - persis yang
+   ingin dihindari. Setiap warna tetap ditulis eksplisit, termasuk latar body,
+   supaya halaman tidak meminjam warna dasar peramban. */
 :root{
   /* Diambil persis dari web/app/globals.css @theme — dokumen ini harus terlihat
      seperti aplikasinya, bukan seperti dokumen yang kebetulan bertema mirip. */
@@ -182,22 +188,6 @@ CSS = """
   --radius-card:18px;
   --shadow-card:0 8px 24px -6px rgba(30,41,59,.10), 0 2px 6px -2px rgba(15,23,42,.05);
   --shadow-soft:0 4px 14px -4px rgba(16,24,40,.08);
-}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --primary:#5B9BFF; --primary-dark:#3B82F6; --accent:#38BDF8;
-  --surface:#0B1220; --card:#111A2B; --ink:#E8EEF7;
-  --ink-muted:#9DAABF; --ink-faint:#6B7C93; --line:#1E2A3E; --line-strong:#2B3A52;
-  --ok:#34D399; --warn:#FBBF24; --bad:#F87171;
-  --shadow-card:0 8px 24px -6px rgba(0,0,0,.45), 0 2px 6px -2px rgba(0,0,0,.30);
-  --shadow-soft:0 4px 14px -4px rgba(0,0,0,.35);
-}}
-:root[data-theme="dark"]{
-  --primary:#5B9BFF; --primary-dark:#3B82F6; --accent:#38BDF8;
-  --surface:#0B1220; --card:#111A2B; --ink:#E8EEF7;
-  --ink-muted:#9DAABF; --ink-faint:#6B7C93; --line:#1E2A3E; --line-strong:#2B3A52;
-  --ok:#34D399; --warn:#FBBF24; --bad:#F87171;
-  --shadow-card:0 8px 24px -6px rgba(0,0,0,.45), 0 2px 6px -2px rgba(0,0,0,.30);
-  --shadow-soft:0 4px 14px -4px rgba(0,0,0,.35);
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
