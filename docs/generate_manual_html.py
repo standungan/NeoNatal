@@ -49,24 +49,25 @@ MAX_W = 1600
 
 
 def embed(path):
-    """Kembalikan (mime, bytes) yang siap disisipkan sebagai data URI."""
+    """Kembalikan (mime, bytes, tegak) yang siap disisipkan sebagai data URI."""
     raw = path.read_bytes()
     try:
         from PIL import Image
     except ImportError:
-        return "image/png", raw            # tanpa Pillow, sisipkan apa adanya
+        return "image/png", raw, False     # tanpa Pillow, sisipkan apa adanya
     import io
     try:
         im = Image.open(io.BytesIO(raw))
+        tegak = im.width <= 1200 and im.height >= im.width * 1.7   # layar ponsel
         if im.width > MAX_W:
             im = im.resize((MAX_W, round(im.height * MAX_W / im.width)), Image.LANCZOS)
         buf = io.BytesIO()
         im.convert("RGB").save(buf, "JPEG", quality=85, optimize=True, progressive=True)
         small = buf.getvalue()
         # Kalau hasilnya justru lebih besar, pakai berkas aslinya.
-        return ("image/jpeg", small) if len(small) < len(raw) else ("image/png", raw)
+        return ("image/jpeg", small, tegak) if len(small) < len(raw) else ("image/png", raw, tegak)
     except Exception:
-        return "image/png", raw
+        return "image/png", raw, False
 
 
 def convert(md):
@@ -89,10 +90,11 @@ def convert(md):
             alt, src = m.group(1), m.group(2)
             f = (ROOT / src).resolve()
             if f.exists():
-                mime, data = embed(f)
-                out.append('<figure class="shot"><img alt="%s" src="data:%s;base64,%s">'
+                mime, data, tegak = embed(f)
+                out.append('<figure class="shot%s"><img alt="%s" src="data:%s;base64,%s">'
                            '<figcaption>%s</figcaption></figure>'
-                           % (e(alt), mime, base64.b64encode(data).decode("ascii"), e(alt)))
+                           % (" phone" if tegak else "", e(alt), mime,
+                              base64.b64encode(data).decode("ascii"), e(alt)))
             else:
                 out.append('<figure class="shot"><div class="slot">'
                            '<span class="slot-tag">Gambar belum ada</span>'
@@ -249,6 +251,8 @@ th{text-align:left;font-weight:600;font-size:11.5px;letter-spacing:.06em;text-tr
 td{padding:9px 13px;border-bottom:1px solid var(--line);vertical-align:top}
 tr:last-child td{border-bottom:0}
 figure.shot{margin:0 0 22px}
+figure.shot.phone img{width:auto;max-width:300px;margin:0 auto}
+figure.shot.phone figcaption{text-align:center}
 figure.shot img{width:100%;height:auto;display:block;border:1px solid var(--line);
   border-radius:var(--radius-card);background:var(--card);box-shadow:var(--shadow-card)}
 figure.shot figcaption{margin-top:7px;font-size:13px;color:var(--ink-faint);
@@ -317,7 +321,7 @@ def main():
 """ % (CSS, "".join(nav), body)
 
     OUT.write_text(page, encoding="utf-8")
-    imgs = page.count("<figure class=\"shot\"><img")
+    imgs = page.count('<figure class="shot')
     slots = page.count('class="slot"')
     print("  %s (%s bytes, %d bagian, %d gambar, %d slot kosong)"
           % (OUT.name, format(len(page), ","), len(toc), imgs, slots))

@@ -32,11 +32,53 @@ pertimbangan, bukan pengganti pemeriksaan.
 
 | | |
 |---|---|
-| **Dasbor web** | Peramban di komputer bangsal. Layar lebar, cocok untuk mengisi formulir panjang dan membaca laporan. |
-| **Aplikasi Android** | Untuk di samping inkubator. Isi fiturnya sama persis dengan web. |
+| **Dasbor web** | Peramban di komputer bangsal. Layar lebar, cocok untuk mengisi formulir panjang dan membaca laporan. **Semua fitur ada di sini.** |
+| **Aplikasi Android** | Untuk dipegang di samping inkubator. Mencakup seluruh pekerjaan harian perawat dan dokter; beberapa tindakan admin hanya ada di web. |
 
 Keduanya menampilkan data yang sama — apa pun yang dicatat di ponsel langsung terlihat di
-web, dan sebaliknya.
+web, dan sebaliknya. Keduanya juga memakai akun yang sama.
+
+**Yang hanya ada di web:**
+
+| Pekerjaan | Web | Android |
+|---|:---:|:---:|
+| Dasbor, detail inkubator, grafik sensor | ada | ada |
+| Input Tanda Vital, Observasi, Keterlibatan, Kolaborasi | ada | ada |
+| Observasi Dokter | ada | ada |
+| Laporan dan ekspor PDF | ada | ada |
+| Mendaftarkan bayi baru, menambah inkubator | ada | ada |
+| Manajemen pengguna dan audit log | ada | ada |
+| **Memulangkan bayi** | ada | — |
+| **Memasang/melepas perangkat IoT dan kunci perangkat** | ada | — |
+| **Mengubah ambang batas sensor** | ada | — |
+| **Riwayat peringatan** | ada | — |
+
+Aplikasi tetap **memakai** ambang batas itu — pita rentang normal pada grafik ponsel
+memang berasal dari sana — hanya saja ambangnya tidak bisa diubah dari ponsel.
+
+### Tampilan aplikasi Android
+
+![Layar masuk aplikasi Android](images/20-android-masuk.png)
+
+![Dasbor aplikasi: kartu ringkasan bangsal lalu daftar inkubator](images/21-android-dasbor.png)
+
+Susunannya sama dengan web: ringkasan bangsal di atas, daftar inkubator di bawah. Kartu
+inkubator kosong menampilkan tombol **Register Bayi**.
+
+![Detail inkubator di ponsel: Menu Aksi lalu Informasi Bayi](images/22-android-detail-inkubator.png)
+
+**Menu Aksi** di ponsel berisi lima pintasan: **Tanda Vital**, **Observasi**,
+**Keterlibatan OT**, **Kolaborasi**, dan **Lihat Laporan**. Tombol **Pulangkan** tidak ada
+di sini — pemulangan dikerjakan lewat web.
+
+![Informasi Bayi dan awal kartu Tren Sensor di ponsel](images/23-android-tren-sensor.png)
+
+Grafiknya membaca sama seperti di web, termasuk aturan **garis terputus berarti tidak ada
+bacaan** — dan aplikasi mengingatkan itu tepat di bawah grafik terakhir.
+
+![Formulir Monitoring Bayi di ponsel](images/24-android-monitoring.png)
+
+![Laporan & Riwayat Bayi di ponsel, dengan tombol ekspor PDF di kanan atas](images/25-android-laporan.png)
 
 ### Masuk dan keluar
 
@@ -128,6 +170,15 @@ bacaan sensor dari alat di inkubator itu langsung tercatat atas nama bayi terseb
 
 Urutannya sengaja: **Menu Aksi** di atas (yang paling sering ditekan), lalu **Informasi
 Bayi**, lalu **Tren Sensor**.
+
+![Kartu Menu Aksi dengan enam tombol pintasan](images/17-menu-aksi.png)
+
+**Menu Aksi** adalah pintasan ke seluruh formulir milik bayi yang sedang menempati
+inkubator itu — **Laporan**, **Input Tanda Vital**, **Monitoring Bayi (Observasi)**,
+**Keterlibatan**, **Kolaborasi**, dan **Pulangkan**. Kartu ini hanya muncul bila
+inkubatornya sedang terisi; pada inkubator kosong ia tidak ditampilkan sama sekali.
+Tombol **Pulangkan** hanya terlihat oleh perawat dan admin — dokter melihat lima tombol
+pertama saja.
 
 ![Tren Sensor: pita rentang normal, nilai terakhir di kanan, dan panel kosong untuk sensor yang belum mengirim](images/06-tren-sensor.png)
 
@@ -239,8 +290,11 @@ Tidak harus diisi tiap sif. Ikuti jadwal bangsal.
 
 ### Memulangkan bayi
 
-Buka data bayi, pilih tindakan pemulangan. Inkubatornya kembali **Kosong** dan siap
-dipakai bayi berikutnya. Riwayat bacaan sensor dan seluruh catatan **tetap tersimpan** —
+**Detail Inkubator → Menu Aksi → Pulangkan** (tombol merah pada gambar di
+[Membaca detail inkubator](#membaca-detail-inkubator)). Sistem meminta konfirmasi sekali
+sebelum menjalankannya.
+
+Inkubatornya kembali **Kosong** dan siap dipakai bayi berikutnya. Riwayat bacaan sensor dan seluruh catatan **tetap tersimpan** —
 memulangkan tidak menghapus apa pun.
 
 ---
@@ -302,6 +356,12 @@ data pasien di bangsal.
 
 **Dasbor → Tambah Inkubator**, atau buka satu inkubator untuk mengubahnya.
 
+![Dialog Tambah Inkubator: nomor otomatis, kolom lokasi opsional](images/18-tambah-inkubator.png)
+
+Yang diisi hanya **Lokasi**, dan itu pun opsional — misalnya `NICU Ruang C`. **Nomor
+inkubator dibuat otomatis dan berurutan** saat disimpan, jadi tidak ada kolom nomor yang
+bisa diketik; nomor itu juga tidak bisa diubah setelahnya.
+
 Inkubator yang **masih ada riwayat penempatan bayi tidak dapat dihapus**. Tandai
 **Tidak Tersedia** bila alatnya rusak atau sedang diperbaiki — itu menyembunyikannya dari
 pilihan saat mendaftarkan bayi, tanpa membuang riwayatnya.
@@ -314,6 +374,15 @@ pilihan saat mendaftarkan bayi, tanpa membuang riwayatnya.
 
 Sistem membuat **kunci perangkat** dan menampilkannya **satu kali saja**. Server hanya
 menyimpan ringkasannya, jadi kunci itu tidak bisa dilihat lagi.
+
+![Panel kunci perangkat yang hanya muncul sekali setelah Pasang Perangkat](images/19-kunci-perangkat.png)
+
+> Pada gambar ini kuncinya sengaja disamarkan. Di layar sungguhan, kolom itu berisi
+> deretan huruf dan angka acak yang harus disalin saat itu juga.
+
+Tekan **Salin**, simpan kuncinya di tempat aman, baru tekan **Sudah saya simpan** untuk
+menutup panel. Selama panel masih terbuka, kunci itu belum hilang — begitu ditutup atau
+halaman disegarkan, ia tidak bisa dipanggil kembali.
 
 - **Salin kunci itu sekarang**, lalu berikan ke teknisi untuk dimasukkan ke alat.
 - Kalau hilang: **Lepas Perangkat**, lalu pasang lagi untuk mendapat kunci baru — dan
