@@ -311,8 +311,8 @@ def main():
   <p class="eyebrow">Sistem Monitoring Bayi pada Inkubator</p>
   <h1>Panduan Pengguna</h1>
   <p class="lede">Untuk perawat, dokter, dan admin. Disusun per peran &mdash; cari bagian
-  Anda, lewati sisanya. Pemasangan server dan pemrograman alat ada di
-  <code>DEPLOYMENT.md</code>, bukan di sini.</p>
+  Anda, lewati sisanya. Pemasangan sistem dan pemrograman alat ditangani teknisi, dan
+  tidak dibahas di sini.</p>
 </div></header>
 <div class="wrap">
   <nav class="toc">%s</nav>

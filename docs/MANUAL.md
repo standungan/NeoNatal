@@ -5,9 +5,9 @@
 
 Sistem Monitoring Bayi pada Inkubator — panduan untuk perawat, dokter, dan admin.
 
-Panduan ini disusun per peran. Cari bagian Anda, dan lewati sisanya. Perintah pemasangan
-server, Docker, dan pemrograman alat **tidak** ada di sini — semuanya ada di `DEPLOYMENT.md`,
-yang pembacanya berbeda.
+Panduan ini disusun per peran. Cari bagian Anda, lewati sisanya. Pemasangan sistem dan
+pemrograman alat **tidak** dibahas di sini — itu pekerjaan teknisi, dan panduannya
+terpisah.
 
 ---
 
@@ -18,7 +18,8 @@ yang pembacanya berbeda.
 Tiga hal, dalam satu tempat:
 
 1. **Memantau** — alat di setiap inkubator mengirim suhu bayi, suhu inkubator, kelembapan,
-   detak jantung, dan SpO₂ setiap tiga detik. Grafiknya muncul sendiri tanpa perlu dicatat.
+   detak jantung, dan SpO₂ setiap tiga detik. Grafiknya muncul sendiri, tanpa perlu
+   dicatat siapa pun.
 2. **Mencatat asesmen** — monitoring tanda vital, observasi perkembangan, keterlibatan
    keluarga, dan kolaborasi tim, mengikuti kerangka delapan pilar perawatan NICU.
 3. **Melaporkan** — semua catatan seorang bayi dirangkum jadi satu laporan yang bisa
@@ -87,7 +88,7 @@ bacaan** — dan aplikasi mengingatkan itu tepat di bawah grafik terakhir.
 Buka alamat sistem, masukkan **email** dan **kata sandi**, tekan **Masuk**.
 
 Kalau setelah menekan Masuk Anda kembali lagi ke halaman masuk tanpa pesan galat, itu
-bukan salah ketik — laporkan ke admin. (Penyebab teknisnya ada di `DEPLOYMENT.md`.)
+bukan salah ketik. Laporkan ke admin — penyebabnya ada di sisi sistem, bukan pada Anda.
 
 Tekan **Keluar** di kanan atas bila meninggalkan komputer. Sesi tidak tertutup sendiri
 saat layar terkunci, dan setiap catatan tersimpan atas nama akun yang sedang masuk.
@@ -105,7 +106,7 @@ Warna status berarti:
 |---|---|
 | **Terisi** | Ada bayi di dalamnya, semua nilai dalam batas normal. |
 | **Kosong** | Siap dipakai, tidak ada bayi. |
-| **Warning** | Ada bacaan sensor di luar ambang batas, **atau** modul lain menandainya. Buka detailnya untuk melihat sebabnya. |
+| **Warning** | Ada bacaan sensor di luar ambang batas, **atau** ada catatan lain yang menandainya. Buka detailnya untuk melihat sebabnya. |
 | **Tidak Tersedia** | Ditandai admin sebagai tidak boleh dipakai — misalnya sedang diperbaiki. |
 
 Klik satu kartu untuk membuka **Detail Inkubator**.
@@ -190,8 +191,10 @@ Pada **Tren Sensor**, satu panel per pengukuran, semuanya sesumbu waktu:
 - **Garis yang terputus berarti sensor tidak mengirim nilai saat itu** — misalnya probe
   lepas dari bayi. Itu bukan nilai nol. Grafik sengaja memutus garis supaya Anda tidak
   membaca "0 bpm" sebagai bradikardia berat.
-- Label **Langsung** berarti data masuk secara real-time; **Berkala** berarti halaman
-  menyegarkan sendiri tiap beberapa detik.
+- Di kanan judul **Tren Sensor** ada keterangan **Langsung** atau **Berkala**, diikuti
+  jumlah bacaan yang sedang ditampilkan. **Langsung** berarti bacaan baru masuk seketika;
+  **Berkala** berarti halaman memuat ulang sendiri tiap beberapa detik. Keduanya sama
+  benarnya — hanya cara datanya sampai yang berbeda.
 
 Bila panel tampak sebagai grafik datar di tengah pita, itu normal: bacaan yang stabil
 memang menghasilkan garis lurus.
@@ -200,6 +203,17 @@ Di bawah grafik ada **Riwayat Peringatan** — daftar bacaan yang pernah keluar 
 batas inkubator ini.
 
 ![Kartu Riwayat Peringatan](images/16-riwayat-peringatan.png)
+
+Tiap baris menyebut pengukuran yang melewati batas, nilainya saat itu, batas yang
+dilanggar, dan jam mulainya. Di ujung baris tertulis **aktif** bila bacaannya masih di
+luar batas, atau **selesai** bila sudah kembali normal.
+
+Peringatan yang masih aktif punya tombol **Tandai dilihat** — tekan setelah Anda
+memeriksa bayinya, supaya rekan sif berikutnya tahu peringatan itu sudah ditangani. Nama
+Anda tercatat di sana. Perawat dan admin bisa menandai; dokter hanya membaca.
+
+**Menandai tidak menutup peringatan.** Baris yang sudah ditandai tetap **aktif** sampai
+bacaan sensornya sendiri kembali normal — dan aplikasi mengatakan itu di bawah barisnya.
 
 ### Mencatat tanda vital
 
@@ -218,10 +232,16 @@ Isinya tiga kelompok:
 Ditambah **Waktu Observasi**, **Catatan Observasi** (opsional), dan **Foto** (opsional,
 JPEG/PNG/WebP maksimal 5 MB).
 
-Bila inkubator punya alat yang aktif, kolom tanda vital terisi otomatis dari bacaan
-terakhir. **Periksa sebelum menyimpan** — angka itu apa adanya dari sensor, dan sensor
-bisa keliru bila probe lepas. Ubah angkanya bila tidak sesuai kenyataan; yang Anda simpan
-adalah catatan klinis, bukan salinan sensor.
+Bila alat di inkubator itu sedang mengirim, di atas formulir muncul kotak **Pembacaan
+sensor terakhir** berisi nilai terbarunya dan umur bacaan itu. Kolomnya **tidak terisi
+sendiri** — tekan **Isi dari sensor** bila Anda ingin memakainya. Yang terisi hanya lima
+kolom: Suhu Bayi, Suhu Inkubator, Kelembapan Inkubator, Heart Rate, dan SpO₂; Respiratory
+Rate tetap Anda isi sendiri.
+
+**Periksa sebelum menyimpan.** Angka itu apa adanya dari sensor, dan sensor bisa keliru
+bila probe lepas. Bila bacaannya sudah lama, aplikasi memperingatkan Anda di kotak yang
+sama. Ubah angkanya bila tidak sesuai kenyataan — yang tersimpan adalah observasi Anda,
+bukan salinan bacaan alat.
 
 Kosongkan kolom yang tidak Anda ukur. Kosong berarti "tidak diukur"; **nol berarti
 "diukur, hasilnya nol"** — dua hal yang sangat berbeda di laporan.
@@ -241,8 +261,8 @@ Enam pernyataan, masing-masing dinilai **0–4**, total maksimal **24**:
 5. Kolaborasi dokter-perawat berjalan baik
 6. Seluruh tindakan terdokumentasi
 
-Angkanya bukan sekadar 0 sampai 4 — tiap nilai punya arti, dan sama di ketiga modul
-berskor:
+Angkanya bukan sekadar 0 sampai 4 — tiap nilai punya arti, dan artinya sama di ketiga
+formulir berskor:
 
 | Nilai | Arti |
 |---|---|
@@ -261,7 +281,8 @@ gunanya untuk perbaikan proses, dan skor bagus yang tidak benar menghilangkan gu
 
 ![Formulir Keterlibatan Orang Tua](images/09-keterlibatan.png)
 
-Enam pernyataan, dinilai **0–4** dengan arti yang sama seperti di atas, total maksimal **24**:
+Enam pernyataan, dinilai **0–4** dengan arti yang sama seperti di atas, total maksimal
+**24**:
 
 1. Ibu memberikan ASI/perah ASI
 2. Keluarga memahami kondisi bayi
@@ -294,8 +315,8 @@ Tidak harus diisi tiap sif. Ikuti jadwal bangsal.
 [Membaca detail inkubator](#membaca-detail-inkubator)). Sistem meminta konfirmasi sekali
 sebelum menjalankannya.
 
-Inkubatornya kembali **Kosong** dan siap dipakai bayi berikutnya. Riwayat bacaan sensor dan seluruh catatan **tetap tersimpan** —
-memulangkan tidak menghapus apa pun.
+Inkubatornya kembali **Kosong** dan siap dipakai bayi berikutnya. Seluruh catatan dan
+riwayat bacaan sensornya **tetap tersimpan** — memulangkan tidak menghapus apa pun.
 
 ---
 
@@ -346,8 +367,17 @@ Isinya sama dengan yang di layar, pada saat tombol ditekan.
 
 ![Manajemen pengguna](images/13-pengguna.png)
 
-Tambah, ubah, nonaktifkan akun, dan tentukan perannya: **admin**, **perawat**, atau
-**dokter**. Peran menentukan menu yang muncul dan tindakan yang diizinkan.
+Tambah dan ubah akun, lalu tentukan perannya: **admin**, **perawat**, atau **dokter**.
+Peran menentukan menu yang muncul dan tindakan yang diizinkan.
+
+Tiap baris punya dua tombol:
+
+- **Nonaktifkan** menutup akses akun itu tanpa menghapusnya — catatan yang pernah ia
+  simpan tetap utuh dan tetap atas namanya. Tombolnya berubah jadi **Aktifkan** bila
+  suatu saat orangnya kembali bertugas.
+- **Reset PW** memberi kata sandi baru untuk akun itu. Anda yang mengetik kata sandinya,
+  lalu sampaikan langsung ke orangnya dan minta ia segera menggantinya. Kata sandi lama
+  tidak bisa dilihat oleh siapa pun, termasuk Anda.
 
 Beri peran sesuai pekerjaan sebenarnya. Peran admin memberi akses ke audit log dan seluruh
 data pasien di bangsal.
@@ -372,8 +402,8 @@ pilihan saat mendaftarkan bayi, tanpa membuang riwayatnya.
 
 ![Kartu Perangkat IoT: status Offline, alamat pengirim, dan waktu kirim terakhir](images/04-perangkat-iot.png)
 
-Sistem membuat **kunci perangkat** dan menampilkannya **satu kali saja**. Server hanya
-menyimpan ringkasannya, jadi kunci itu tidak bisa dilihat lagi.
+Sistem membuat **kunci perangkat** dan menampilkannya **satu kali saja**. Begitu panel
+itu ditutup, kunci tersebut tidak bisa ditampilkan lagi oleh siapa pun.
 
 ![Panel kunci perangkat yang hanya muncul sekali setelah Pasang Perangkat](images/19-kunci-perangkat.png)
 
@@ -394,14 +424,14 @@ Arti tulisan pada kartu:
 
 | Tulisan | Arti |
 |---|---|
-| **Belum ada perangkat terpasang** | Belum pernah dipasang. Grafik akan kosong kecuali ada alat yang mengirim lewat jalur lama. |
-| **Belum pernah mengirim data** | Perangkat terdaftar, tapi belum ada satu pun bacaan masuk. Biasanya alat belum diprogram atau salah alamat server. |
+| **Belum ada perangkat terpasang** | Belum pernah dipasang. Grafiknya kosong, kecuali ada alat yang mengirim tanpa pernah didaftarkan. |
+| **Belum pernah mengirim data** | Perangkat sudah terdaftar, tapi belum ada satu pun bacaan masuk. Biasanya alatnya belum diprogram, atau diarahkan ke alamat yang keliru. |
 | **Online** | Ada bacaan masuk dalam 30 detik terakhir. |
 | **Offline** | Pernah mengirim, tapi tidak dalam 30 detik terakhir. |
-| **Mengirim tanpa terdaftar** | Ada alat yang mengirim untuk inkubator ini lewat jalur lama, tanpa terdaftar sebagai perangkat. Grafik terisi, tetapi status online dan alamat pengirim baru aktif setelah perangkat dipasang. |
+| **Mengirim tanpa terdaftar** | Ada alat yang mengirim data untuk inkubator ini tanpa pernah didaftarkan lewat **Pasang Perangkat**. Grafiknya tetap terisi, tetapi status Online dan keterangan pengirimnya baru muncul setelah perangkatnya dipasang. |
 
-**Batasi alamat pengirim** bersifat opsional dan bukan cara inkubator dipasangkan ke alat —
-itu hanya penyaring tambahan. Identitas alat ditentukan oleh kunci perangkat.
+**Batasi alamat pengirim** bersifat opsional — itu penyaring tambahan, bukan cara alat
+dikenali. Yang menentukan alat mana yang mengirim tetap kunci perangkatnya.
 
 ### Mengatur ambang batas sensor
 
@@ -433,33 +463,35 @@ ada yang akan mengingatkan bahwa ambangnya yang diubah.
 
 ![Audit log](images/14-audit-log.png)
 
-Catatan setiap perubahan data: siapa, kapan, tabel apa, dan baris mana. Bersifat
-tambah-saja — tidak bisa diubah atau dihapus dari dalam aplikasi. Gunakan untuk menelusuri
-"siapa yang mengubah ini".
+Catatan setiap perubahan data: siapa yang mengubah, kapan, dan data apa yang diubah.
+Isinya hanya bertambah — tidak bisa disunting atau dihapus dari dalam aplikasi, termasuk
+oleh admin. Gunakan untuk menelusuri "siapa yang mengubah ini".
 
 ---
 
 ## 4. Bila terjadi masalah
 
-**Tidak bisa masuk, kembali ke halaman masuk terus.** Bila tidak ada pesan galat, ini
-masalah konfigurasi server, bukan kata sandi Anda. Hubungi admin dan sebutkan bahwa
-halaman masuk mengembalikan Anda tanpa pesan.
+**Tidak bisa masuk, selalu kembali ke halaman masuk.** Bila tidak ada pesan galat sama
+sekali, kemungkinan besar bukan kata sandi Anda yang salah. Hubungi admin dan sebutkan
+persis itu: halaman masuk mengembalikan Anda tanpa pesan apa pun.
 
-**Grafik kosong padahal alat menyala.** Urutan pemeriksaan: apakah kartu Perangkat IoT
-menunjukkan **Online**? Bila tertulis **Belum pernah mengirim data**, alat belum
-mengirim apa pun — kemungkinan alamat server pada alat salah, atau kunci perangkatnya
-bukan kunci dari server ini. Bila tertulis **Mengirim tanpa terdaftar**, data masuk tetapi
-perangkatnya belum dipasang. Keduanya ditangani admin/teknisi.
+**Grafik kosong padahal alat menyala.** Lihat kartu **Perangkat IoT** lebih dulu. Bila
+tertulis **Belum pernah mengirim data**, alat itu memang belum pernah mengirim apa pun —
+biasanya karena alamat atau kunci perangkat yang dimasukkan ke alat keliru. Bila tertulis
+**Mengirim tanpa terdaftar**, datanya masuk tetapi perangkatnya belum dipasang. Keduanya
+ditangani admin atau teknisi, bukan Anda.
 
 **Kartu berbunyi "Mengirim tanpa terdaftar".** Bukan kerusakan. Ada alat yang mengirim
-lewat jalur lama. Minta admin menekan **Pasang Perangkat** pada inkubator itu.
+data tanpa pernah didaftarkan. Minta admin menekan **Pasang Perangkat** pada inkubator
+itu, lalu teknisi memasukkan kunci barunya ke alat.
 
 **Data yang baru dicatat tidak muncul.** Muat ulang halaman. Bila tetap tidak ada,
 periksa apakah Anda mencatatnya pada bayi yang benar — mudah tertukar bila membuka
 beberapa tab.
 
-**Grafik satu panel tampak sebagai kotak abu-abu penuh.** Sudah diperbaiki; bila masih
-terlihat, aplikasinya versi lama. Minta admin memperbarui.
+**Satu panel grafik tampak abu-abu hampir penuh.** Itu terjadi bila bacaan yang masuk
+untuk pengukuran itu masih sangat sedikit, sehingga pita rentang normal memenuhi hampir
+seluruh panel. Panelnya kembali seperti biasa setelah bacaannya bertambah.
 
 **Nilai sensor terasa tidak masuk akal.** Percayai pemeriksaan langsung, bukan layar.
 Periksa pemasangan probe. Bacaan yang dikirim alat adalah apa adanya — sistem tidak
@@ -474,9 +506,9 @@ memuluskan atau mengoreksinya.
 | Istilah | Arti |
 |---|---|
 | **Input Tanda Vital** | Pencatatan tanda vital, tidur, dan skor nyeri. Di sinilah angka sensor diperiksa dan disimpan sebagai catatan klinis. |
-| **Monitoring Bayi (Observasi)** | Modul penilaian lingkungan dan kenyamanan perkembangan bayi — **bukan** tempat mencatat tanda vital. |
-| **Keterlibatan** | Modul penilaian partisipasi keluarga: ASI, PMK, edukasi. |
-| **Kolaborasi Interprofesional** | Modul penilaian kolaborasi tim — dokumentasi, handover, pelaporan. Bukan "tindakan medis". Dalam basis data dan API modul ini bernama *aksi*. |
+| **Monitoring Bayi (Observasi)** | Formulir penilaian lingkungan dan kenyamanan perkembangan bayi — **bukan** tempat mencatat tanda vital. |
+| **Keterlibatan** | Formulir penilaian partisipasi keluarga: ASI, PMK, edukasi. |
+| **Kolaborasi Interprofesional** | Formulir penilaian kolaborasi tim — dokumentasi, handover, pelaporan. Bukan "tindakan medis". |
 | **Observasi Dokter** | Catatan medis yang ditulis dokter. Hanya dokter yang dapat menulis; peran lain membacanya. |
 | **PMK** | Perawatan Metode Kanguru. |
 | **CPPT** | Catatan Perkembangan Pasien Terintegrasi. |
@@ -487,9 +519,9 @@ memuluskan atau mengoreksinya.
 | **Kunci perangkat** | Kode identitas alat. Ditampilkan sekali saat pemasangan. |
 | **Ambang batas** | Rentang normal per pengukuran; di luar itu memicu Warning. |
 
-### Skor maksimal tiap modul
+### Skor maksimal tiap formulir
 
-| Modul | Jumlah item | Skor per item | Maksimal |
+| Formulir | Jumlah item | Skor per item | Maksimal |
 |---|---|---|---|
 | Kolaborasi Interprofesional | 6 | 0–4 | 24 |
 | Keterlibatan Orang Tua | 6 | 0–4 | 24 |
@@ -500,5 +532,6 @@ Arti nilainya sama di ketiganya: **0** sangat berat · **1** berat · **2** seda
 
 ### Yang tidak ada di panduan ini
 
-Pemasangan server, Docker, pembaruan sistem, pemrograman alat, dan sertifikat HTTPS ada di
-`DEPLOYMENT.md`. Rincian teknis endpoint API ada di `docs/api/api.html`.
+Pemasangan sistem, pembaruan, pemrograman alat, dan urusan jaringan tidak dibahas di
+sini. Semuanya ditangani teknisi, dengan panduannya sendiri. Bila Anda menemui hal yang
+tidak dijelaskan panduan ini, hubungi admin bangsal.
