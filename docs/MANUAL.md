@@ -40,6 +40,8 @@ web, dan sebaliknya.
 
 ### Masuk dan keluar
 
+![Halaman masuk](images/07-masuk.png)
+
 Buka alamat sistem, masukkan **email** dan **kata sandi**, tekan **Masuk**.
 
 Kalau setelah menekan Masuk Anda kembali lagi ke halaman masuk tanpa pesan galat, itu
@@ -72,7 +74,7 @@ Klik satu kartu untuk membuka **Detail Inkubator**.
 |---|---|---|---|
 | Melihat dasbor, bayi, grafik, laporan | ya | ya | ya |
 | Mendaftarkan & mengubah data bayi | ya | — | ya |
-| Mencatat monitoring, aksi, keterlibatan | ya | — | ya |
+| Mencatat tanda vital, kolaborasi, keterlibatan, observasi | ya | — | ya |
 | Menulis catatan dokter | — | ya | — |
 | Mengelola pengguna | — | — | ya |
 | Mengelola inkubator & perangkat IoT | — | — | ya |
@@ -91,8 +93,8 @@ Bagian paling tebal, karena dipakai setiap sif.
 
 1. Buka dasbor, lihat ada inkubator berstatus **Warning** atau tidak.
 2. Untuk tiap bayi yang Anda pegang: buka detail inkubatornya, baca **Tren Sensor**.
-3. Catat **Monitoring** sesuai jadwal bangsal.
-4. Catat **Aksi** dan **Keterlibatan** keluarga bila ada.
+3. Catat **Input Tanda Vital** sesuai jadwal bangsal.
+4. Catat **Kolaborasi** dan **Keterlibatan** bila ada.
 5. Sebelum handover, pastikan semuanya sudah masuk — laporan mengambil dari catatan ini.
 
 ### Mendaftarkan bayi baru
@@ -143,9 +145,14 @@ Pada **Tren Sensor**, satu panel per pengukuran, semuanya sesumbu waktu:
 Bila panel tampak sebagai grafik datar di tengah pita, itu normal: bacaan yang stabil
 memang menghasilkan garis lurus.
 
-### Mencatat monitoring tanda vital
+Di bawah grafik ada **Riwayat Peringatan** — daftar bacaan yang pernah keluar dari ambang
+batas inkubator ini.
 
-**Detail bayi → Monitoring.**
+![Kartu Riwayat Peringatan](images/16-riwayat-peringatan.png)
+
+### Mencatat tanda vital
+
+**Detail bayi → Input Tanda Vital.**
 
 ![Formulir monitoring: tanda vital, tidur, dan skor nyeri](images/05-monitoring.png)
 
@@ -168,9 +175,11 @@ adalah catatan klinis, bukan salinan sensor.
 Kosongkan kolom yang tidak Anda ukur. Kosong berarti "tidak diukur"; **nol berarti
 "diukur, hasilnya nol"** — dua hal yang sangat berbeda di laporan.
 
-### Mencatat Aksi (kolaborasi tim)
+### Mencatat Kolaborasi Interprofesional
 
-**Detail bayi → Aksi.**
+**Detail bayi → Kolaborasi.**
+
+![Formulir Kolaborasi Interprofesional: enam pernyataan dengan skala 0–4](images/08-aksi.png)
 
 Enam pernyataan, masing-masing dinilai **0–4**, total maksimal **24**:
 
@@ -181,14 +190,27 @@ Enam pernyataan, masing-masing dinilai **0–4**, total maksimal **24**:
 5. Kolaborasi dokter-perawat berjalan baik
 6. Seluruh tindakan terdokumentasi
 
+Angkanya bukan sekadar 0 sampai 4 — tiap nilai punya arti, dan sama di ketiga modul
+berskor:
+
+| Nilai | Arti |
+|---|---|
+| **0** | sangat berat |
+| **1** | berat |
+| **2** | sedang |
+| **3** | ringan |
+| **4** | normal |
+
 Ini menilai **mutu dokumentasi dan komunikasi tim**, bukan kondisi bayi. Isi jujur —
 gunanya untuk perbaikan proses, dan skor bagus yang tidak benar menghilangkan gunanya.
 
-### Mencatat keterlibatan keluarga
+### Mencatat Keterlibatan Orang Tua
 
 **Detail bayi → Keterlibatan.**
 
-Enam pernyataan, dinilai **0–4**, total maksimal **24**:
+![Formulir Keterlibatan Orang Tua](images/09-keterlibatan.png)
+
+Enam pernyataan, dinilai **0–4** dengan arti yang sama seperti di atas, total maksimal **24**:
 
 1. Ibu memberikan ASI/perah ASI
 2. Keluarga memahami kondisi bayi
@@ -200,11 +222,16 @@ Enam pernyataan, dinilai **0–4**, total maksimal **24**:
 Ditambah **Durasi Menyusui** dan **Durasi Interaksi** (menit, keduanya opsional), serta
 **Kondisi Bayi Saat Interaksi**: Tenang, Aktif, Rewel, atau Tidur.
 
-### Observasi perkembangan
+### Mencatat Monitoring Bayi (Observasi)
 
-**Detail bayi → Observasi.**
+**Detail bayi → Monitoring Bayi (Observasi).**
 
-Daftar panjang (sekitar 42 pernyataan, 0–4 tiap item) tentang lingkungan dan kenyamanan —
+> Perhatikan namanya. Tombol ini **bukan** tempat mencatat tanda vital — itu ada di
+> **Input Tanda Vital**. Yang ini menilai lingkungan dan kenyamanan perkembangan bayi.
+
+![Formulir Monitoring Bayi (Observasi)](images/10-observasi.png)
+
+Daftar panjang (42 pernyataan, 0–4 tiap item) tentang lingkungan dan kenyamanan —
 tidur tanpa gangguan minimal 60 menit, kemudahan kembali tidur, kebisingan terkendali,
 pencahayaan sesuai, nesting terpasang benar, posisi bayi nyaman, dan seterusnya.
 
@@ -228,16 +255,26 @@ perawat. Yang tidak bisa Anda buka: manajemen pengguna dan audit log.
 Saat membaca grafik, ingat aturan garis putus: **garis terputus berarti tidak ada bacaan**,
 bukan nilai nol.
 
-### Menulis catatan dokter
+### Menulis Observasi Dokter
 
-**Detail bayi → Catatan Dokter.**
+**Detail bayi → Observasi Dokter.**
+
+![Halaman Observasi Dokter: kolom catatan dan riwayat catatan sebelumnya](images/12-catatan-dokter.png)
+
+Tulis pada **Catatan Observasi**, lalu tekan **Simpan Catatan**. Catatan sebelumnya
+tersusun di bawahnya pada **Riwayat Catatan**, lengkap dengan nama penulis dan waktunya.
 
 Catatan Anda tampil di ringkasan bayi dan ikut masuk ke laporan. Hanya dokter yang bisa
 menulis di sini — perawat bisa membacanya.
 
+Perhatikan menu di atas: sebagai dokter Anda hanya melihat **Laporan** dan **Observasi
+Dokter**. Tombol pencatatan milik perawat memang tidak ditampilkan untuk peran Anda.
+
 ### Laporan dan ekspor PDF
 
 **Detail bayi → Laporan.**
+
+![Laporan & Riwayat Bayi](images/11-laporan.png)
 
 Merangkum satu bayi: identitas dan riwayat kelahiran, riwayat monitoring, observasi
 terakhir, keterlibatan keluarga, skor aksi, dan catatan dokter.
@@ -252,6 +289,8 @@ Isinya sama dengan yang di layar, pada saat tombol ditekan.
 ### Mengelola pengguna
 
 **Admin → Pengguna.**
+
+![Manajemen pengguna](images/13-pengguna.png)
 
 Tambah, ubah, nonaktifkan akun, dan tentukan perannya: **admin**, **perawat**, atau
 **dokter**. Peran menentukan menu yang muncul dan tindakan yang diizinkan.
@@ -299,6 +338,8 @@ itu hanya penyaring tambahan. Identitas alat ditentukan oleh kunci perangkat.
 
 **Detail Inkubator → Ambang Batas Sensor.**
 
+![Kartu Ambang Batas Sensor](images/15-ambang-batas.png)
+
 Batas bawah dan atas tiap pengukuran. Di luar rentang ini, sistem menandai inkubator
 sebagai **Warning** dan mencatat peringatan. Nilai bawaan:
 
@@ -320,6 +361,8 @@ ada yang akan mengingatkan bahwa ambangnya yang diubah.
 ### Audit log
 
 **Admin → Audit Log.**
+
+![Audit log](images/14-audit-log.png)
 
 Catatan setiap perubahan data: siapa, kapan, tabel apa, dan baris mana. Bersifat
 tambah-saja — tidak bisa diubah atau dihapus dari dalam aplikasi. Gunakan untuk menelusuri
@@ -361,9 +404,11 @@ memuluskan atau mengoreksinya.
 
 | Istilah | Arti |
 |---|---|
-| **Aksi** | Modul penilaian kolaborasi tim — dokumentasi, handover, pelaporan. Bukan "tindakan medis". |
+| **Input Tanda Vital** | Pencatatan tanda vital, tidur, dan skor nyeri. Di sinilah angka sensor diperiksa dan disimpan sebagai catatan klinis. |
+| **Monitoring Bayi (Observasi)** | Modul penilaian lingkungan dan kenyamanan perkembangan bayi — **bukan** tempat mencatat tanda vital. |
 | **Keterlibatan** | Modul penilaian partisipasi keluarga: ASI, PMK, edukasi. |
-| **Observasi** | Modul penilaian lingkungan dan kenyamanan perkembangan bayi. |
+| **Kolaborasi Interprofesional** | Modul penilaian kolaborasi tim — dokumentasi, handover, pelaporan. Bukan "tindakan medis". Dalam basis data dan API modul ini bernama *aksi*. |
+| **Observasi Dokter** | Catatan medis yang ditulis dokter. Hanya dokter yang dapat menulis; peran lain membacanya. |
 | **PMK** | Perawatan Metode Kanguru. |
 | **CPPT** | Catatan Perkembangan Pasien Terintegrasi. |
 | **SBAR** | Situation–Background–Assessment–Recommendation, format serah terima. |
@@ -377,9 +422,12 @@ memuluskan atau mengoreksinya.
 
 | Modul | Jumlah item | Skor per item | Maksimal |
 |---|---|---|---|
-| Aksi (kolaborasi) | 6 | 0–4 | 24 |
-| Keterlibatan (keluarga) | 6 | 0–4 | 24 |
-| Observasi | 42 | 0–4 | 168 |
+| Kolaborasi Interprofesional | 6 | 0–4 | 24 |
+| Keterlibatan Orang Tua | 6 | 0–4 | 24 |
+| Monitoring Bayi (Observasi) | 42 | 0–4 | 168 |
+
+Arti nilainya sama di ketiganya: **0** sangat berat · **1** berat · **2** sedang ·
+**3** ringan · **4** normal.
 
 ### Yang tidak ada di panduan ini
 

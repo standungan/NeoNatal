@@ -40,6 +40,35 @@ def slug(t):
     return re.sub(r"[^a-z0-9]+", "-", t.lower()).strip("-")
 
 
+# Gambar disisipkan sebagai data URI, jadi ukurannya langsung jadi ukuran halaman.
+# Tangkapan layar diambil pada deviceScaleFactor 2 (2760 px) padahal lebar kolom
+# dokumen ini di bawah 800 px — dua kali lipat lebih dari yang bisa terlihat.
+# Dikecilkan ke 1600 px dan dijadikan JPEG hanya untuk versi HTML; Markdown tetap
+# menunjuk PNG aslinya supaya GitHub menampilkan yang beresolusi penuh.
+MAX_W = 1600
+
+
+def embed(path):
+    """Kembalikan (mime, bytes) yang siap disisipkan sebagai data URI."""
+    raw = path.read_bytes()
+    try:
+        from PIL import Image
+    except ImportError:
+        return "image/png", raw            # tanpa Pillow, sisipkan apa adanya
+    import io
+    try:
+        im = Image.open(io.BytesIO(raw))
+        if im.width > MAX_W:
+            im = im.resize((MAX_W, round(im.height * MAX_W / im.width)), Image.LANCZOS)
+        buf = io.BytesIO()
+        im.convert("RGB").save(buf, "JPEG", quality=85, optimize=True, progressive=True)
+        small = buf.getvalue()
+        # Kalau hasilnya justru lebih besar, pakai berkas aslinya.
+        return ("image/jpeg", small) if len(small) < len(raw) else ("image/png", raw)
+    except Exception:
+        return "image/png", raw
+
+
 def convert(md):
     lines = md.split("\n")
     out, toc = [], []
@@ -60,9 +89,10 @@ def convert(md):
             alt, src = m.group(1), m.group(2)
             f = (ROOT / src).resolve()
             if f.exists():
-                b64 = base64.b64encode(f.read_bytes()).decode("ascii")
-                out.append('<figure class="shot"><img alt="%s" src="data:image/png;base64,%s">'
-                           '<figcaption>%s</figcaption></figure>' % (e(alt), b64, e(alt)))
+                mime, data = embed(f)
+                out.append('<figure class="shot"><img alt="%s" src="data:%s;base64,%s">'
+                           '<figcaption>%s</figcaption></figure>'
+                           % (e(alt), mime, base64.b64encode(data).decode("ascii"), e(alt)))
             else:
                 out.append('<figure class="shot"><div class="slot">'
                            '<span class="slot-tag">Gambar belum ada</span>'
