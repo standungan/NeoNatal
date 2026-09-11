@@ -1,4 +1,4 @@
-"""Render docs/MANUAL.md into docs/MANUAL.html.
+"""Render docs/MANUAL.md into docs/deliverables/MANUAL.html.
 
 MANUAL.md is the single source. This script exists so the two cannot drift: the HTML
 is never edited by hand, it is regenerated.
@@ -23,7 +23,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent
 SRC = ROOT / "MANUAL.md"
-OUT = ROOT / "MANUAL.html"
+OUT = ROOT / "deliverables" / "MANUAL.html"
 
 e = html.escape
 

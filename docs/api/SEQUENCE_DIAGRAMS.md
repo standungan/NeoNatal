@@ -269,7 +269,7 @@ sequenceDiagram
 
 - **Every mutating endpoint** (login, create/update/delete, photo upload, discharge) calls
   `audit_service.log_action(...)`, capturing actor, action, table, record id, IP, and a JSON `details`
-  payload — see §2.8 of [ERD.md](ERD.md).
+  payload — see §2.8 of [ERD.md](../deliverables/ERD.md).
 - **Role guards** resolve *before* the handler body runs, so an unauthorized caller never reaches the
   service/DB layer. Guards: `AnyRole` (any authenticated), `PerawatOrAdmin`, `AdminOnly`.
 - **Client IP** is read from `request.client.host` in the router and threaded through to the audit log.

@@ -92,10 +92,10 @@ pertimbangan klinis, bukan pengganti pemeriksaan langsung.
 
 1. Perjanjian Kerja Sama Pengembangan Sistem Pemantauan Inkubator Bayi Terintegrasi (IoT), v2
 2. `docs/clinical/8 pillar NICU.md` — kerangka asesmen delapan pilar
-3. `docs/api/api.html` — referensi API yang dihasilkan dari skema OpenAPI aplikasi
-4. `docs/MANUAL.md` — panduan pengguna
+3. `docs/deliverables/api.html` — referensi API yang dihasilkan dari skema OpenAPI aplikasi
+4. `docs/deliverables/MANUAL.html` — panduan pengguna
 5. `DEPLOYMENT.md` — panduan instalasi dan pemeliharaan server
-6. `docs/api/ERD.md` — Entity Relationship Diagram
+6. `docs/deliverables/ERD.md` — Entity Relationship Diagram
 
 ### 1.5 Ikhtisar Dokumen
 
@@ -113,7 +113,7 @@ dan batasan. Bab 8 memetakan komponen kontrak ke kebutuhan sebagai bukti kelengk
 Sistem berdiri sendiri di jaringan lokal rumah sakit, terdiri atas empat perangkat lunak
 yang berkomunikasi melalui HTTP:
 
-![Arsitektur sistem: perangkat IoT, peramban, dan aplikasi Android terhadap Backend API, Dashboard Web, dan basis data di dalam server lokal rumah sakit](images/srs-arsitektur-sistem.png)
+![Arsitektur sistem: perangkat IoT, peramban, dan aplikasi Android terhadap Backend API, Dashboard Web, dan basis data di dalam server lokal rumah sakit](../images/srs-arsitektur-sistem.png)
 
 *Gambar 1 — Arsitektur Sistem Pemantauan Inkubator Bayi Terintegrasi.*
 
@@ -607,13 +607,13 @@ Memastikan seluruh komponen Kontrak Pasal 2.2 dan deliverable Pasal 3.1 tercakup
 | Deliverable (Kontrak 3.1) | Wujud |
 |---|---|
 | Dokumen SRS yang disetujui | Dokumen ini |
-| Desain database beserta ERD | `docs/api/ERD.md`, `backend/database/schema.sql` |
-| Source code Backend & API terdokumentasi | `backend/`, `docs/api/api.html` |
+| Desain database beserta ERD | `docs/deliverables/ERD.md`, `backend/database/schema.sql` |
+| Source code Backend & API terdokumentasi | `backend/`, `docs/deliverables/api.html` |
 | Aplikasi mobile (APK) beserta source code | `frontend/`, APK hasil build |
 | Website dashboard beserta source code | `web/` |
 | Firmware IoT beserta skema rangkaian | `hardware/allsensors/` |
-| Dokumen teknis, panduan instalasi & penggunaan | `DEPLOYMENT.md`, `docs/MANUAL.md` |
-| Laporan pengujian sistem (UAT Report) | **Belum disusun** — lihat 9.2 |
+| Dokumen teknis, panduan instalasi & penggunaan | `DEPLOYMENT.md`, `docs/deliverables/MANUAL.html` |
+| Laporan pengujian sistem (UAT Report) | `docs/deliverables/UAT_REPORT.md` |
 
 ---
 

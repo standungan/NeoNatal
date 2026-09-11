@@ -1,6 +1,6 @@
 # Panduan Pengguna — Neonatal Care System
 
-> Sumber tunggal panduan ini. Versi HTML (`docs/MANUAL.html`) dihasilkan dari berkas ini
+> Sumber tunggal panduan ini. Versi HTML (`docs/deliverables/MANUAL.html`) dihasilkan dari berkas ini
 > dengan `python docs/generate_manual_html.py`. Ubah di sini, jangan di HTML-nya.
 
 Sistem Monitoring Bayi pada Inkubator — panduan untuk perawat, dokter, dan admin.

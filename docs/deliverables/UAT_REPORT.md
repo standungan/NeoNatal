@@ -9,7 +9,7 @@
 | **Tanggal pengujian** | 7 September 2026 |
 | **Penguji (Bagian A)** | Pengembang — Sofyan Tandungan |
 | **Penguji (Bagian B)** | Klien / tenaga medis penunjuk — **belum dijalankan** |
-| **Dasar** | Kontrak Pasal 3.1 (deliverable) dan `docs/SRS.md` |
+| **Dasar** | Kontrak Pasal 3.1 (deliverable) dan `docs/deliverables/SRS.md` |
 
 ---
 
@@ -33,7 +33,7 @@ menjadi UAT Report yang lengkap setelah Bagian B diisi dan ditandatangani.
 
 ### 1.1 Tujuan
 
-Membuktikan bahwa sistem memenuhi kebutuhan pada `docs/SRS.md` dan layak diserahterimakan
+Membuktikan bahwa sistem memenuhi kebutuhan pada `docs/deliverables/SRS.md` dan layak diserahterimakan
 sesuai Kontrak Pasal 3.
 
 ### 1.2 Kriteria kelulusan tiap butir
@@ -298,7 +298,7 @@ ulang dari lockfile.
 | Bukti | Lokasi |
 |---|---|
 | Suite pengujian | `backend/tests/*.py` |
-| Kebutuhan berkode | `docs/SRS.md` |
+| Kebutuhan berkode | `docs/deliverables/SRS.md` |
 | Panduan penerapan | `DEPLOYMENT.md` |
 | Panduan pengguna | `docs/MANUAL.md` |
-| Referensi API | `docs/api/api.html` |
+| Referensi API | `docs/deliverables/api.html` |

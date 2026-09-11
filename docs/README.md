@@ -10,17 +10,17 @@ All diagrams use [Mermaid](https://mermaid.js.org/) and render directly on GitHu
 ### 🚀 Building the frontend? Start here
 | Document | Contents |
 |---|---|
-| [GETTING_STARTED.md](GETTING_STARTED.md) | **Frontend Integration Guide** — auth flow, a ready-made typed API client, error handling, and common recipes (dashboard, monitoring, photo upload, PDF) |
-| [api-types.ts](api-types.ts) | **Copy-paste TypeScript types** for every request & response, including required/optional/nullable markers |
-| [api.html](api/api.html) | **API reference (current)** — all 54 endpoints, generated from the running app's OpenAPI schema. Open it in a browser. |
-| [API.md](API.md) | **API reference (stale)** — hand-written, and predates the IoT work: no telemetry, devices, readings, streams or alerts. Kept for its prose on the clinical modules. |
+| [GETTING_STARTED.md](api/GETTING_STARTED.md) | **Frontend Integration Guide** — auth flow, a ready-made typed API client, error handling, and common recipes (dashboard, monitoring, photo upload, PDF) |
+| [api-types.ts](api/api-types.ts) | **Copy-paste TypeScript types** for every request & response, including required/optional/nullable markers |
+| [api.html](deliverables/api.html) | **API reference (current)** — all 54 endpoints, generated from the running app's OpenAPI schema. Open it in a browser. |
+| [API.md](api/API.md) | **API reference (stale)** — hand-written, and predates the IoT work: no telemetry, devices, readings, streams or alerts. Kept for its prose on the clinical modules. |
 
 ### 🏗️ Design & architecture
 | Document | Contents |
 |---|---|
-| [ERD.md](api/ERD.md) | **Entity Relationship Diagram** — 16-table PostgreSQL schema, columns, enums, relationships, constraints, retention |
-| [COMPONENT_DIAGRAM.md](COMPONENT_DIAGRAM.md) | **Component / Architecture Diagram** — clients, Next.js BFF, FastAPI layered architecture, persistence |
-| [SEQUENCE_DIAGRAMS.md](SEQUENCE_DIAGRAMS.md) | **Sequence Diagrams** — login, monitoring + vital evaluation, baby registration, involvement (Pillar 6) scoring, PDF export, admin |
+| [ERD.md](deliverables/ERD.md) | **Entity Relationship Diagram** — 16-table PostgreSQL schema, columns, enums, relationships, constraints, retention |
+| [COMPONENT_DIAGRAM.md](api/COMPONENT_DIAGRAM.md) | **Component / Architecture Diagram** — clients, Next.js BFF, FastAPI layered architecture, persistence |
+| [SEQUENCE_DIAGRAMS.md](api/SEQUENCE_DIAGRAMS.md) | **Sequence Diagrams** — login, monitoring + vital evaluation, baby registration, involvement (Pillar 6) scoring, PDF export, admin |
 
 > Documentation is reverse-engineered from and verified against the live backend in `../backend/app/`.
 > The running API also exposes interactive docs at `/docs` (Swagger UI) and `/redoc`.
