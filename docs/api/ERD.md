@@ -9,29 +9,44 @@
 Seluruh primary key bertipe `UUID`. Seluruh kolom waktu bertipe `TIMESTAMPTZ`
 (dengan zona waktu). **16 tabel**, dikelompokkan menurut perannya:
 
-| Kelompok | Tabel |
-|---|---|
-| Identitas & akses | `users`, `audit_logs` |
-| Sarana | `incubators`, `devices` |
-| Pasien | `babies`, `parents`, `maternal_records`, `baby_incubator_assignments` |
-| Asesmen klinis | `monitoring_records`, `observations`, `parent_involvement_records`, `aksi_records`, `doctor_notes` |
-| Telemetri | `sensor_readings`, `sensor_reading_minutes`, `sensor_alerts` |
+| Kelompok | Tabel | Diagram |
+|---|---|---|
+| Identitas & akses | `users`, `audit_logs` | [1.2](#12-identitas-sarana-dan-jejak-audit) |
+| Sarana | `incubators`, `devices` | [1.2](#12-identitas-sarana-dan-jejak-audit) |
+| Pasien | `babies`, `parents`, `maternal_records`, `baby_incubator_assignments` | [1.3](#13-pasien-dan-penempatan) |
+| Asesmen klinis | `monitoring_records`, `observations`, `parent_involvement_records`, `aksi_records`, `doctor_notes` | [1.4](#14-asesmen-klinis) |
+| Telemetri | `sensor_readings`, `sensor_reading_minutes`, `sensor_alerts` | [1.5](#15-telemetri-iot) |
 
 > **Cara melihat diagram.** Ditulis dengan [Mermaid](https://mermaid.js.org/), dan
 > ter-*render* otomatis di **GitHub** serta di **VS Code** (pasang ekstensi *Markdown
 > Preview Mermaid Support*). Bila yang tampak hanya teks `erDiagram`, tempelkan blok
 > kodenya ke <https://mermaid.live>. Bagian 2 menjelaskan setiap kolom dalam bentuk tabel
 > biasa, jadi diagramnya bersifat pelengkap, bukan syarat.
+>
+> Setiap diagram memakai `direction LR` agar tumbuh ke bawah, bukan ke samping. Perender
+> Mermaid lama mengabaikan baris itu tanpa galat — diagramnya tetap tampil, hanya
+> kembali melebar.
 
 ---
 
 ## 1. Diagram
 
-Diagram menampilkan kolom kunci saja agar tetap terbaca. Daftar kolom lengkap ada di
-Bagian 2.
+Enam belas tabel dalam satu gambar menghasilkan diagram yang melebar jauh ke samping:
+`babies`, `users`, dan `incubators` menjadi poros, sehingga hampir seluruh tabel anak
+berjajar pada satu baris. Karena itu diagram dipecah — **1.1** memetakan seluruh
+hubungan tanpa kolom, lalu **1.2–1.5** merinci kolom kunci per kelompok.
+
+Setiap tabel dirinci kolomnya **tepat pada satu** diagram kelompok. Bila tabel itu muncul
+lagi di kelompok lain, bentuknya hanya kotak nama — sebagai konteks, bukan pengulangan.
+Daftar kolom lengkap tetap ada di Bagian 2.
+
+### 1.1 Peta hubungan
+
+Seluruh 16 tabel dan seluruh kunci asing, tanpa kolom.
 
 ```mermaid
 erDiagram
+    direction LR
     users ||--o{ baby_incubator_assignments : "menempatkan (assigned_by)"
     users ||--o{ baby_incubator_assignments : "DPJP (dpjp_id)"
     users ||--o{ monitoring_records          : "mencatat"
@@ -61,6 +76,18 @@ erDiagram
     incubators ||--o{ sensor_alerts              : "memicu"
 
     devices ||--o{ sensor_readings : "mengirim"
+```
+
+### 1.2 Identitas, sarana, dan jejak audit
+
+Dua pasangan yang berdiri sendiri: akun beserta jejaknya, dan inkubator beserta
+perangkat IoT-nya.
+
+```mermaid
+erDiagram
+    direction LR
+    users      ||--o{ audit_logs : "melakukan"
+    incubators ||--o| devices    : "dipasangi (maks 1)"
 
     users {
         uuid id PK
@@ -68,6 +95,15 @@ erDiagram
         varchar email UK
         varchar password_hash "bcrypt"
         boolean is_active
+    }
+
+    audit_logs {
+        uuid log_id PK
+        uuid user_id FK "ON DELETE SET NULL"
+        varchar action
+        varchar table_name
+        uuid record_id
+        inet ip_address
     }
 
     incubators {
@@ -85,6 +121,22 @@ erDiagram
         varchar last_ip
         varchar allowed_ip
     }
+```
+
+### 1.3 Pasien dan penempatan
+
+`parents` dan `maternal_records` masing-masing satu baris per bayi; penempatan boleh
+berulang sepanjang riwayat bayi. `users` dan `incubators` dirinci di 1.2.
+
+```mermaid
+erDiagram
+    direction LR
+    babies     ||--|| parents                    : "punya satu"
+    babies     ||--|| maternal_records           : "punya satu"
+    babies     ||--o{ baby_incubator_assignments : "ditempatkan"
+    incubators ||--o{ baby_incubator_assignments : "menampung"
+    users      ||--o{ baby_incubator_assignments : "menempatkan (assigned_by)"
+    users      ||--o{ baby_incubator_assignments : "DPJP (dpjp_id)"
 
     babies {
         uuid baby_id PK
@@ -119,6 +171,27 @@ erDiagram
         enum status "active | discharged"
         timestamptz discharged_at
     }
+```
+
+### 1.4 Asesmen klinis
+
+Lima tabel berpola sama: milik satu bayi, dicatat oleh satu pengguna. `babies` dirinci
+di 1.3, `users` di 1.2.
+
+```mermaid
+erDiagram
+    direction LR
+    babies ||--o{ monitoring_records         : "dipantau"
+    babies ||--o{ observations               : "diobservasi"
+    babies ||--o{ parent_involvement_records : "keluarga terlibat"
+    babies ||--o{ aksi_records               : "dicatat aksinya"
+    babies ||--o{ doctor_notes               : "dicatat dokter"
+
+    users ||--o{ monitoring_records         : "mencatat"
+    users ||--o{ observations               : "mencatat"
+    users ||--o{ parent_involvement_records : "mencatat"
+    users ||--o{ aksi_records               : "mencatat"
+    users ||--o{ doctor_notes               : "menulis"
 
     monitoring_records {
         uuid monitoring_id PK
@@ -160,6 +233,25 @@ erDiagram
         uuid recorded_by FK "dokter"
         text catatan
     }
+```
+
+### 1.5 Telemetri IoT
+
+Jalur data sensor: `devices` mengirim, `sensor_readings` menampung data mentah,
+`sensor_reading_minutes` meringkasnya per menit, `sensor_alerts` menyimpan pelanggaran
+ambang. Tabel poros dirinci di 1.2 dan 1.3.
+
+```mermaid
+erDiagram
+    direction LR
+    devices    ||--o{ sensor_readings        : "mengirim"
+    incubators ||--o{ sensor_readings        : "sumber pembacaan"
+    incubators ||--o{ sensor_reading_minutes : "sumber agregat"
+    incubators ||--o{ sensor_alerts          : "memicu"
+    babies     ||--o{ sensor_readings        : "pembacaan miliknya"
+    babies     ||--o{ sensor_reading_minutes : "agregat miliknya"
+    babies     ||--o{ sensor_alerts          : "peringatan baginya"
+    users      ||--o{ sensor_alerts          : "menandai dibaca"
 
     sensor_readings {
         uuid reading_id PK
@@ -186,15 +278,6 @@ erDiagram
         enum severity "warning | critical"
         timestamptz resolved_at "NULL = masih terbuka"
         uuid acknowledged_by FK
-    }
-
-    audit_logs {
-        uuid log_id PK
-        uuid user_id FK "ON DELETE SET NULL"
-        varchar action
-        varchar table_name
-        uuid record_id
-        inet ip_address
     }
 ```
 
@@ -541,5 +624,6 @@ bradikardia berat.
 
 | Versi | Tanggal | Perubahan |
 |---|---|---|
+| 2.1 | 11 September 2026 | Bagian 1 dipecah: satu peta hubungan tanpa kolom (1.1) dan empat diagram per kelompok (1.2–1.5), masing-masing `direction LR`. Sebelumnya satu diagram sepanjang 7135 px; kini diagram terlebar 1416 px. Kolom tiap tabel dirinci hanya pada satu diagram. |
 | 2.0 | 8 September 2026 | Disusun ulang dari `schema.sql` pada revisi `e8c4b2f91d37`. Menambahkan enam tabel yang sebelumnya tidak tercakup: `devices`, `sensor_readings`, `sensor_reading_minutes`, `sensor_alerts`, `maternal_records`, `doctor_notes`. Menambahkan Bagian 4 (kekangan dan keputusan rancangan) dan Bagian 5 (indeks). |
 | 1.0 | — | Versi awal, mencerminkan revisi `c3a5e7f20b1d`; memuat 10 tabel dan tidak mencakup pekerjaan IoT. |
