@@ -10,6 +10,7 @@ dibaca penerima; berkas sumber dan perkakas pembuatnya tetap di `docs/`.
 | [MANUAL.html](MANUAL.html) | Panduan pengguna, disusun per peran — perawat, dokter, admin. Buka di peramban | Petugas bangsal |
 | [api.html](api.html) | Referensi API lengkap, dihasilkan dari skema OpenAPI aplikasi. Buka di peramban | Pengembang penerus, integrator |
 | [ERD.md](ERD.md) | Entity Relationship Diagram — 16 tabel, kolom, relasi, dan aturan retensi | Pengembang penerus, DBA |
+| [ERD.svg](ERD.svg) | Diagram-diagram dari ERD.md dalam satu gambar — untuk dicetak, atau dibuka tanpa perender Mermaid | Pengembang penerus, DBA |
 | [Presentasi-Neonatal-Care.pptx](Presentasi-Neonatal-Care.pptx) | Presentasi pengenalan sistem beserta tampilan antarmukanya | Rapat serah terima |
 
 **Panduan pemasangan server** ada di [`DEPLOYMENT.md`](../../DEPLOYMENT.md) pada akar
@@ -23,8 +24,8 @@ aplikasi Android beserta APK-nya, dan firmware IoT — ada di foldernya masing-m
 
 ## Menghasilkan ulang dokumen
 
-Dua berkas HTML di folder ini dibuat oleh skrip; jangan disunting langsung, karena
-perubahannya akan tertimpa pada pembuatan berikutnya.
+Tiga berkas di folder ini dibuat oleh skrip — `MANUAL.html`, `api.html`, dan `ERD.svg`;
+jangan disunting langsung, karena perubahannya akan tertimpa pada pembuatan berikutnya.
 
 ```bash
 python docs/generate_manual_html.py
@@ -40,3 +41,14 @@ python docs/api/generate_api_html.py <folder-skema> docs/deliverables/api.html
 
 `<folder-skema>` berisi `openapi.json` dan `roles_full.json` yang diambil dari aplikasi
 saat berjalan, jadi pembaruannya perlu backend yang hidup.
+
+```bash
+python docs/generate_erd_svg.py
+```
+
+Membaca blok Mermaid di `ERD.md` pada folder ini dan menulis `ERD.svg` di sampingnya —
+kelima diagram dalam satu gambar, dengan label berupa teks SVG biasa sehingga tetap utuh
+bila dicetak atau dibuka di Inkscape. Perlu Chrome dan mermaid-cli
+(`npm install -g @mermaid-js/mermaid-cli`); bila mermaid-cli belum terpasang, skrip
+memakai `npx` dan mengunduhnya sekali. Lengkung garis relasi sedikit berbeda di setiap
+pembuatan, jadi selisih kecil pada berkasnya wajar walau `ERD.md` tidak berubah.

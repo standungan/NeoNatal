@@ -19,7 +19,8 @@ Seluruh primary key bertipe `UUID`. Seluruh kolom waktu bertipe `TIMESTAMPTZ`
 
 > **Cara melihat diagram.** Ditulis dengan [Mermaid](https://mermaid.js.org/), dan
 > ter-*render* otomatis di **GitHub** serta di **VS Code** (pasang ekstensi *Markdown
-> Preview Mermaid Support*). Bila yang tampak hanya teks `erDiagram`, tempelkan blok
+> Preview Mermaid Support*). Bila yang tampak hanya teks `erDiagram`, buka
+> [ERD.svg](ERD.svg) — seluruh diagram yang sama dalam satu gambar — atau tempelkan blok
 > kodenya ke <https://mermaid.live>. Bagian 2 menjelaskan setiap kolom dalam bentuk tabel
 > biasa, jadi diagramnya bersifat pelengkap, bukan syarat.
 >

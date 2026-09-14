@@ -18,7 +18,7 @@ All diagrams use [Mermaid](https://mermaid.js.org/) and render directly on GitHu
 ### 🏗️ Design & architecture
 | Document | Contents |
 |---|---|
-| [ERD.md](deliverables/ERD.md) | **Entity Relationship Diagram** — 16-table PostgreSQL schema, columns, enums, relationships, constraints, retention |
+| [ERD.md](deliverables/ERD.md) | **Entity Relationship Diagram** — 16-table PostgreSQL schema, columns, enums, relationships, constraints, retention. Rendered as one image in [ERD.svg](deliverables/ERD.svg) by `generate_erd_svg.py` |
 | [COMPONENT_DIAGRAM.md](api/COMPONENT_DIAGRAM.md) | **Component / Architecture Diagram** — clients, Next.js BFF, FastAPI layered architecture, persistence |
 | [SEQUENCE_DIAGRAMS.md](api/SEQUENCE_DIAGRAMS.md) | **Sequence Diagrams** — login, monitoring + vital evaluation, baby registration, involvement (Pillar 6) scoring, PDF export, admin |
 
