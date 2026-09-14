@@ -5,8 +5,8 @@
 | | |
 |---|---|
 | **Nama sistem** | Neonatal Care System — Sistem Monitoring Bayi pada Inkubator |
-| **Versi dokumen** | 1.0 |
-| **Tanggal** | 7 September 2026 |
+| **Versi dokumen** | 1.1 |
+| **Tanggal** | 14 September 2026 |
 | **Status** | Untuk ditinjau dan disetujui Klien |
 | **Pengembang** | Sofyan Tandungan |
 | **Dasar** | Perjanjian Kerja Sama Pengembangan Sistem Pemantauan Inkubator Bayi Terintegrasi (IoT), Pasal 2 & 3 |
@@ -644,10 +644,11 @@ saat dokumen disusun.
 | Penerapan pada server lokal Klien | Sudah berjalan |
 | Pengujian firmware terhadap server yang hidup | **Belum** dilakukan uji ujung-ke-ujung |
 | TLS (NF-12) | Disiapkan sebagai konfigurasi terpisah, **belum diuji** |
-| Laporan UAT | Belum disusun; kebutuhan berkode pada dokumen ini dimaksudkan sebagai dasar penyusunannya |
+| Laporan UAT | Disusun (`UAT_REPORT.md`). Bagian A — pengujian oleh Pengembang — **sudah dijalankan**; Bagian B — skenario penerimaan oleh Klien — **belum dijalankan** |
 
 ### 9.3 Riwayat Dokumen
 
 | Versi | Tanggal | Perubahan |
 |---|---|---|
+| 1.1 | 14 September 2026 | Baris *Laporan UAT* pada 9.2 diperbarui: laporannya kini ada, dengan Bagian A sudah dan Bagian B belum dijalankan. Baris lain pada 9.2 tidak ditinjau ulang dan tetap mencerminkan keadaan 7 September 2026. |
 | 1.0 | 7 September 2026 | Penyusunan awal. Kebutuhan diturunkan dari Kontrak v2, kerangka delapan pilar, dan sistem yang telah terbangun. |
