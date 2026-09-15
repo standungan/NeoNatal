@@ -12,6 +12,7 @@ dibaca penerima; berkas sumber dan perkakas pembuatnya tetap di `docs/`.
 | [ERD.md](ERD.md) | Entity Relationship Diagram — 16 tabel, kolom, relasi, dan aturan retensi | Pengembang penerus, DBA |
 | [ERD.svg](ERD.svg) | Diagram-diagram dari ERD.md dalam satu gambar — untuk dicetak, atau dibuka tanpa perender Mermaid | Pengembang penerus, DBA |
 | [Presentasi-Neonatal-Care.pptx](Presentasi-Neonatal-Care.pptx) | Presentasi pengenalan sistem beserta tampilan antarmukanya | Rapat serah terima |
+| [pdf/](pdf/) | Keenam dokumen di atas dalam bentuk PDF A4 — untuk dicetak, ditandatangani, atau diarsipkan | Semua penerima |
 
 **Panduan pemasangan server** ada di [`DEPLOYMENT.md`](../../DEPLOYMENT.md) pada akar
 repositori — letaknya sengaja dipertahankan karena dirujuk oleh `docker-compose.yml`
@@ -24,8 +25,9 @@ aplikasi Android beserta APK-nya, dan firmware IoT — ada di foldernya masing-m
 
 ## Menghasilkan ulang dokumen
 
-Tiga berkas di folder ini dibuat oleh skrip — `MANUAL.html`, `api.html`, dan `ERD.svg`;
-jangan disunting langsung, karena perubahannya akan tertimpa pada pembuatan berikutnya.
+Sebagian berkas di folder ini dibuat oleh skrip — `MANUAL.html`, `api.html`, `ERD.svg`, dan
+seluruh isi `pdf/`; jangan disunting langsung, karena perubahannya akan tertimpa pada
+pembuatan berikutnya.
 
 ```bash
 python docs/generate_manual_html.py
@@ -52,3 +54,16 @@ bila dicetak atau dibuka di Inkscape. Perlu Chrome dan mermaid-cli
 (`npm install -g @mermaid-js/mermaid-cli`); bila mermaid-cli belum terpasang, skrip
 memakai `npx` dan mengunduhnya sekali. Lengkung garis relasi sedikit berbeda di setiap
 pembuatan, jadi selisih kecil pada berkasnya wajar walau `ERD.md` tidak berubah.
+
+```bash
+python docs/generate_pdfs.py            # keenam dokumen
+python docs/generate_pdfs.py SRS ERD    # sebagian saja
+```
+
+Menulis PDF A4 bernomor halaman ke `pdf/`, lalu **memeriksa setiap halamannya**: judul yang
+tertinggal di dasar halaman, halaman yang nyaris kosong, teks yang menyentuh tepi, dan
+diagram yang teksnya lebih kecil dari 7 pt. Skrip keluar dengan kode gagal bila ada yang
+tidak lolos, jadi PDF yang tata letaknya rusak tidak lolos tanpa ketahuan. Diagram yang
+terlalu tinggi dipotong di celah antar-tabel menjadi beberapa halaman, dan yang terlalu
+lebar diberi halaman lanskap. Perlu `pip install mistune pypdfium2`, ditambah Chrome dan
+mermaid-cli seperti di atas; presentasi diekspor lewat PowerPoint.
