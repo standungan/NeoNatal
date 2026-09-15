@@ -23,6 +23,11 @@ Two rendering choices worth knowing about:
   each. Each diagram's internal ids are namespaced (erd1..erdN) so that five style blocks
   and five sets of arrow markers do not collide once they share a document.
 
+Every diagram is checked for relationship labels printed over another label or over a table
+(pdf_check.label_collisions). Mermaid does not avoid those itself; the order of relationship
+lines in ERD.md decides the layout, so reordering them is the fix. The SVG is still written
+when a collision is found, but the run exits non-zero.
+
 The footer date comes from the document's own history table rather than from today, so it
 does not churn on every render. Mermaid still routes edge curves slightly differently from
 run to run, so expect a small diff in the path data even when nothing changed - entity
@@ -36,6 +41,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+
+import pdf_check
 
 ROOT = pathlib.Path(__file__).resolve().parent
 SRC = ROOT / "deliverables" / "ERD.md"
@@ -219,19 +226,30 @@ def main():
         if chrome:
             (tmp / "puppeteer.json").write_text(
                 json.dumps({"executablePath": chrome, "args": ["--no-sandbox"]}), encoding="utf-8")
-        parts, y = [], HEAD_RULE + 44 + GAP_TITLE
+        parts, y, collisions = [], HEAD_RULE + 44 + GAP_TITLE, []
         for i, code in enumerate(blocks, 1):
-            svg = namespace(render(mmdc, chrome, code, i, tmp), i)
+            rendered = render(mmdc, chrome, code, i, tmp)
+            found = pdf_check.label_collisions(rendered)
+            collisions += ["%s: %s" % (titles[i - 1], c) for c in found]
+            svg = namespace(rendered, i)
             w, h, markup = frame(svg, y)
             parts.append((w, h, markup))
             y += h + GAP_SECTION + GAP_TITLE
-            print("  %-34s %6.0f x %6.0f" % (titles[i - 1], w, h))
+            print("  %-34s %6.0f x %6.0f%s" % (titles[i - 1], w, h,
+                                              "  %d label bertumpuk" % len(found) if found else ""))
 
     width, height, svg = compose(parts, titles, md)
     if "<foreignObject" in svg:
         sys.exit("label masih berupa foreignObject - periksa htmlLabels pada MERMAID_CFG.")
     OUT.write_text(svg, encoding="utf-8")
     print("  %s (%s bytes, %.0f x %.0f)" % (OUT.name, format(len(svg), ","), width, height))
+    if collisions:
+        # Still written, so it can be inspected - but the run fails until the source is reordered.
+        print("  label bertumpuk - ubah urutan baris relasi di ERD.md:")
+        for c in collisions:
+            print("    - " + c)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":

@@ -48,6 +48,14 @@ Seluruh 16 tabel dan seluruh kunci asing, tanpa kolom.
 ```mermaid
 erDiagram
     direction LR
+    %% Urutan baris relasi menentukan tata letak. Urutan ini dipilih agar tidak ada label
+    %% yang bertumpuk; docs/generate_erd_svg.py gagal bila ada. Jangan dirapikan ulang.
+    incubators ||--o{ baby_incubator_assignments : "menampung"
+    incubators ||--o| devices                    : "dipasangi (maks 1)"
+    incubators ||--o{ sensor_readings            : "sumber pembacaan"
+    incubators ||--o{ sensor_reading_minutes     : "sumber agregat"
+    incubators ||--o{ sensor_alerts              : "memicu"
+
     users ||--o{ baby_incubator_assignments : "menempatkan (assigned_by)"
     users ||--o{ baby_incubator_assignments : "DPJP (dpjp_id)"
     users ||--o{ monitoring_records          : "mencatat"
@@ -55,8 +63,9 @@ erDiagram
     users ||--o{ parent_involvement_records  : "mencatat"
     users ||--o{ aksi_records                : "mencatat"
     users ||--o{ doctor_notes                : "menulis"
-    users ||--o{ sensor_alerts               : "menandai dibaca"
     users ||--o{ audit_logs                  : "melakukan"
+
+    devices ||--o{ sensor_readings : "mengirim"
 
     babies ||--|| parents                    : "punya satu"
     babies ||--|| maternal_records           : "punya satu"
@@ -70,13 +79,7 @@ erDiagram
     babies ||--o{ sensor_reading_minutes     : "agregat miliknya"
     babies ||--o{ sensor_alerts              : "peringatan baginya"
 
-    incubators ||--o{ baby_incubator_assignments : "menampung"
-    incubators ||--o| devices                    : "dipasangi (maks 1)"
-    incubators ||--o{ sensor_readings            : "sumber pembacaan"
-    incubators ||--o{ sensor_reading_minutes     : "sumber agregat"
-    incubators ||--o{ sensor_alerts              : "memicu"
-
-    devices ||--o{ sensor_readings : "mengirim"
+    users ||--o{ sensor_alerts               : "menandai dibaca"
 ```
 
 ### 1.2 Identitas, sarana, dan jejak audit
@@ -182,17 +185,19 @@ di 1.3, `users` di 1.2.
 ```mermaid
 erDiagram
     direction LR
-    babies ||--o{ monitoring_records         : "dipantau"
-    babies ||--o{ observations               : "diobservasi"
-    babies ||--o{ parent_involvement_records : "keluarga terlibat"
-    babies ||--o{ aksi_records               : "dicatat aksinya"
+    %% Urutan baris relasi menentukan tata letak. Urutan ini dipilih agar tidak ada label
+    %% yang bertumpuk; docs/generate_erd_svg.py gagal bila ada. Jangan dirapikan ulang.
     babies ||--o{ doctor_notes               : "dicatat dokter"
+    babies ||--o{ aksi_records               : "dicatat aksinya"
+    babies ||--o{ parent_involvement_records : "keluarga terlibat"
+    babies ||--o{ observations               : "diobservasi"
+    babies ||--o{ monitoring_records         : "dipantau"
 
-    users ||--o{ monitoring_records         : "mencatat"
-    users ||--o{ observations               : "mencatat"
-    users ||--o{ parent_involvement_records : "mencatat"
-    users ||--o{ aksi_records               : "mencatat"
     users ||--o{ doctor_notes               : "menulis"
+    users ||--o{ aksi_records               : "mencatat"
+    users ||--o{ parent_involvement_records : "mencatat"
+    users ||--o{ observations               : "mencatat"
+    users ||--o{ monitoring_records         : "mencatat"
 
     monitoring_records {
         uuid monitoring_id PK
