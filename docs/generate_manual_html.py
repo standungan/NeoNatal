@@ -29,10 +29,18 @@ e = html.escape
 
 
 def inline(t):
-    """Bold and inline code. Escape first, then re-introduce the tags."""
+    """Bold, italic, inline code and links. Escape first, then re-introduce the tags.
+
+    Links matter even though they are few: without this, a cross-reference like
+    [Membaca detail inkubator](#membaca-detail-inkubator) reached the reader as
+    raw brackets. Paragraph lines are joined before this runs, so a link or an
+    italic that wraps across a line break in the Markdown still matches.
+    """
     t = e(t)
     t = re.sub(r"`([^`]+)`", r"<code>\1</code>", t)
     t = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", t)
+    t = re.sub(r"(?<![*\w])\*([^*\s][^*]*?)\*(?![*\w])", r"<em>\1</em>", t)
+    t = re.sub(r"\[([^\]]+)\]\(([^)\s\"]+)\)", r'<a href="\2">\1</a>', t)
     return t
 
 

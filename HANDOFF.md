@@ -87,7 +87,19 @@ If you change one of those, change all of them.
   **The backend guards decide what the clients show** — check them before gating UI.
 - **`incubators.status = 'warning'` has THREE producers**: the alert engine, an observation
   item scored 0, and a manual vitals entry. Never clear it without establishing who set it.
-- **Alembic head**: `f4b7d2e9a613` (`users.deleted_at` — accounts with records are marked deleted, never removed; see `user_service.delete_user_permanently`).
+- **Alembic head**: `b5e2a7c9d314` (`incubators.archived_at`, `sensor_alerts.resolved_reason`, per-baby indexes). Before it, `f4b7d2e9a613` (`users.deleted_at` — accounts with records are marked deleted, never removed; see `user_service.delete_user_permanently`).
+- **Incubators are reused, and archived rather than deleted.** An incubator that has held a
+  baby can't be deleted (its placements are `NO ACTION`, its telemetry `CASCADE`s), so
+  `incubator_service.archive_incubator` marks it instead: off the dashboard/admission, read-only,
+  device unbound, open alerts closed. Numbering reads archived rows too, so a number is never reused.
+- **Incubator-scoped views cover the CURRENT occupancy only** — `/readings`, `/alerts`, the SSE
+  replay and dashboard sparklines cut at `AssignmentRepository.occupancy_start` (current
+  admission, else last discharge). Earlier data is served per baby: `/babies/{id}/sensor-history`
+  (raw ∪ minute rollups) and `/babies/{id}/alerts`. Anything new that reads telemetry by
+  incubator must apply the same cut, or the next baby's screen shows the last one's readings.
+- **Discharge closes the baby's open sensor alerts** (`resolved_reason='discharged'`). Before, an
+  alert left open by a discharged baby flipped the empty incubator back to `warning` on every
+  idle reading — and admission requires `kosong`, so the incubator couldn't be reused.
 
 ### IoT endpoints
 
@@ -100,6 +112,10 @@ If you change one of those, change all of them.
 | GET | `/api/v1/incubators/{id}/alerts` | AnyRole |
 | POST | `/api/v1/alerts/{id}/acknowledge` | PerawatOrAdmin |
 | GET | `/api/v1/babies/{id}/latest-reading` | AnyRole |
+| GET | `/api/v1/babies/{id}/sensor-history` | AnyRole — whole stay, bucketed ≤600 points |
+| GET | `/api/v1/babies/{id}/alerts` | AnyRole |
+| GET | `/api/v1/incubators/{id}/placements` | AnyRole — usage history |
+| POST | `/api/v1/incubators/{id}/archive`, `/restore` | AdminOnly |
 | GET/POST/PUT/DELETE | `/api/v1/incubators/{id}/device` | AdminOnly (GET is AnyRole) |
 
 ---
@@ -116,6 +132,8 @@ venv/Scripts/python tests/telemetry_check.py   # 30 — ingest, 0→NULL, audit
 venv/Scripts/python tests/stream_check.py      # 14 — SSE fan-out and replay
 venv/Scripts/python tests/alert_check.py       # 28 — debounce, warning ownership
 venv/Scripts/python tests/retention_check.py   # 18 — rollup/prune safety
+venv/Scripts/python tests/user_delete_check.py # 22 — account deletion keeps its records
+venv/Scripts/python tests/incubator_history_check.py  # 78 — reuse, per-baby history, archive
 ```
 
 Flutter: `flutter analyze` and `flutter test` (8 tests).

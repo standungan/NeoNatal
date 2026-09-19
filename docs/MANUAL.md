@@ -116,11 +116,12 @@ Klik satu kartu untuk membuka **Detail Inkubator**.
 | | Perawat | Dokter | Admin |
 |---|---|---|---|
 | Melihat dasbor, bayi, grafik, laporan | ya | ya | ya |
+| Membuka **Riwayat Bayi**, termasuk bayi yang sudah pulang | ya | ya | ya |
 | Mendaftarkan & mengubah data bayi | ya | — | ya |
 | Mencatat tanda vital, kolaborasi, keterlibatan, observasi | ya | — | ya |
 | Menulis catatan dokter | — | ya | — |
 | Mengelola pengguna | — | — | ya |
-| Mengelola inkubator & perangkat IoT | — | — | ya |
+| Mengelola inkubator (termasuk mengarsipkan) & perangkat IoT | — | — | ya |
 | Membaca audit log | — | — | ya |
 
 Menu yang bukan hak Anda tidak akan muncul. Kalau Anda membuka alamatnya langsung,
@@ -199,14 +200,24 @@ Pada **Tren Sensor**, satu panel per pengukuran, semuanya sesumbu waktu:
 Bila panel tampak sebagai grafik datar di tengah pita, itu normal: bacaan yang stabil
 memang menghasilkan garis lurus.
 
+**Grafik hanya memuat periode saat ini** — sejak bayi yang sekarang masuk, atau, bila
+inkubatornya kosong, sejak bayi terakhir pulang. Keterangan kecil di bawah judul **Tren
+Sensor** menyebutkan periodenya, misalnya *Sejak Raka Pratama masuk, 19 Sep 2026, 22.28*.
+Jadi begitu bayi baru masuk, grafiknya mulai dari kosong lagi: bacaan bayi sebelumnya
+tidak hilang, tetapi pindah ke laporan bayi itu sendiri (lihat [Laporan dan ekspor
+PDF](#laporan-dan-ekspor-pdf)). Dengan begitu tidak ada angka milik bayi lain yang
+terbaca sebagai angka bayi Anda.
+
 Di bawah grafik ada **Riwayat Peringatan** — daftar bacaan yang pernah keluar dari ambang
-batas inkubator ini.
+batas inkubator ini, dengan batas periode yang sama seperti grafik.
 
 ![Kartu Riwayat Peringatan](images/16-riwayat-peringatan.png)
 
 Tiap baris menyebut pengukuran yang melewati batas, nilainya saat itu, batas yang
 dilanggar, dan jam mulainya. Di ujung baris tertulis **aktif** bila bacaannya masih di
-luar batas, atau **selesai** bila sudah kembali normal.
+luar batas, atau **selesai** bila sudah kembali normal. Dua keterangan lain berarti
+peringatan itu ditutup tanpa bacaannya kembali normal: **ditutup saat bayi pulang** dan
+**ditutup saat inkubator diarsipkan**.
 
 Peringatan yang masih aktif punya tombol **Tandai dilihat** — tekan setelah Anda
 memeriksa bayinya, supaya rekan sif berikutnya tahu peringatan itu sudah ditangani. Nama
@@ -214,6 +225,16 @@ Anda tercatat di sana. Perawat dan admin bisa menandai; dokter hanya membaca.
 
 **Menandai tidak menutup peringatan.** Baris yang sudah ditandai tetap **aktif** sampai
 bacaan sensornya sendiri kembali normal — dan aplikasi mengatakan itu di bawah barisnya.
+
+Paling bawah, pada inkubator yang pernah dipakai, ada **Riwayat Penggunaan**: siapa saja
+yang pernah menempati inkubator ini, dengan nomor registrasi, tanggal masuk, dan tanggal
+pulangnya.
+
+![Riwayat Penggunaan: bayi yang sedang dirawat di atas, bayi sebelumnya di bawahnya](images/28-riwayat-penggunaan.png)
+
+Klik nama bayi untuk membuka laporannya — di sanalah data sensor dan peringatan bayi itu
+selama berada di inkubator ini disimpan. Daftar ini juga menjawab pertanyaan "bayi mana
+saja yang pernah memakai inkubator ini", misalnya saat menelusuri penularan infeksi.
 
 ### Mencatat tanda vital
 
@@ -318,6 +339,34 @@ sebelum menjalankannya.
 Inkubatornya kembali **Kosong** dan siap dipakai bayi berikutnya. Seluruh catatan dan
 riwayat bacaan sensornya **tetap tersimpan** — memulangkan tidak menghapus apa pun.
 
+Peringatan sensor milik bayi itu yang masih **aktif** ikut ditutup, dengan keterangan
+**ditutup saat bayi pulang** — probe-nya sudah tidak terpasang pada bayi itu, jadi
+bacaannya tidak mungkin kembali normal di inkubator ini. Tanpa itu, inkubator yang sudah
+kosong akan terus berubah jadi **Warning** dan tidak bisa dipilih untuk bayi berikutnya.
+
+Setelah pulang, bayi tidak lagi tampil di dasbor. Catatannya dibuka lewat **Riwayat
+Bayi**.
+
+### Riwayat Bayi — termasuk bayi yang sudah pulang
+
+**Menu atas → Riwayat Bayi.** Terbuka untuk semua peran.
+
+![Riwayat Bayi: saringan Semua / Dirawat / Sudah Pulang, kolom pencarian, dan satu baris per bayi](images/26-riwayat-bayi.png)
+
+Satu baris per bayi, yang terbaru di atas: nomor inkubator yang terakhir ditempatinya,
+nama, jenis kelamin, tanggal lahir, No. RM, No. Registrasi NICU, tanggal masuk, dan —
+bila sudah pulang — tanggal pulangnya.
+
+- Saringan **Semua**, **Dirawat**, dan **Sudah Pulang** ada di kiri atas.
+- Kolom pencarian menerima **nama**, **No. RM**, atau **No. Registrasi NICU** (sebagian
+  saja sudah cukup).
+- Klik satu baris untuk membuka **Laporan** bayi itu.
+
+Laporan bayi yang sudah pulang hanya bisa dibaca. Menu pencatatan (tanda vital,
+observasi, keterlibatan, kolaborasi, observasi dokter) tidak ditampilkan lagi, karena
+formulir itu untuk bayi yang masih dirawat. Di kepala halaman tertulis **Sudah pulang** beserta
+inkubator dan tanggal pulangnya.
+
 ---
 
 ## 2. Untuk Dokter
@@ -354,8 +403,32 @@ Dokter**. Tombol pencatatan milik perawat memang tidak ditampilkan untuk peran A
 Merangkum satu bayi: identitas dan riwayat kelahiran, riwayat monitoring, observasi
 terakhir, keterlibatan keluarga, skor aksi, dan catatan dokter.
 
+**Data Registrasi** menyebut inkubator, tanggal masuk, **Status** (*Masih dirawat* atau
+*Sudah pulang*), dan **Tanggal Pulang**. Untuk bayi yang sudah pulang, datanya diambil
+dari penempatan terakhirnya — jadi laporan yang dibuat setelah bayi pulang tetap lengkap.
+
+Di bawahnya ada **Riwayat Data Sensor**: seluruh bacaan sensor selama bayi itu dirawat,
+dari hari pertama sampai pulang.
+
+![Riwayat Data Sensor: garis rata-rata dan pita tipis rentang terendah–tertinggi, dengan jeda saat tidak ada data](images/29-riwayat-data-sensor.png)
+
+- Grafik ini milik **bayinya**, bukan inkubatornya. Isinya tetap ada setelah bayi pulang,
+  setelah inkubatornya dipakai bayi lain, dan setelah inkubatornya diarsipkan.
+- Masa rawat yang panjang diringkas: tiap titik adalah rata-rata beberapa menit (ditulis
+  di keterangan grafik), dan **pita pucat** di sekitarnya adalah nilai terendah dan
+  tertinggi dalam rentang itu. Penurunan SpO₂ yang singkat tetap terlihat pada pita
+  walaupun rata-ratanya normal.
+- Rentang waktu tanpa data tampil sebagai **jeda**, bukan garis yang menyambung.
+
+Lalu **Riwayat Peringatan** bayi itu — semua peringatan sensor selama ia dirawat, di
+inkubator mana pun, dengan nomor inkubatornya.
+
+![Riwayat Peringatan pada laporan bayi yang sudah pulang](images/31-peringatan-bayi.png)
+
 Tekan **Export PDF** untuk berkas yang bisa dicetak atau dilampirkan ke rekam medis.
-Isinya sama dengan yang di layar, pada saat tombol ditekan.
+Isinya laporan pada saat tombol ditekan, termasuk status dan tanggal pulang untuk bayi
+yang sudah pulang. **Riwayat Data Sensor** dan **Riwayat Peringatan** hanya ada di layar,
+tidak ikut dicetak.
 
 ---
 
@@ -416,19 +489,42 @@ inkubator dibuat otomatis dan berurutan** saat disimpan, jadi tidak ada kolom no
 bisa diketik; nomor itu juga tidak bisa diubah setelahnya.
 
 Pada inkubator yang sedang tidak berisi bayi, admin melihat kartu **Pengaturan Inkubator
-(Admin)** dengan tombol:
+(Admin)**:
 
-- **Tandai Tidak Tersedia** — untuk inkubator yang rusak atau sedang diperbaiki. Ia
-  hilang dari pilihan saat mendaftarkan bayi, tanpa membuang riwayatnya. **Tandai
-  Kosong** mengembalikannya.
-- **Hapus Inkubator** — menghapusnya untuk selamanya, setelah konfirmasi. Tidak bisa
-  dibatalkan.
+![Pengaturan Inkubator pada inkubator yang pernah dipakai: Tandai Tidak Tersedia dan Arsipkan Inkubator](images/27-arsipkan-inkubator.png)
 
-**Hapus Inkubator** hanya berhasil untuk inkubator yang **belum pernah ditempati bayi**
-sama sekali — biasanya yang baru saja ditambahkan karena salah input. Inkubator yang punya
-riwayat penempatan ditolak dengan pesan di bawah tombolnya, karena menghapusnya berarti
-membuang riwayat perawatan bayi-bayi itu. Untuk inkubator seperti itu, pakai **Tandai
-Tidak Tersedia**.
+- **Tandai Tidak Tersedia** — untuk inkubator yang rusak atau sedang diperbaiki, yang
+  nanti akan dipakai lagi. Ia hilang dari pilihan saat mendaftarkan bayi, tanpa membuang
+  riwayatnya, tetapi tetap tampil di dasbor. **Tandai Kosong** mengembalikannya.
+- **Hapus Inkubator** — hanya muncul pada inkubator yang **belum pernah ditempati bayi**
+  sama sekali, biasanya yang baru ditambahkan karena salah input. Menghapusnya untuk
+  selamanya, setelah konfirmasi. Tidak bisa dibatalkan.
+- **Arsipkan Inkubator** — muncul sebagai ganti **Hapus** pada inkubator yang **pernah
+  ditempati bayi**, untuk inkubator yang sudah tidak akan dipakai lagi.
+
+Inkubator yang pernah dipakai tidak bisa dihapus, karena menghapusnya berarti membuang
+riwayat perawatan bayi-bayi yang pernah menempatinya. Mengarsipkan memberi hasil yang
+sama di layar tanpa membuang apa pun:
+
+- Inkubator **hilang dari dasbor**, dari hitungan kartu ringkasan, dan dari pilihan saat
+  mendaftarkan bayi.
+- **Perangkat IoT-nya dilepas**, dan peringatan yang masih aktif ditutup dengan
+  keterangan **ditutup saat inkubator diarsipkan**.
+- **Tidak ada data yang dibuang.** Riwayat penggunaannya tetap ada, dan data sensor serta
+  peringatan tiap bayi tetap tersimpan di laporan bayi masing-masing.
+- **Nomornya tidak dipakai ulang.** Inkubator baru yang ditambahkan kemudian mendapat
+  nomor berikutnya, jadi "Inkubator 03" di riwayat seorang bayi selalu berarti satu
+  inkubator yang sama.
+
+Inkubator yang sudah diarsipkan dibuka lewat **Admin → Arsip Inkubator**. Halamannya
+hanya bisa dibaca: status, ambang batas, dan perangkatnya tidak bisa diubah.
+
+![Inkubator yang sudah diarsipkan: tanggal arsip, tombol Pulihkan Inkubator, dan Riwayat Penggunaan](images/30-inkubator-diarsipkan.png)
+
+Bila ternyata masih dibutuhkan, tekan **Pulihkan Inkubator**. Inkubatornya kembali ke
+dasbor dengan status **Tidak Tersedia**; tandai **Kosong** setelah benar-benar siap
+dipakai, dan pasang ulang perangkat IoT-nya bila perlu — kunci perangkat yang lama sudah
+tidak berlaku.
 
 Inkubator yang sedang berisi bayi tidak menampilkan kartu ini sama sekali; pulangkan
 bayinya lebih dulu.
@@ -530,6 +626,17 @@ beberapa tab.
 untuk pengukuran itu masih sangat sedikit, sehingga pita rentang normal memenuhi hampir
 seluruh panel. Panelnya kembali seperti biasa setelah bacaannya bertambah.
 
+**Grafik inkubator kosong lagi setelah bayi baru masuk.** Memang begitu. Grafik dan
+Riwayat Peringatan di detail inkubator hanya memuat periode bayi yang sedang menempatinya.
+Bacaan bayi sebelumnya ada di laporan bayi itu — buka lewat **Riwayat Penggunaan** di
+detail inkubator, atau lewat **Riwayat Bayi**.
+
+**Bayi yang sudah pulang tidak ada di dasbor.** Dasbor hanya menampilkan inkubator dan
+bayi yang sedang dirawat. Buka **Riwayat Bayi** dan pilih **Sudah Pulang**.
+
+**Inkubator hilang dari dasbor.** Kemungkinan besar diarsipkan admin. Admin bisa
+melihatnya di **Admin → Arsip Inkubator** dan memulihkannya dari sana.
+
 **Nilai sensor terasa tidak masuk akal.** Percayai pemeriksaan langsung, bukan layar.
 Periksa pemasangan probe. Bacaan yang dikirim alat adalah apa adanya — sistem tidak
 memuluskan atau mengoreksinya.
@@ -555,6 +662,9 @@ memuluskan atau mengoreksinya.
 | **Perangkat IoT** | Alat sensor di inkubator yang mengirim data otomatis. |
 | **Kunci perangkat** | Kode identitas alat. Ditampilkan sekali saat pemasangan. |
 | **Ambang batas** | Rentang normal per pengukuran; di luar itu memicu Warning. |
+| **Riwayat Bayi** | Daftar semua bayi, termasuk yang sudah pulang. Pintu masuk ke laporan bayi yang tidak lagi ada di dasbor. |
+| **Riwayat Penggunaan** | Daftar bayi yang pernah menempati satu inkubator, beserta tanggal masuk dan pulangnya. |
+| **Arsipkan** | Menyingkirkan inkubator yang pernah dipakai dari dasbor tanpa menghapus riwayatnya. Bisa dipulihkan. |
 
 ### Skor maksimal tiap formulir
 

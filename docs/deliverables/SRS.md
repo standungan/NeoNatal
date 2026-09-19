@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Nama sistem** | Neonatal Care System — Sistem Monitoring Bayi pada Inkubator |
-| **Versi dokumen** | 1.3 |
+| **Versi dokumen** | 1.4 |
 | **Tanggal** | 19 September 2026 |
 | **Status** | Untuk ditinjau dan disetujui Klien |
 | **Pengembang** | Sofyan Tandungan |
@@ -143,10 +143,10 @@ Basis data tidak dipublikasikan ke jaringan; ia hanya dapat dijangkau dari dalam
 | Autentikasi & otorisasi | Masuk, sesi, pembatasan berdasarkan peran |
 | Pemantauan | Penerimaan telemetri, grafik tren, status daring perangkat |
 | Peringatan | Deteksi nilai di luar ambang batas, riwayat peringatan |
-| Manajemen bayi | Pendaftaran, rekam medis ibu, penempatan inkubator, pemulangan |
+| Manajemen bayi | Pendaftaran, rekam medis ibu, penempatan inkubator, pemulangan, riwayat bayi yang sudah pulang |
 | Asesmen klinis | Monitoring, observasi, keterlibatan keluarga, aksi, catatan dokter |
-| Pelaporan | Rangkuman per bayi, ekspor PDF |
-| Administrasi | Pengguna, inkubator, perangkat IoT, ambang batas, audit log |
+| Pelaporan | Rangkuman per bayi, riwayat sensor & peringatan per bayi, ekspor PDF |
+| Administrasi | Pengguna, inkubator (termasuk arsip), perangkat IoT, ambang batas, audit log |
 
 ### 2.3 Karakteristik Pengguna
 
@@ -295,8 +295,16 @@ Disusun mengikuti tujuh komponen pekerjaan Kontrak Pasal 2.2.
   Inkubator tersebut otomatis berubah menjadi terisi.
 - **F-4.8** Perawat dan admin dapat mengubah data bayi dan memulangkan bayi. Pemulangan
   mengembalikan status inkubator menjadi kosong dan tidak menghapus riwayat apa pun.
+  Peringatan sensor milik bayi itu yang masih terbuka ditutup pada saat pemulangan (lihat
+  F-4.36), sehingga inkubator yang kosong tidak kembali berstatus warning karena
+  peringatan bayi yang sudah pulang dan dapat langsung dipakai bayi berikutnya.
 - **F-4.9** Bayi ditetapkan memiliki satu DPJP yang dipilih dari daftar pengguna berperan
   dokter.
+- **F-4.33** Semua peran dapat menelusuri daftar bayi, termasuk yang sudah pulang, dengan
+  saringan *dirawat* / *sudah pulang* / *semua* dan pencarian berdasarkan nama, No. RM,
+  atau No. Registrasi NICU. Tiap baris menyebut penempatan terakhir bayi itu. Data bayi
+  yang sudah pulang tetap dapat dibuka, termasuk setelah inkubatornya dipakai bayi lain
+  atau diarsipkan.
 
 #### 4.3 Asesmen klinis
 
@@ -335,6 +343,19 @@ Disusun mengikuti tujuh komponen pekerjaan Kontrak Pasal 2.2.
 - **F-4.24** Peringatan yang masih terbuka tidak diduplikasi untuk jenis yang sama pada
   inkubator yang sama.
 - **F-4.25** Perawat dan admin dapat menandai telah membaca suatu peringatan.
+- **F-4.34** Grafik tren, riwayat peringatan, aliran langsung, dan sparkline dashboard
+  milik suatu inkubator hanya memuat **periode penempatan saat ini**: sejak bayi yang
+  sekarang masuk, atau sejak pemulangan terakhir bila inkubator kosong. Pembacaan dan
+  peringatan periode sebelumnya tidak ditampilkan pada inkubator, melainkan pada bayi
+  pemiliknya (F-4.35). Peringatan yang masih terbuka selalu ditampilkan.
+- **F-4.35** Sistem menyajikan riwayat sensor dan riwayat peringatan **per bayi** untuk
+  seluruh masa rawatnya, di inkubator mana pun. Riwayat sensor tetap tersedia setelah
+  pembacaan mentah melewati masa retensi (D-1), dengan mengambil agregat per menit (D-2),
+  dan diringkas menjadi paling banyak beberapa ratus titik, masing-masing dengan
+  rata-rata serta nilai minimum dan maksimum di dalamnya.
+- **F-4.36** Peringatan hanya dinyatakan **pulih** oleh pembacaan yang kembali normal.
+  Peringatan yang ditutup karena bayinya dipulangkan atau inkubatornya diarsipkan dicatat
+  dengan alasan penutupannya dan tidak ditampilkan sebagai pulih.
 
 Gambar 2 menunjukkan urutan penanganan satu sampel telemetri, dari alat sampai grafik di
 layar. Urutannya diambil dari jalur kode yang sebenarnya, termasuk pemisahan antara bagian
@@ -403,7 +424,9 @@ Empat hal pada Gambar 2 adalah keputusan rancangan yang perlu dibaca eksplisit:
 
 - **F-4.26** Sistem menghasilkan laporan per bayi berisi identitas, riwayat kelahiran,
   riwayat monitoring, observasi terakhir, keterlibatan keluarga, skor aksi, dan catatan
-  dokter.
+  dokter. Data registrasi (inkubator, tanggal masuk, DPJP, dan sebagainya) diambil dari
+  penempatan yang sedang berlangsung atau, bila bayi sudah pulang, dari penempatan
+  terakhirnya, disertai status dan tanggal pulang.
 - **F-4.27** Laporan dapat diekspor sebagai berkas PDF.
 
 #### 4.6 Administrasi
@@ -414,8 +437,10 @@ Empat hal pada Gambar 2 adalah keputusan rancangan yang perlu dibaca eksplisit:
   peringatan, dan entri audit log tetap tercatat atas nama penulisnya. Akun yang dihapus
   hilang dari aplikasi, tidak dapat dipakai masuk atau diaktifkan kembali, dan emailnya
   tidak dapat dipakai untuk akun baru.
-- **F-4.29** Admin dapat menambah, mengubah, menghapus, dan menandai inkubator sebagai
-  tidak tersedia. Inkubator yang memiliki riwayat penempatan tidak dapat dihapus.
+- **F-4.29** Admin dapat menambah, mengubah, dan menandai inkubator sebagai tidak
+  tersedia. Inkubator yang **belum pernah** ditempati bayi dapat dihapus; inkubator yang
+  memiliki riwayat penempatan tidak dapat dihapus, dan diarsipkan sebagai gantinya
+  (F-4.37).
 - **F-4.30** Admin dapat memasang dan melepas perangkat IoT pada inkubator. Kunci
   perangkat ditampilkan **tepat satu kali** saat pemasangan; server hanya menyimpan
   ringkasannya.
@@ -423,6 +448,16 @@ Empat hal pada Gambar 2 adalah keputusan rancangan yang perlu dibaca eksplisit:
   menonaktifkan salah satu sisi batas dengan mengosongkannya.
 - **F-4.32** Seluruh perubahan data tercatat pada audit log berisi pelaku, waktu, tabel,
   dan baris yang diubah. Audit log bersifat tambah-saja dan hanya dapat dibaca admin.
+- **F-4.37** Admin dapat **mengarsipkan** inkubator yang tidak sedang ditempati bayi, dan
+  memulihkannya kembali. Inkubator yang diarsipkan tidak tampil di dashboard, ringkasan
+  bangsal, maupun pilihan inkubator saat pendaftaran bayi. Ia hanya dapat dibaca: status,
+  lokasi, ambang batas, dan perangkatnya tidak dapat diubah, dan telemetri untuknya
+  ditolak. Saat diarsipkan, perangkat IoT-nya dilepas dan peringatannya yang masih
+  terbuka ditutup (F-4.36). Seluruh riwayat penempatan, pembacaan, dan peringatannya
+  tetap tersimpan dan tetap dapat dibaca, baik dari daftar arsip maupun dari tiap bayi
+  yang pernah menempatinya. Nomornya tetap terpakai, sehingga tidak diberikan ke
+  inkubator baru. Inkubator yang dipulihkan kembali ke dashboard berstatus *tidak
+  tersedia* dan tanpa perangkat; admin menandainya kosong setelah siap dipakai.
 
 ### KOM-5 — Pengembangan Aplikasi Mobile (Android)
 
@@ -441,13 +476,20 @@ Empat hal pada Gambar 2 adalah keputusan rancangan yang perlu dibaca eksplisit:
 - **F-6.2** Dashboard menampilkan satu kartu per inkubator berisi status, bayi yang
   menempati, dan nilai vital terakhir.
 - **F-6.3** Halaman detail inkubator menampilkan menu aksi, informasi bayi, grafik tren
-  sensor, riwayat peringatan, dan — bagi admin — kartu perangkat IoT serta pengaturan
-  ambang batas.
+  sensor beserta keterangan periodenya (F-4.34), riwayat peringatan, riwayat penggunaan
+  (bayi yang pernah menempatinya, dengan tautan ke laporan masing-masing), dan — bagi
+  admin — kartu perangkat IoT, pengaturan ambang batas, serta tombol hapus atau arsip
+  sesuai F-4.29.
 - **F-6.4** Grafik tren menampilkan pita rentang normal dan **memutus garis** pada periode
   tanpa pembacaan, sehingga ketiadaan data tidak terbaca sebagai nilai nol.
 - **F-6.5** Kartu perangkat IoT membedakan dengan jelas: belum terpasang, terpasang tetapi
   belum pernah mengirim, daring, luring, dan mengirim tanpa terdaftar.
 - **F-6.6** Token sesi tidak boleh dapat diakses oleh skrip di peramban.
+- **F-6.7** Dashboard menyediakan halaman **Riwayat Bayi** (F-4.33). Laporan bayi yang
+  sudah pulang hanya dapat dibaca dan memuat riwayat sensor serta riwayat peringatan bayi
+  itu (F-4.35).
+- **F-6.8** Admin dapat membuka daftar **Arsip Inkubator**, membuka tiap inkubator yang
+  diarsipkan beserta riwayat penggunaannya, dan memulihkannya (F-4.37).
 
 ### KOM-7 — Pengembangan Perangkat IoT
 
@@ -560,6 +602,11 @@ Enam belas tabel, dikelompokkan menurut perannya:
   0…100 %, detak jantung 0…300 bpm, SpO₂ 0…100 %.
 - **D-7** Menghapus inkubator tidak menghapus perangkat yang pernah terpasang padanya;
   perangkat menjadi tidak terikat dan tetap menyimpan identitasnya.
+- **D-8** Baris inkubator yang memiliki riwayat penempatan tidak pernah dihapus, karena
+  penempatan bayi merujuk kepadanya dan pembacaan, agregat, serta peringatannya ikut
+  terhapus bersamanya. Pengarsipan (F-4.37) hanya menandainya. Nomor inkubator tidak
+  pernah dipakai ulang, sehingga satu nomor pada riwayat seorang bayi selalu merujuk ke
+  inkubator yang sama.
 
 ### 6.4 Ambang Batas Bawaan
 
@@ -599,11 +646,11 @@ Memastikan seluruh komponen Kontrak Pasal 2.2 dan deliverable Pasal 3.1 tercakup
 | # | Komponen (Kontrak 2.2) | Kebutuhan |
 |---|---|---|
 | 1 | Analisa Kebutuhan Sistem | F-1.1, F-1.2 |
-| 2 | Desain Database | F-2.1 – F-2.5, D-1 – D-7 |
+| 2 | Desain Database | F-2.1 – F-2.5, D-1 – D-8 |
 | 3 | Pengembangan Server | F-3.1 – F-3.5, NF-13, NF-16, NF-21, NF-23 |
-| 4 | Pengembangan Backend & API | F-4.1 – F-4.32, NF-1, NF-5 – NF-12 |
+| 4 | Pengembangan Backend & API | F-4.1 – F-4.37, NF-1, NF-5 – NF-12 |
 | 5 | Pengembangan Aplikasi Mobile | F-5.1 – F-5.4, NF-24 |
-| 6 | Pengembangan Website Dashboard | F-6.1 – F-6.6, NF-2, NF-3 |
+| 6 | Pengembangan Website Dashboard | F-6.1 – F-6.8, NF-2, NF-3 |
 | 7 | Pengembangan Perangkat IoT | F-7.1 – F-7.9, NF-4, NF-14, NF-15 |
 
 ### 8.2 Deliverable → sumber
@@ -628,12 +675,13 @@ Memastikan seluruh komponen Kontrak Pasal 2.2 dan deliverable Pasal 3.1 tercakup
 | Kemampuan | Perawat | Dokter | Admin | Perangkat |
 |---|---|---|---|---|
 | Melihat dashboard, bayi, grafik, laporan | ✓ | ✓ | ✓ | — |
+| Membuka riwayat bayi yang sudah pulang | ✓ | ✓ | ✓ | — |
 | Mendaftarkan & mengubah data bayi | ✓ | — | ✓ | — |
 | Mencatat monitoring, aksi, keterlibatan, observasi | ✓ | — | ✓ | — |
 | Menandai peringatan telah dibaca | ✓ | — | ✓ | — |
 | Menulis catatan dokter | — | ✓ | — | — |
 | Mengelola pengguna | — | — | ✓ | — |
-| Mengelola inkubator, perangkat, ambang batas | — | — | ✓ | — |
+| Mengelola inkubator (termasuk mengarsipkan), perangkat, ambang batas | — | — | ✓ | — |
 | Membaca audit log | — | — | ✓ | — |
 | Mengirim telemetri | — | — | — | ✓ |
 
@@ -654,6 +702,7 @@ saat dokumen disusun.
 
 | Versi | Tanggal | Perubahan |
 |---|---|---|
+| 1.4 | 19 September 2026 | Pemakaian ulang dan pengarsipan inkubator. F-4.29 diubah: inkubator yang pernah ditempati diarsipkan, bukan dihapus. Baru: F-4.33 (riwayat bayi yang sudah pulang), F-4.34 (tampilan inkubator terbatas pada periode penempatan saat ini), F-4.35 (riwayat sensor & peringatan per bayi), F-4.36 (alasan penutupan peringatan), F-4.37 (arsip inkubator), F-6.7, F-6.8, D-8. F-4.8, F-4.26, F-6.3 diperluas. |
 | 1.3 | 19 September 2026 | F-4.28 diperluas lagi: akun mana pun dapat dihapus, tanpa menghapus catatannya maupun audit log; email akun yang dihapus tidak dapat dipakai ulang. |
 | 1.2 | 19 September 2026 | F-4.28 diperluas: akun yang belum pernah mencatat atau mengubah data dapat dihapus permanen; akun lain tetap hanya dapat dinonaktifkan. |
 | 1.1 | 14 September 2026 | Baris *Laporan UAT* pada 9.2 diperbarui: laporannya kini ada, dengan Bagian A sudah dan Bagian B belum dijalankan. Baris lain pada 9.2 tidak ditinjau ulang dan tetap mencerminkan keadaan 7 September 2026. |

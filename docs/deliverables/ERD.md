@@ -2,9 +2,10 @@
 
 > Basis data: **PostgreSQL 16** · ORM: **SQLAlchemy 2.0** (async) · Migrasi: **Alembic**
 > Sumber kebenaran: `backend/database/schema.sql`
-> Dokumen ini mencerminkan revisi **`f4b7d2e9a613_user_soft_delete`** — yaitu head
+> Dokumen ini mencerminkan revisi **`b5e2a7c9d314_incubator_archive`** — yaitu head
 > Alembic saat ini, mencakup seluruh pekerjaan IoT (perangkat, telemetri, peringatan,
-> agregat per menit) dan penghapusan akun yang mempertahankan catatannya.
+> agregat per menit), penghapusan akun yang mempertahankan catatannya, dan arsip
+> inkubator yang mempertahankan riwayatnya.
 
 Seluruh primary key bertipe `UUID`. Seluruh kolom waktu bertipe `TIMESTAMPTZ`
 (dengan zona waktu). **16 tabel**, dikelompokkan menurut perannya:
@@ -313,6 +314,7 @@ erDiagram
 | `location` | VARCHAR(255) | mis. "NICU Ruang A" |
 | `status` | `incubator_status` | `kosong` · `terisi` · `warning` · `tidak_tersedia` |
 | `alert_thresholds` | JSONB | ambang batas **per inkubator**; kosong berarti memakai bawaan |
+| `archived_at` | TIMESTAMPTZ, nullable | terisi bila inkubator yang pernah dipakai diarsipkan — lihat 4.7 |
 | `created_at`, `updated_at` | TIMESTAMPTZ | |
 
 ### 2.3 `devices` — perangkat IoT
@@ -501,6 +503,7 @@ tetap ada, sehingga tren jangka panjang tidak hilang.
 | `value`, `threshold` | NUMERIC(6,2) | nilai terbaca dan batas yang dilanggar |
 | `started_at` | TIMESTAMPTZ | |
 | `resolved_at` | TIMESTAMPTZ, nullable | **NULL berarti masih terbuka** |
+| `resolved_reason` | VARCHAR(20), nullable | siapa yang menutupnya: NULL = pembacaan kembali normal; `discharged` = bayinya dipulangkan; `archived` = inkubatornya diarsipkan. Dibatasi `CHECK` pada dua nilai itu |
 | `acknowledged_by` | UUID FK → `users`, nullable | |
 | `acknowledged_at` | TIMESTAMPTZ, nullable | |
 
@@ -510,7 +513,7 @@ tetap ada, sehingga tren jangka panjang tidak hilang.
 |---|---|---|
 | `log_id` | UUID PK | |
 | `user_id` | UUID FK, nullable | `ON DELETE SET NULL` — jejak tetap ada meski akun dihapus |
-| `action` | VARCHAR(50) | `CREATE` · `UPDATE` · `DELETE` |
+| `action` | VARCHAR(50) | `LOGIN` · `CREATE` · `UPDATE` · `DELETE` · `DEACTIVATE` · `RESET_PASSWORD` · `DISCHARGE` · `UPLOAD_PHOTO` · `ARCHIVE` · `RESTORE` |
 | `table_name` | VARCHAR(100) | |
 | `record_id` | UUID | baris yang diubah |
 | `ip_address` | INET | |
@@ -601,6 +604,8 @@ dibuang sepenuhnya, dan satu-satunya yang ikut dikosongkan adalah baris `LOGIN`-
 sudah menyimpan email di `details`. Email akun yang dihapus tetap terkunci oleh
 `UNIQUE`, sehingga satu email selalu berarti satu orang di jejak audit.
 
+**Menghapus inkubator yang pernah dipakai juga tidak pernah terjadi** — lihat 4.7.
+
 ### 4.5 Retensi
 
 | Data | Umur simpan |
@@ -618,6 +623,30 @@ pembacaan*; nol berarti *terbaca nol*. Server menormalkan `heart_rate = 0` dan `
 dari perangkat menjadi NULL, karena nilai itu berarti probe tidak menyentuh bayi — bukan
 bradikardia berat.
 
+### 4.7 Inkubator dipakai ulang, diarsipkan, tidak dihapus
+
+Satu inkubator ditempati bayi demi bayi. Tiap penempatan adalah baris tersendiri di
+`baby_incubator_assignments` (`assigned_at` … `discharged_at`), dan tiap pembacaan,
+agregat, serta peringatan membawa `baby_id` bayi yang menempatinya saat itu. Karena itu
+riwayat bayi sebelumnya tidak tertimpa oleh bayi berikutnya.
+
+Menghapus baris `incubators` yang pernah dipakai tidak diizinkan: penempatannya merujuk
+dengan `NO ACTION`, dan pembacaan, agregat, serta peringatannya ikut terhapus lewat
+`CASCADE` (4.4). Inkubator seperti itu **diarsipkan** — `archived_at` diisi, statusnya
+menjadi `tidak_tersedia`, perangkatnya dilepas, dan peringatannya yang masih terbuka
+ditutup dengan `resolved_reason = 'archived'`. Barisnya tetap ada, jadi seluruh rujukan
+tetap utuh. Hanya inkubator tanpa penempatan sama sekali yang dapat dihapus.
+
+Penomoran inkubator baru membaca **seluruh** baris termasuk yang diarsipkan (nomor
+tertinggi + 1), sehingga nomor inkubator yang diarsipkan tidak pernah dipakai ulang dan
+"Inkubator 03" pada riwayat seorang bayi selalu berarti satu inkubator yang sama.
+
+Tampilan milik inkubator — grafik, riwayat peringatan, aliran langsung — dibatasi pada
+**periode penempatan saat ini**: sejak `assigned_at` penempatan aktif, atau sejak
+`discharged_at` terakhir bila kosong. Periode sebelumnya dibaca per bayi melalui
+`baby_id`, termasuk dari `sensor_reading_minutes` setelah data mentahnya melewati masa
+retensi. Tiga indeks parsial pada `baby_id` (Bagian 5) melayani pembacaan per bayi itu.
+
 ---
 
 ## 5. Indeks Utama
@@ -627,6 +656,7 @@ bradikardia berat.
 | `idx_sensor_readings_incubator_time` | `sensor_readings` | backfill grafik, terurut waktu menurun |
 | `idx_sensor_minutes_incubator_time` | `sensor_reading_minutes` | tren jangka panjang |
 | `idx_sensor_alerts_incubator_time` | `sensor_alerts` | riwayat peringatan per inkubator |
+| `idx_sensor_readings_baby_time`, `idx_sensor_minutes_baby_time`, `idx_sensor_alerts_baby_time` | ketiga tabel telemetri | riwayat sensor dan peringatan **per bayi** (parsial: `WHERE baby_id IS NOT NULL`) |
 | `idx_monitoring_baby_time` | `monitoring_records` | riwayat monitoring per bayi |
 | `idx_observation_baby_time` | `observations` | riwayat observasi |
 | `idx_involvement_baby_time` | `parent_involvement_records` | riwayat keterlibatan |
@@ -641,6 +671,7 @@ bradikardia berat.
 
 | Versi | Tanggal | Perubahan |
 |---|---|---|
+| 2.3 | 19 September 2026 | Revisi `b5e2a7c9d314`: kolom `incubators.archived_at` dan `sensor_alerts.resolved_reason`, tiga indeks per bayi, catatan 4.7 tentang pemakaian ulang dan arsip inkubator. Daftar nilai `audit_logs.action` dilengkapi. |
 | 2.2 | 19 September 2026 | Revisi `f4b7d2e9a613`: kolom `users.deleted_at`, dan catatan 4.4 tentang penghapusan akun yang tidak membuang catatan maupun audit log. |
 | 2.1 | 11 September 2026 | Bagian 1 dipecah: satu peta hubungan tanpa kolom (1.1) dan empat diagram per kelompok (1.2–1.5), masing-masing `direction LR`. Sebelumnya satu diagram sepanjang 7135 px; kini diagram terlebar 1416 px. Kolom tiap tabel dirinci hanya pada satu diagram. |
 | 2.0 | 8 September 2026 | Disusun ulang dari `schema.sql` pada revisi `e8c4b2f91d37`. Menambahkan enam tabel yang sebelumnya tidak tercakup: `devices`, `sensor_readings`, `sensor_reading_minutes`, `sensor_alerts`, `maternal_records`, `doctor_notes`. Menambahkan Bagian 4 (kekangan dan keputusan rancangan) dan Bagian 5 (indeks). |

@@ -5,8 +5,8 @@
 | | |
 |---|---|
 | **Nama sistem** | Neonatal Care System — Sistem Monitoring Bayi pada Inkubator |
-| **Versi dokumen** | 1.0 |
-| **Tanggal pengujian** | 7 September 2026 |
+| **Versi dokumen** | 1.1 |
+| **Tanggal pengujian** | 7 September 2026; pengujian tambahan 19 September 2026 (§3.5) |
 | **Penguji (Bagian A)** | Pengembang — Sofyan Tandungan |
 | **Penguji (Bagian B)** | Klien / tenaga medis penunjuk — **belum dijalankan** |
 | **Dasar** | Kontrak Pasal 3.1 (deliverable) dan `docs/deliverables/SRS.md` |
@@ -128,6 +128,22 @@ done
 | F-6.1 – F-6.6 (dashboard) | A-7, A-14 |
 | F-7.1 – F-7.8 (firmware) | A-3, A-9 |
 | NF-3 (grafik 120 titik), NF-16 (volume bertahan) | A-4, A-12 |
+| F-4.8, F-4.26, F-4.29, F-4.33 – F-4.37, F-6.3, F-6.7, F-6.8, D-8 (pemakaian ulang & arsip inkubator, SRS 1.4) | A-17 – A-21 |
+
+### 3.5 Pengujian tambahan — 19 September 2026
+
+Dijalankan setelah fitur penghapusan akun (SRS 1.3) dan pemakaian ulang serta arsip
+inkubator (SRS 1.4) ditambahkan, dengan migrasi basis data `b5e2a7c9d314` terpasang.
+Butir A-1 s.d. A-15 di atas tetap mencatat keadaan 7 September 2026.
+
+| # | Butir | Hasil |
+|---|---|---|
+| A-16 | `user_delete_check.py` — penghapusan akun tanpa membuang catatannya (F-4.28) | **22/22 Lulus** |
+| A-17 | `incubator_history_check.py` — satu inkubator dipakai dua bayi berturut-turut lalu diarsipkan: pemulangan menutup peringatan bayi, tampilan inkubator terbatas pada periode saat ini (termasuk putar ulang aliran langsung), riwayat sensor per bayi dari data mentah dan agregat per menit, bayi yang sudah pulang tetap dapat dicari dan dilaporkan, arsip hanya-baca, nomor tidak dipakai ulang, pemulihan | **78/78 Lulus** |
+| A-18 | Enam suite A-1 s.d. A-6 dijalankan ulang setelah migrasi | **Seluruhnya Lulus** — 39/39, 30/30, firmware, 14/14, 28/28, 18/18 |
+| A-19 | Build produksi dashboard (`next build`) | **Lulus** — 20 rute (bertambah `/babies` dan `/admin/incubators`), tanpa galat |
+| A-20 | Basis data baru dari `schema.sql` dibandingkan dengan basis data hasil migrasi, untuk empat tabel yang berubah | **Lulus** — definisi, kekangan, dan indeks identik; hanya urutan kolom `archived_at` yang berbeda |
+| A-21 | Penelusuran antarmuka dashboard melalui BFF (`:3000`) dengan peramban tanpa-kepala: memulangkan, mengarsipkan, dan memulihkan lewat tombolnya; Riwayat Bayi; laporan bayi yang sudah pulang; lebar layar 1280 px dan 390 px | **Lulus** — tanpa galat konsol, tanpa gulir menyamping |
 
 ---
 
@@ -182,7 +198,7 @@ bersangkutan — bukan oleh Pengembang.
 |---|---|---|---|---|---|---|
 | B-24 | Menambah pengguna | Admin → Pengguna → tambah, pilih peran | Akun dapat dipakai masuk sesuai perannya | F-4.28 | | |
 | B-25 | Menambah inkubator | Tambah Inkubator | Muncul di dasbor berstatus Kosong | F-4.29 | | |
-| B-26 | Inkubator berisi tidak bisa dihapus | Coba hapus inkubator yang punya riwayat penempatan | Ditolak dengan pesan yang menjelaskan | F-4.29 | | |
+| B-26 | Inkubator yang pernah dipakai tidak bisa dihapus | Buka inkubator kosong yang punya riwayat penempatan | Tombol **Hapus Inkubator** tidak tersedia; yang tersedia **Arsipkan Inkubator** (lihat B-53) | F-4.29 | | |
 | B-27 | Memasang perangkat IoT | Detail Inkubator → Pasang Perangkat | Kunci ditampilkan **satu kali**; kartu berubah menjadi terpasang | F-4.30 | | |
 | B-28 | Kunci tidak dapat dilihat ulang | Muat ulang halaman setelah B-27 | Kunci tidak ditampilkan lagi | F-4.30, NF-6 | | |
 | B-29 | Mengubah ambang batas | Ubah batas atas Suhu Bayi menjadi lebih rendah dari suhu sekarang | Inkubator menjadi Warning dan peringatan tercatat | F-4.31, F-4.23 | | |
@@ -215,6 +231,24 @@ bersangkutan — bukan oleh Pengembang.
 | B-44 | Aplikasi Android | Pasang APK, masuk, catat satu monitoring | Fungsi setara dashboard; data muncul di web | F-5.1 – F-5.3 | | |
 | B-45 | Dua klien sinkron | Catat di Android, muat ulang dashboard web | Catatan tampil di kedua klien | F-5.1 | | |
 
+### 4.7 Pemakaian ulang dan arsip inkubator
+
+Jalankan berurutan pada satu inkubator yang alatnya mengirim data.
+
+| # | Skenario | Langkah | Diharapkan | SRS | Hasil | Catatan |
+|---|---|---|---|---|---|---|
+| B-46 | Pemulangan menutup peringatan bayi | Biarkan satu peringatan aktif (mis. lepas probe SpO₂ setelah nilai rendah), lalu pulangkan bayinya; tunggu beberapa menit | Peringatan tercatat **ditutup saat bayi pulang**; inkubator tetap **Kosong** walau alat terus mengirim | F-4.8, F-4.36 | | |
+| B-47 | Inkubator dipakai bayi berikutnya | Daftarkan bayi baru ke inkubator dari B-46, buka detailnya | Grafik dan Riwayat Peringatan hanya memuat periode bayi baru; keterangan *Sejak … masuk* tampil | F-4.34 | | |
+| B-48 | Mencari bayi yang sudah pulang | Menu **Riwayat Bayi** → **Sudah Pulang**; cari nama atau No. Registrasi bayi dari B-46 | Bayi ditemukan, dengan tanggal masuk dan pulangnya | F-4.33, F-6.7 | | |
+| B-49 | Laporan bayi yang sudah pulang | Buka bayi dari B-48 | Data Registrasi lengkap beserta Status dan Tanggal Pulang; Riwayat Data Sensor dan Riwayat Peringatan tampil; menu pencatatan tidak tampil | F-4.26, F-4.35, F-6.7 | | |
+| B-50 | PDF bayi yang sudah pulang | Export PDF dari B-49 | Bagian Data Registrasi terisi, termasuk *Sudah pulang* dan tanggalnya — bukan tanda strip | F-4.26, F-4.27 | | |
+| B-51 | Riwayat penggunaan inkubator | Buka detail inkubator dari B-47 | **Riwayat Penggunaan** memuat kedua bayi; nama bayi membuka laporannya | F-6.3 | | |
+| B-52 | Menghapus inkubator yang belum pernah dipakai | Tambah Inkubator, buka, tekan **Hapus Inkubator** | Terhapus; tombol **Arsipkan** tidak muncul pada inkubator ini | F-4.29 | | |
+| B-53 | Mengarsipkan inkubator | Pulangkan bayi dari B-47, lalu **Arsipkan Inkubator** | Hilang dari dasbor, ringkasan, dan pilihan pendaftaran; tampil di **Admin → Arsip Inkubator**; halamannya hanya-baca; kartu perangkat tidak tampil | F-4.37, F-6.8 | | |
+| B-54 | Riwayat tetap utuh setelah arsip | Buka laporan kedua bayi lewat Riwayat Bayi | Riwayat sensor dan peringatan keduanya masih lengkap | F-4.35, D-8 | | |
+| B-55 | Nomor tidak dipakai ulang | Setelah B-53, Tambah Inkubator | Mendapat nomor **setelah** nomor inkubator yang diarsipkan | F-4.37, D-8 | | |
+| B-56 | Memulihkan inkubator | Arsip Inkubator → buka → **Pulihkan Inkubator** | Kembali ke dasbor berstatus **Tidak Tersedia**; setelah ditandai Kosong dapat dipilih lagi | F-4.37 | | |
+
 ---
 
 ## 5. Butir yang Belum Dapat Diuji
@@ -231,7 +265,9 @@ bersangkutan — bukan oleh Pengembang.
 ## 6. Kesimpulan Sementara
 
 Seluruh **134 butir pengujian otomatis Bagian A lulus**, tanpa kegagalan. Pembangunan
-dashboard, analisis statis aplikasi mobile, dan kompilasi firmware bersih.
+dashboard, analisis statis aplikasi mobile, dan kompilasi firmware bersih. Pengujian
+tambahan 19 September 2026 (§3.5) — penghapusan akun, pemakaian ulang dan arsip inkubator,
+serta pengulangan seluruh suite setelah migrasi — juga lulus seluruhnya.
 
 Bagian A membuktikan sistem **berfungsi sesuai rancangan pada lingkungan pengembangan**.
 Bagian A **tidak** membuktikan sistem dapat diterima Klien — itu tugas Bagian B, yang belum

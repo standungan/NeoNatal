@@ -118,7 +118,7 @@ You can watch it happen the first time the backend starts:
 
 ```
 no alembic_version -> schema came from schema.sql; stamping head
-INFO  [alembic.runtime.migration] Running stamp_revision  -> f4b7d2e9a613
+INFO  [alembic.runtime.migration] Running stamp_revision  -> b5e2a7c9d314
 ```
 
 ### What has actually been run (2026-09-04)
