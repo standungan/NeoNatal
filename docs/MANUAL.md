@@ -370,8 +370,7 @@ Isinya sama dengan yang di layar, pada saat tombol ditekan.
 Tambah dan ubah akun, lalu tentukan perannya: **admin**, **perawat**, atau **dokter**.
 Peran menentukan menu yang muncul dan tindakan yang diizinkan.
 
-Tiap baris punya tombol **Edit**, **Reset PW**, dan **Nonaktifkan** — ditambah **Hapus**
-pada akun yang memenuhi syarat, dijelaskan di bawah:
+Tiap baris punya tombol **Edit**, **Reset PW**, **Nonaktifkan**, dan **Hapus**:
 
 - **Nonaktifkan** menutup akses akun itu. Sistem meminta konfirmasi dulu, karena
   akibatnya langsung: orang itu tidak bisa masuk lagi, dan bila ia sedang memakai
@@ -381,17 +380,23 @@ pada akun yang memenuhi syarat, dijelaskan di bawah:
   lalu sampaikan langsung ke orangnya dan minta ia segera menggantinya. Kata sandi lama
   tidak bisa dilihat oleh siapa pun, termasuk Anda.
 
-**Hapus** muncul hanya pada akun yang **belum pernah mencatat atau mengubah apa pun** —
-biasanya akun yang salah dibuat, misalnya karena salah ketik email. Sekadar pernah masuk
-tidak dihitung. Setelah konfirmasi, akun itu hilang dari daftar untuk selamanya; audit
-log tetap mencatat siapa yang menghapusnya, beserta nama dan email akun tersebut.
+**Hapus** menghapus akun untuk selamanya, setelah konfirmasi. Akun itu hilang dari daftar
+pengguna dan dari pilihan DPJP, tidak bisa dipakai masuk, dan sesinya yang sedang berjalan
+langsung terputus.
 
-Akun yang sudah pernah menulis catatan — tanda vital, observasi, catatan dokter, bahkan
-sekadar menandai peringatan atau mengubah pengaturan — **tidak bisa dihapus, hanya
-dinonaktifkan**. Itu disengaja: setiap catatan tersimpan atas nama penulisnya, dan
-menghapus akunnya akan membuat catatan itu kehilangan penanggung jawab. Akun yang
-dinonaktifkan tetap ada di daftar, lengkap dengan seluruh catatannya, tetapi tidak bisa
-dipakai masuk.
+**Yang tidak ikut terhapus:** semua catatan yang pernah ia buat — tanda vital, observasi,
+keterlibatan, kolaborasi, catatan dokter, riwayat penempatan bayi, penanda peringatan —
+tetap tersimpan dan **tetap tercatat atas namanya**, di layar maupun di laporan PDF.
+Audit log juga utuh: setiap perubahan yang pernah ia lakukan masih menyebut namanya, dan
+penghapusan itu sendiri tercatat — siapa yang menghapus, kapan, dan akun siapa.
+
+Email akun yang sudah dihapus **tidak bisa dipakai lagi** untuk akun baru, supaya satu
+email selalu berarti satu orang di seluruh catatan.
+
+Bedanya dengan **Nonaktifkan**: nonaktif itu sementara — akun tetap tampil di daftar dan
+bisa diaktifkan kembali. Hapus tidak bisa dibatalkan. Jadi bila orangnya mungkin kembali
+bertugas, misalnya cuti panjang, pakai **Nonaktifkan**. Pakai **Hapus** untuk akun yang
+memang tidak akan dipakai lagi, atau yang salah dibuat.
 
 Baris akun Anda sendiri tidak punya tombol **Nonaktifkan** maupun **Hapus** — admin tidak
 bisa mengunci dirinya sendiri keluar. Bila akun admin memang harus ditutup, admin lain yang

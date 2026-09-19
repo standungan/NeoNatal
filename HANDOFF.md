@@ -87,7 +87,7 @@ If you change one of those, change all of them.
   **The backend guards decide what the clients show** — check them before gating UI.
 - **`incubators.status = 'warning'` has THREE producers**: the alert engine, an observation
   item scored 0, and a manual vitals entry. Never clear it without establishing who set it.
-- **Alembic head**: `e8c4b2f91d37`.
+- **Alembic head**: `f4b7d2e9a613` (`users.deleted_at` — accounts with records are marked deleted, never removed; see `user_service.delete_user_permanently`).
 
 ### IoT endpoints
 

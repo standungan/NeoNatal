@@ -2,9 +2,9 @@
 
 > Basis data: **PostgreSQL 16** · ORM: **SQLAlchemy 2.0** (async) · Migrasi: **Alembic**
 > Sumber kebenaran: `backend/database/schema.sql`
-> Dokumen ini mencerminkan revisi **`e8c4b2f91d37_sensor_minute_rollup`** — yaitu head
+> Dokumen ini mencerminkan revisi **`f4b7d2e9a613_user_soft_delete`** — yaitu head
 > Alembic saat ini, mencakup seluruh pekerjaan IoT (perangkat, telemetri, peringatan,
-> agregat per menit).
+> agregat per menit) dan penghapusan akun yang mempertahankan catatannya.
 
 Seluruh primary key bertipe `UUID`. Seluruh kolom waktu bertipe `TIMESTAMPTZ`
 (dengan zona waktu). **16 tabel**, dikelompokkan menurut perannya:
@@ -301,6 +301,7 @@ erDiagram
 | `password_hash` | VARCHAR(255) | hash bcrypt; kata sandi asli tidak pernah disimpan |
 | `full_name` | VARCHAR(255) | |
 | `is_active` | BOOLEAN | akun nonaktif tidak dapat masuk |
+| `deleted_at` | TIMESTAMPTZ, nullable | terisi bila akun yang punya catatan dihapus — lihat 4.4 |
 | `created_at`, `updated_at` | TIMESTAMPTZ | |
 
 ### 2.2 `incubators` — sarana
@@ -590,6 +591,16 @@ Kekangan `UNIQUE` pada kolom yang sama menegakkan "satu perangkat per inkubator"
 | `parents`, `maternal_records`, `doctor_notes` → `babies` | `CASCADE` | data ini tidak bermakna tanpa bayinya |
 | `sensor_readings`, `sensor_alerts`, `sensor_reading_minutes` → `incubators` | `CASCADE` | telemetri melekat pada inkubatornya |
 
+**Menghapus akun tidak pernah membuang catatan.** Sembilan kolom merujuk ke `users.id`:
+tujuh bersifat `NO ACTION` (catatan klinis dan kedua kolom penempatan), dua bersifat
+`SET NULL` (`audit_logs.user_id`, `sensor_alerts.acknowledged_by`). Karena itu akun yang
+punya rujukan apa pun — selain baris audit `LOGIN`/`LOGOUT` — tidak dibuang barisnya,
+melainkan diisi `deleted_at` dan dinonaktifkan. Setiap catatan dan entri audit tetap
+menyebut penulisnya; `SET NULL` tidak pernah terpicu. Hanya akun tanpa rujukan yang
+dibuang sepenuhnya, dan satu-satunya yang ikut dikosongkan adalah baris `LOGIN`-nya, yang
+sudah menyimpan email di `details`. Email akun yang dihapus tetap terkunci oleh
+`UNIQUE`, sehingga satu email selalu berarti satu orang di jejak audit.
+
 ### 4.5 Retensi
 
 | Data | Umur simpan |
@@ -630,6 +641,7 @@ bradikardia berat.
 
 | Versi | Tanggal | Perubahan |
 |---|---|---|
+| 2.2 | 19 September 2026 | Revisi `f4b7d2e9a613`: kolom `users.deleted_at`, dan catatan 4.4 tentang penghapusan akun yang tidak membuang catatan maupun audit log. |
 | 2.1 | 11 September 2026 | Bagian 1 dipecah: satu peta hubungan tanpa kolom (1.1) dan empat diagram per kelompok (1.2–1.5), masing-masing `direction LR`. Sebelumnya satu diagram sepanjang 7135 px; kini diagram terlebar 1416 px. Kolom tiap tabel dirinci hanya pada satu diagram. |
 | 2.0 | 8 September 2026 | Disusun ulang dari `schema.sql` pada revisi `e8c4b2f91d37`. Menambahkan enam tabel yang sebelumnya tidak tercakup: `devices`, `sensor_readings`, `sensor_reading_minutes`, `sensor_alerts`, `maternal_records`, `doctor_notes`. Menambahkan Bagian 4 (kekangan dan keputusan rancangan) dan Bagian 5 (indeks). |
 | 1.0 | — | Versi awal, mencerminkan revisi `c3a5e7f20b1d`; memuat 10 tabel dan tidak mencakup pekerjaan IoT. |
