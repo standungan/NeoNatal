@@ -88,3 +88,16 @@ async def deactivate_user(
 ):
     ip = request.client.host if request.client else None
     await user_service.deactivate_user(user_id, db, actor_id=current_user.id, ip=ip)
+
+
+@router.delete("/{user_id}/permanent", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_user_permanently(
+    user_id: uuid.UUID,
+    request: Request,
+    current_user: AdminOnly,
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete an account for good - only one that has never recorded or changed
+    anything (409 otherwise). DELETE /users/{user_id} deactivates instead."""
+    ip = request.client.host if request.client else None
+    await user_service.delete_user_permanently(user_id, db, actor_id=current_user.id, ip=ip)

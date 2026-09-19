@@ -32,6 +32,11 @@ class UserResponse(BaseModel):
     full_name: str
     is_active: bool
     created_at: datetime
+    # Filled only by the admin list (GET /users): true when the account has never
+    # recorded or changed anything, so DELETE /users/{id}/permanent will succeed.
+    # Clients show the delete button only then - a button that can only fail is a
+    # dead end, not a safeguard. Null everywhere else.
+    deletable: bool | None = None
 
     model_config = {"from_attributes": True}
 

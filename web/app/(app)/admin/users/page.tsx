@@ -5,10 +5,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { ManagedUser, Role } from "@/lib/types";
 import { Card, PageState, Spinner } from "@/components/ui";
+import { errorMessage } from "@/components/form";
+import { useAuth } from "@/components/providers";
 import { roleLabel } from "@/lib/format";
 
 export default function UsersPage() {
   const qc = useQueryClient();
+  const { user: me } = useAuth();
   const [dialog, setDialog] = useState<
     | { mode: "create" }
     | { mode: "edit"; user: ManagedUser }
@@ -26,8 +29,23 @@ export default function UsersPage() {
       u.is_active
         ? api.delete(`/users/${u.id}`)
         : api.put(`/users/${u.id}`, { is_active: true }),
+    // A new action clears the other's error, so an old failure is never left
+    // standing above a later success.
+    onMutate: (): void => {
+      remove.reset();
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
   });
+
+  const remove = useMutation({
+    mutationFn: async (u: ManagedUser) => api.delete(`/users/${u.id}/permanent`),
+    onMutate: (): void => {
+      toggle.reset();
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
+  });
+
+  const actionError = remove.error ?? toggle.error;
 
   return (
     <div>
@@ -40,6 +58,12 @@ export default function UsersPage() {
           + Tambah Pengguna
         </button>
       </div>
+
+      {actionError && (
+        <p className="mb-3 rounded-xl border border-danger/30 bg-danger/5 px-4 py-2.5 text-sm font-semibold text-danger">
+          {errorMessage(actionError)}
+        </p>
+      )}
 
       <PageState loading={isLoading} error={error} onRetry={() => refetch()}>
         <div className="flex flex-col gap-2.5">
@@ -73,12 +97,44 @@ export default function UsersPage() {
                 <SmallBtn onClick={() => setDialog({ mode: "reset", user: u })}>
                   Reset PW
                 </SmallBtn>
-                <SmallBtn
-                  onClick={() => toggle.mutate(u)}
-                  className={u.is_active ? "text-danger" : "text-ok"}
-                >
-                  {u.is_active ? "Nonaktifkan" : "Aktifkan"}
-                </SmallBtn>
+                {/* Backend menolak menonaktifkan akun sendiri (400); tombol yang
+                    hanya bisa gagal bukan pengaman, melainkan jalan buntu. */}
+                {u.id !== me?.id && (
+                  <SmallBtn
+                    onClick={() => {
+                      if (
+                        !u.is_active ||
+                        confirm(
+                          `Nonaktifkan ${u.full_name}? Akun ini tidak bisa masuk lagi dan sesinya yang sedang berjalan langsung terputus. Catatan yang pernah ia simpan tetap utuh, dan akun bisa diaktifkan kembali.`,
+                        )
+                      ) {
+                        toggle.mutate(u);
+                      }
+                    }}
+                    className={u.is_active ? "text-danger" : "text-ok"}
+                  >
+                    {u.is_active ? "Nonaktifkan" : "Aktifkan"}
+                  </SmallBtn>
+                )}
+                {/* Offered only when the server says it will work: an account that has
+                    never recorded or changed anything. Any other account keeps its
+                    name on its records and can only be deactivated. */}
+                {u.deletable && u.id !== me?.id && (
+                  <SmallBtn
+                    onClick={() => {
+                      if (
+                        confirm(
+                          `Hapus akun ${u.full_name} (${u.email}) secara permanen? Akun ini belum pernah mencatat apa pun. Tindakan ini tidak dapat dibatalkan.`,
+                        )
+                      ) {
+                        remove.mutate(u);
+                      }
+                    }}
+                    className="text-danger"
+                  >
+                    Hapus
+                  </SmallBtn>
+                )}
               </div>
             </Card>
           ))}

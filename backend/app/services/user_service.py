@@ -1,8 +1,12 @@
 import uuid
 
 from fastapi import HTTPException, status
+from sqlalchemy import select, union
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import app.models  # noqa: F401 - every table must be in the metadata read below
+from app.core.database import Base
 from app.core.security import hash_password
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
@@ -16,10 +20,51 @@ from app.schemas.user import (
 from app.services.audit_service import log_action
 
 
+# Audit actions that only record a session, not something the user did. Their
+# details already carry the email, so they stay readable once user_id is nulled by
+# the ON DELETE SET NULL - and "logged in once" is not a record worth keeping an
+# account for.
+_SESSION_ACTIONS = ("LOGIN", "LOGOUT")
+
+
+def _columns_referencing_users():
+    """Every column that points at users.id, read from the models rather than listed,
+    so a table added later counts without anyone remembering to add it here."""
+    return [
+        fk.parent
+        for table in Base.metadata.sorted_tables
+        for fk in table.foreign_keys
+        if fk.column.table.name == User.__tablename__
+    ]
+
+
+async def _users_with_records(db: AsyncSession) -> set[uuid.UUID]:
+    """Ids of every user referenced anywhere - a clinical record, a placement, an
+    acknowledged alert, or an audit entry for anything beyond logging in.
+
+    Seven of these references are ON DELETE NO ACTION, so the database would refuse
+    the delete anyway. The other two - audit_logs.user_id and
+    sensor_alerts.acknowledged_by - are SET NULL, and would silently erase who did
+    it. Those are the ones this check exists for.
+    """
+    parts = []
+    for col in _columns_referencing_users():
+        q = select(col.label("uid")).where(col.is_not(None))
+        if "action" in col.table.c:
+            q = q.where(col.table.c.action.not_in(_SESSION_ACTIONS))
+        parts.append(q)
+    rows = await db.execute(union(*parts))
+    return {r.uid for r in rows}
+
+
 async def get_all_users(db: AsyncSession) -> list[UserResponse]:
     repo = UserRepository(db)
     users = await repo.get_all()
-    return [UserResponse.model_validate(u) for u in users]
+    referenced = await _users_with_records(db)
+    return [
+        UserResponse.model_validate(u).model_copy(update={"deletable": u.id not in referenced})
+        for u in users
+    ]
 
 
 async def get_doctors(db: AsyncSession) -> list[UserOption]:
@@ -157,4 +202,55 @@ async def deactivate_user(
         table_name="users",
         record_id=user_id,
         ip_address=ip,
+    )
+
+
+async def delete_user_permanently(
+    user_id: uuid.UUID,
+    db: AsyncSession,
+    actor_id: uuid.UUID | None = None,
+    ip: str | None = None,
+) -> None:
+    """Remove an account that has never recorded or changed anything - typically one
+    created by mistake. Anything else is deactivated instead, so that every record
+    keeps the name of whoever wrote it."""
+    repo = UserRepository(db)
+    user = await repo.get_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User tidak ditemukan")
+
+    if str(user_id) == str(actor_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Tidak dapat menghapus akun sendiri",
+        )
+
+    refused = HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail=(
+            "Akun ini sudah pernah mencatat atau mengubah data, jadi tidak dapat dihapus "
+            "permanen. Nonaktifkan saja - catatannya tetap tersimpan atas namanya."
+        ),
+    )
+    if user_id in await _users_with_records(db):
+        raise refused
+
+    # Kept in the audit entry: once the row is gone, this is the only place that
+    # still says whose account it was.
+    snapshot = {"email": user.email, "full_name": user.full_name, "role": user.role}
+    await db.delete(user)
+    try:
+        await db.flush()
+    except IntegrityError:
+        # A record written between the check above and this delete.
+        raise refused from None
+
+    await log_action(
+        db,
+        user_id=actor_id,
+        action="DELETE",
+        table_name="users",
+        record_id=user_id,
+        ip_address=ip,
+        details=snapshot,
     )

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neonatal_care/core/api/api_client.dart';
+import 'package:dio/dio.dart';
 import 'package:neonatal_care/core/api/api_endpoints.dart';
+import 'package:neonatal_care/core/providers/auth_provider.dart';
 import 'package:neonatal_care/core/theme/app_theme.dart';
 
 final _usersProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>(
@@ -67,6 +69,7 @@ class _UserCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isActive = user['is_active'] == true;
     final role = user['role'] as String? ?? '';
+    final isSelf = user['id'] == ref.watch(authProvider).token?.userId;
     return Card(
       child: ListTile(
         leading: CircleAvatar(
@@ -103,10 +106,21 @@ class _UserCard extends ConsumerWidget {
             const PopupMenuItem(value: 'edit', child: Text('Edit')),
             const PopupMenuItem(
                 value: 'reset', child: Text('Reset Password')),
-            PopupMenuItem(
-              value: 'toggle',
-              child: Text(isActive ? 'Nonaktifkan' : 'Aktifkan'),
-            ),
+            // Backend menolak menonaktifkan akun sendiri; tombol yang hanya bisa
+            // gagal bukan pengaman, melainkan jalan buntu.
+            if (!isSelf)
+              PopupMenuItem(
+                value: 'toggle',
+                child: Text(isActive ? 'Nonaktifkan' : 'Aktifkan'),
+              ),
+            // Ditawarkan hanya bila server menyatakan akun ini belum pernah
+            // mencatat atau mengubah apa pun; akun lain cukup dinonaktifkan.
+            if (!isSelf && user['deletable'] == true)
+              const PopupMenuItem(
+                value: 'delete',
+                child: Text('Hapus permanen',
+                    style: TextStyle(color: AppColors.abnormal)),
+              ),
           ],
         ),
       ),
@@ -129,8 +143,22 @@ class _UserCard extends ConsumerWidget {
           builder: (_) => _ResetPasswordDialog(userId: id),
         );
         break;
+      case 'delete':
+        if (!await _confirmDelete(context)) return;
+        try {
+          await ApiClient().dio.delete(ApiEndpoints.userPermanent(id));
+          onChanged();
+        } catch (e) {
+          if (context.mounted) {
+            _snack(context, 'Gagal: ${_detail(e)}', isError: true);
+          }
+        }
+        break;
       case 'toggle':
         final isActive = user['is_active'] == true;
+        // Menonaktifkan langsung memutus sesi orang itu, termasuk yang sedang
+        // dipakai. Satu salah ketuk tidak boleh mengunci perawat di tengah sif.
+        if (isActive && !await _confirmDeactivate(context)) return;
         try {
           if (isActive) {
             await ApiClient().dio.delete(ApiEndpoints.user(id));
@@ -141,10 +169,74 @@ class _UserCard extends ConsumerWidget {
           }
           onChanged();
         } catch (e) {
-          if (context.mounted) _snack(context, 'Gagal: $e', isError: true);
+          if (context.mounted) {
+            _snack(context, 'Gagal: ${_detail(e)}', isError: true);
+          }
         }
         break;
     }
+  }
+
+  Future<bool> _confirmDelete(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Hapus akun ${user['full_name'] ?? ''} permanen?'),
+        content: Text(
+          '${user['email'] ?? ''}\n\nAkun ini belum pernah mencatat apa pun, jadi '
+          'bisa dihapus. Tindakan ini tidak dapat dibatalkan.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.abnormal),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+    return ok == true;
+  }
+
+  Future<bool> _confirmDeactivate(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Nonaktifkan ${user['full_name'] ?? 'akun ini'}?'),
+        content: const Text(
+          'Akun ini tidak bisa masuk lagi, dan sesinya yang sedang berjalan '
+          'langsung terputus. Catatan yang pernah ia simpan tetap utuh. '
+          'Akun bisa diaktifkan kembali kapan saja.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.abnormal),
+            child: const Text('Nonaktifkan'),
+          ),
+        ],
+      ),
+    );
+    return ok == true;
+  }
+
+  /// The API's own message ("Tidak dapat menonaktifkan akun sendiri"), not
+  /// DioException's toString, which is a stack of transport details.
+  static String _detail(Object e) {
+    if (e is DioException) {
+      final data = e.response?.data;
+      if (data is Map && data['detail'] is String) return data['detail'] as String;
+      return e.message ?? 'koneksi ke server gagal';
+    }
+    return '$e';
   }
 }
 

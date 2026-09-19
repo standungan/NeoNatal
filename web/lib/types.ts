@@ -398,6 +398,9 @@ export interface ManagedUser {
   full_name: string;
   is_active: boolean;
   created_at: string;
+  /** Only on GET /users: true when the account has never recorded or changed
+   *  anything, so DELETE /users/{id}/permanent will succeed. */
+  deletable?: boolean | null;
 }
 
 export interface AuditLog {
