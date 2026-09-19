@@ -113,12 +113,12 @@ class _UserCard extends ConsumerWidget {
                 value: 'toggle',
                 child: Text(isActive ? 'Nonaktifkan' : 'Aktifkan'),
               ),
-            // Ditawarkan hanya bila server menyatakan akun ini belum pernah
-            // mencatat atau mengubah apa pun; akun lain cukup dinonaktifkan.
-            if (!isSelf && user['deletable'] == true)
+            // Akun mana pun kecuali akun sendiri. Catatannya tidak ikut terhapus:
+            // tetap atas namanya, begitu pula audit log, dan emailnya tetap terkunci.
+            if (!isSelf)
               const PopupMenuItem(
                 value: 'delete',
-                child: Text('Hapus permanen',
+                child: Text('Hapus akun',
                     style: TextStyle(color: AppColors.abnormal)),
               ),
           ],
@@ -181,10 +181,14 @@ class _UserCard extends ConsumerWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Hapus akun ${user['full_name'] ?? ''} permanen?'),
+        title: Text('Hapus akun ${user['full_name'] ?? ''}?'),
         content: Text(
-          '${user['email'] ?? ''}\n\nAkun ini belum pernah mencatat apa pun, jadi '
-          'bisa dihapus. Tindakan ini tidak dapat dibatalkan.',
+          '${user['email'] ?? ''}\n\n'
+          'Akun ini hilang dari daftar dan tidak bisa dipakai masuk lagi. '
+          'Semua catatan yang pernah ia buat tetap tersimpan atas namanya, '
+          'begitu pula audit log. Email ini tidak bisa dipakai untuk akun baru.'
+          '\n\nTindakan ini tidak dapat dibatalkan. Bila orangnya mungkin '
+          'kembali bertugas, pakai Nonaktifkan saja.',
         ),
         actions: [
           TextButton(

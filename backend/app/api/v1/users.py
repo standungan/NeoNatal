@@ -97,7 +97,12 @@ async def delete_user_permanently(
     current_user: AdminOnly,
     db: AsyncSession = Depends(get_db),
 ):
-    """Delete an account for good - only one that has never recorded or changed
-    anything (409 otherwise). DELETE /users/{user_id} deactivates instead."""
+    """Delete an account for good. Nothing it recorded is deleted with it.
+
+    An account with no records is removed outright; one with records is kept, marked
+    deleted, so its records and audit entries keep their author. Either way it is gone
+    from GET /users, cannot sign in, and its email cannot be reused.
+    DELETE /users/{user_id} only deactivates, and can be undone.
+    """
     ip = request.client.host if request.client else None
     await user_service.delete_user_permanently(user_id, db, actor_id=current_user.id, ip=ip)

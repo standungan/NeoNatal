@@ -46,6 +46,10 @@ CREATE TABLE users (
     password_hash   VARCHAR(255) NOT NULL,
     full_name       VARCHAR(255) NOT NULL,
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
+    -- Set when an admin deletes an account that has records. The row stays so every
+    -- record and audit entry keeps its author; the account is gone from the app and
+    -- its email stays taken. Accounts with no records are removed outright instead.
+    deleted_at      TIMESTAMPTZ,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

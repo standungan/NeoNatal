@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
 from sqlalchemy import select, union
@@ -60,11 +61,19 @@ async def _users_with_records(db: AsyncSession) -> set[uuid.UUID]:
 async def get_all_users(db: AsyncSession) -> list[UserResponse]:
     repo = UserRepository(db)
     users = await repo.get_all()
-    referenced = await _users_with_records(db)
-    return [
-        UserResponse.model_validate(u).model_copy(update={"deletable": u.id not in referenced})
-        for u in users
-    ]
+    return [UserResponse.model_validate(u) for u in users]
+
+
+async def _get_live(repo: UserRepository, user_id: uuid.UUID) -> User:
+    """An account that exists and has not been deleted.
+
+    A deleted account's row is kept only so its records keep their author. To every
+    admin action it no longer exists - otherwise a deleted account could be edited,
+    given a new password, or reactivated through the API."""
+    user = await repo.get_by_id(user_id)
+    if not user or user.deleted_at is not None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User tidak ditemukan")
+    return user
 
 
 async def get_doctors(db: AsyncSession) -> list[UserOption]:
@@ -75,9 +84,7 @@ async def get_doctors(db: AsyncSession) -> list[UserOption]:
 
 async def get_user(user_id: uuid.UUID, db: AsyncSession) -> UserResponse:
     repo = UserRepository(db)
-    user = await repo.get_by_id(user_id)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User tidak ditemukan")
+    user = await _get_live(repo, user_id)
     return UserResponse.model_validate(user)
 
 
@@ -89,8 +96,16 @@ async def create_user(
 ) -> UserResponse:
     repo = UserRepository(db)
 
-    if await repo.email_exists(data.email):
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email sudah digunakan")
+    existing = await repo.get_by_email(data.email)
+    if existing:
+        # A deleted account keeps its email, so one address always means one person
+        # in the audit trail and on every record.
+        detail = (
+            "Email ini milik akun yang sudah dihapus dan tidak dapat dipakai lagi"
+            if existing.deleted_at is not None
+            else "Email sudah digunakan"
+        )
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail)
 
     user = User(
         role=data.role,
@@ -120,9 +135,7 @@ async def update_user(
     ip: str | None = None,
 ) -> UserResponse:
     repo = UserRepository(db)
-    user = await repo.get_by_id(user_id)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User tidak ditemukan")
+    user = await _get_live(repo, user_id)
 
     if data.full_name is not None:
         user.full_name = data.full_name
@@ -158,9 +171,7 @@ async def reset_password(
     ip: str | None = None,
 ) -> None:
     repo = UserRepository(db)
-    user = await repo.get_by_id(user_id)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User tidak ditemukan")
+    user = await _get_live(repo, user_id)
 
     user.password_hash = hash_password(data.new_password)
     await repo.update(user)
@@ -182,9 +193,7 @@ async def deactivate_user(
     ip: str | None = None,
 ) -> None:
     repo = UserRepository(db)
-    user = await repo.get_by_id(user_id)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User tidak ditemukan")
+    user = await _get_live(repo, user_id)
 
     if str(user_id) == str(actor_id):
         raise HTTPException(
@@ -211,13 +220,15 @@ async def delete_user_permanently(
     actor_id: uuid.UUID | None = None,
     ip: str | None = None,
 ) -> None:
-    """Remove an account that has never recorded or changed anything - typically one
-    created by mistake. Anything else is deactivated instead, so that every record
-    keeps the name of whoever wrote it."""
+    """Delete an account. Nothing it ever recorded is deleted with it.
+
+    An account with no records at all - typically one created by mistake - is removed
+    outright. An account with records keeps its row, marked deleted and inactive, so
+    that every record, placement and audit entry still names whoever wrote it. To the
+    app both are simply gone: off every list, unable to sign in, sessions cut.
+    """
     repo = UserRepository(db)
-    user = await repo.get_by_id(user_id)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User tidak ditemukan")
+    user = await _get_live(repo, user_id)
 
     if str(user_id) == str(actor_id):
         raise HTTPException(
@@ -225,25 +236,26 @@ async def delete_user_permanently(
             detail="Tidak dapat menghapus akun sendiri",
         )
 
-    refused = HTTPException(
-        status_code=status.HTTP_409_CONFLICT,
-        detail=(
-            "Akun ini sudah pernah mencatat atau mengubah data, jadi tidak dapat dihapus "
-            "permanen. Nonaktifkan saja - catatannya tetap tersimpan atas namanya."
-        ),
-    )
-    if user_id in await _users_with_records(db):
-        raise refused
-
-    # Kept in the audit entry: once the row is gone, this is the only place that
-    # still says whose account it was.
+    # Kept in the audit entry: for an account removed outright, this is the only
+    # place left that says whose account it was.
     snapshot = {"email": user.email, "full_name": user.full_name, "role": user.role}
-    await db.delete(user)
-    try:
-        await db.flush()
-    except IntegrityError:
-        # A record written between the check above and this delete.
-        raise refused from None
+
+    removed = False
+    if user_id not in await _users_with_records(db):
+        try:
+            # A savepoint, so that a record written after the check above only undoes
+            # the removal - the account is then kept and marked deleted instead.
+            async with db.begin_nested():
+                await db.delete(user)
+                await db.flush()
+            removed = True
+        except IntegrityError:
+            removed = False
+
+    if not removed:
+        user.deleted_at = datetime.now(timezone.utc)
+        user.is_active = False
+        await repo.update(user)
 
     await log_action(
         db,
@@ -252,5 +264,5 @@ async def delete_user_permanently(
         table_name="users",
         record_id=user_id,
         ip_address=ip,
-        details=snapshot,
+        details={**snapshot, "catatan_dipertahankan": not removed},
     )

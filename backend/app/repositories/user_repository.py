@@ -19,13 +19,18 @@ class UserRepository:
         return result.scalar_one_or_none()
 
     async def get_all(self, skip: int = 0, limit: int = 100) -> list[User]:
+        """Every account that has not been deleted."""
         result = await self.db.execute(
-            select(User).order_by(User.created_at.desc()).offset(skip).limit(limit)
+            select(User)
+            .where(User.deleted_at.is_(None))
+            .order_by(User.created_at.desc())
+            .offset(skip)
+            .limit(limit)
         )
         return list(result.scalars().all())
 
     async def get_by_role(self, role: str, active_only: bool = True) -> list[User]:
-        stmt = select(User).where(User.role == role)
+        stmt = select(User).where(User.role == role, User.deleted_at.is_(None))
         if active_only:
             stmt = stmt.where(User.is_active == True)  # noqa: E712
         result = await self.db.execute(stmt.order_by(User.full_name))

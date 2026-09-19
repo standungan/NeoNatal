@@ -116,15 +116,19 @@ export default function UsersPage() {
                     {u.is_active ? "Nonaktifkan" : "Aktifkan"}
                   </SmallBtn>
                 )}
-                {/* Offered only when the server says it will work: an account that has
-                    never recorded or changed anything. Any other account keeps its
-                    name on its records and can only be deactivated. */}
-                {u.deletable && u.id !== me?.id && (
+                {/* Any account but your own. Nothing it recorded is deleted with it:
+                    records and audit entries keep its name, and its email stays taken. */}
+                {u.id !== me?.id && (
                   <SmallBtn
                     onClick={() => {
                       if (
                         confirm(
-                          `Hapus akun ${u.full_name} (${u.email}) secara permanen? Akun ini belum pernah mencatat apa pun. Tindakan ini tidak dapat dibatalkan.`,
+                          `Hapus akun ${u.full_name} (${u.email})?\n\n` +
+                          "Akun ini hilang dari daftar dan tidak bisa dipakai masuk lagi. " +
+                          "Semua catatan yang pernah ia buat tetap tersimpan atas namanya, begitu pula " +
+                          "audit log. Email ini tidak bisa dipakai untuk akun baru.\n\n" +
+                          "Tindakan ini tidak dapat dibatalkan. Bila orangnya mungkin kembali bertugas, " +
+                          "pakai Nonaktifkan saja.",
                         )
                       ) {
                         remove.mutate(u);
