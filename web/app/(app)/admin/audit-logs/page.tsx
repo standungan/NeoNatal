@@ -9,8 +9,8 @@ import { formatDateTime } from "@/lib/format";
 function actionTone(action: string): string {
   const a = action.toLowerCase();
   if (a.includes("delete") || a.includes("deactivate")) return "bg-danger/10 text-danger";
-  if (a.includes("create")) return "bg-ok/10 text-ok";
-  if (a.includes("update") || a.includes("reset")) return "bg-warn/10 text-warn";
+  if (a.includes("create") || a.includes("restore")) return "bg-ok/10 text-ok";
+  if (a.includes("update") || a.includes("reset") || a.includes("archive")) return "bg-warn/10 text-warn";
   return "bg-primary/10 text-primary";
 }
 

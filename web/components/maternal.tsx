@@ -73,6 +73,8 @@ export function RegistrationCard({ assignment }: { assignment: AssignmentInfo })
             ["Inkubator", `No. ${assignment.incubator_no}${assignment.location ? ` — ${assignment.location}` : ""}`],
             ["DPJP", assignment.dpjp_name ?? "-"],
             ["Perawat Penerima", assignment.assigned_by_name ?? "-"],
+            ["Status", assignment.discharged_at ? "Sudah pulang" : "Masih dirawat"],
+            ["Tanggal Pulang", assignment.discharged_at ? formatDateTime(assignment.discharged_at) : "-"],
           ]}
         />
       </div>

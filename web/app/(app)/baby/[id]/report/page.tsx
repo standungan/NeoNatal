@@ -13,13 +13,22 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { api } from "@/lib/api";
-import type { BabyReport, MonitoringRecord, ObservationRecord, AksiRecord, DoctorNote } from "@/lib/types";
+import {
+  latestPlacement,
+  type BabyReport,
+  type MonitoringRecord,
+  type ObservationRecord,
+  type AksiRecord,
+  type DoctorNote,
+} from "@/lib/types";
 import { Card, PageState, SectionTitle } from "@/components/ui";
 import { formatDateTime, genderLabel } from "@/lib/format";
 import { ObservationSummaryCard } from "@/components/observation";
 import { InvolvementSummaryCard } from "@/components/involvement";
 import { AksiSummaryCard } from "@/components/aksi";
 import { RegistrationCard, BabyIdentityCard, MaternalRecordCard } from "@/components/maternal";
+import { BabySensorHistoryCard } from "@/components/sensor-history";
+import { AlertFeedCard } from "@/components/alert-feed";
 
 export default function ReportPage() {
   const { id } = useParams<{ id: string }>();
@@ -43,6 +52,7 @@ export default function ReportPage() {
       (await api.get<AksiRecord[]>(`/babies/${id}/aksi?limit=1`)).data,
   });
   const latestAksi = aksiQ.data?.[0];
+  const placement = data ? latestPlacement(data.baby) : null;
 
   return (
     <div>
@@ -81,9 +91,9 @@ export default function ReportPage() {
               </div>
             </Card>
 
-            {data.baby.current_assignment && (
-              <RegistrationCard assignment={data.baby.current_assignment} />
-            )}
+            {/* Current placement, or the last one once the baby has gone home —
+                a discharged baby's report must still say where they were treated. */}
+            {placement && <RegistrationCard assignment={placement} />}
 
             <BabyIdentityCard baby={data.baby} />
 
@@ -136,6 +146,12 @@ export default function ReportPage() {
                 />
               </div>
             </Card>
+
+            {/* Keyed on the baby, not the incubator: still here after discharge,
+                after the incubator takes the next baby, or is archived. */}
+            <BabySensorHistoryCard babyId={id} incubatorId={placement?.incubator_id} />
+
+            <AlertFeedCard babyId={id} />
 
             <DoctorNoteCard note={data.doctor_note_latest} />
           </div>

@@ -25,7 +25,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 
 from fastapi import HTTPException, status as http_status
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.baby import Baby
@@ -286,11 +286,18 @@ async def list_for_incubator(
     only_open: bool = False,
     limit: int = 50,
 ) -> list[SensorAlertResponse]:
-    """Alert history for one incubator, newest first.
+    """Alert history for one incubator's CURRENT occupancy, newest first.
+
+    Current = since the present baby's admission, or since the last discharge if
+    it is empty. Earlier alerts belong to the baby they fired for and are shown on
+    that baby's history (list_for_baby) — otherwise the next baby's incubator page
+    would open on someone else's desaturations. An alert that is still open is
+    always shown, whenever it started.
 
     Joins the baby and acknowledging user so the feed reads as prose rather than
     a wall of UUIDs — an alarm log nobody can interpret is barely better than none.
     """
+    since = await AssignmentRepository(db).occupancy_start(incubator_id)
     q = (
         select(SensorAlert, Baby.baby_name, User.full_name)
         .outerjoin(Baby, Baby.baby_id == SensorAlert.baby_id)
@@ -299,6 +306,8 @@ async def list_for_incubator(
         .order_by(SensorAlert.started_at.desc())
         .limit(limit)
     )
+    if since is not None:
+        q = q.where(or_(SensorAlert.started_at >= since, SensorAlert.resolved_at.is_(None)))
     if only_open:
         q = q.where(SensorAlert.resolved_at.is_(None))
 
@@ -309,6 +318,70 @@ async def list_for_incubator(
         item.acknowledged_by_name = ack_name
         out.append(item)
     return out
+
+
+async def list_for_baby(
+    baby_id: uuid.UUID, db: AsyncSession, *, limit: int = 100
+) -> list[SensorAlertResponse]:
+    """Every alert raised while this baby was in an incubator, newest first.
+
+    Keyed on the baby, so it survives the incubator being reused or archived.
+    Carries the incubator number, since a baby's alerts are read without the
+    incubator page around them.
+    """
+    q = (
+        select(SensorAlert, Incubator.incubator_no, User.full_name)
+        .join(Incubator, Incubator.incubator_id == SensorAlert.incubator_id)
+        .outerjoin(User, User.id == SensorAlert.acknowledged_by)
+        .where(SensorAlert.baby_id == baby_id)
+        .order_by(SensorAlert.started_at.desc())
+        .limit(limit)
+    )
+    out: list[SensorAlertResponse] = []
+    for alert, incubator_no, ack_name in (await db.execute(q)).all():
+        item = SensorAlertResponse.model_validate(alert)
+        item.incubator_no = incubator_no
+        item.acknowledged_by_name = ack_name
+        out.append(item)
+    return out
+
+
+async def close_open_alerts(
+    db: AsyncSession,
+    *,
+    incubator_id: uuid.UUID,
+    reason: str,
+    baby_id: uuid.UUID | None = None,
+    at: datetime | None = None,
+) -> int:
+    """Close open alerts because what they monitored has left. Returns how many.
+
+    Readings, not clicks, decide that a breach is over — and that still holds:
+    acknowledge() never resolves anything. This is a different event. On
+    discharge the baby is no longer on this probe, so their alert cannot recover
+    here; left open it would keep flipping the now-empty incubator to 'warning'
+    on every idle reading, and admission requires 'kosong' — the incubator could
+    never be reused. On archive the incubator is being retired.
+
+    `reason` is recorded ("discharged" / "archived"), so the history never reads
+    as a recovery that did not happen. With `baby_id`, only that baby's alerts are
+    closed; an alert the empty incubator raised on its own air temperature is not
+    theirs to close.
+    """
+    q = select(SensorAlert).where(
+        SensorAlert.incubator_id == incubator_id,
+        SensorAlert.resolved_at.is_(None),
+    )
+    if baby_id is not None:
+        q = q.where(SensorAlert.baby_id == baby_id)
+    alerts = (await db.execute(q)).scalars().all()
+    when = at or datetime.now(timezone.utc)
+    for alert in alerts:
+        alert.resolved_at = when
+        alert.resolved_reason = reason
+    if alerts:
+        await db.flush()
+    return len(alerts)
 
 
 async def acknowledge(

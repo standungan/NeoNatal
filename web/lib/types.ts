@@ -78,9 +78,26 @@ export interface IncubatorDetail {
   incubator_no: string;
   location: string | null;
   status: IncubatorStatus;
+  /** Set once retired: read-only, hidden from the dashboard and admission. */
+  archived_at: string | null;
   created_at: string;
   updated_at: string;
   current_baby: CurrentBabySummary | null;
+  /** Has any baby ever been placed here? Unused → deletable; used → archive only. */
+  has_history: boolean;
+}
+
+/** One baby's stay in an incubator — a row of the incubator's usage history. */
+export interface IncubatorPlacement {
+  assignment_id: string;
+  baby_id: string;
+  baby_name: string;
+  no_registrasi_nicu: string | null;
+  status: "active" | "discharged";
+  assigned_at: string;
+  discharged_at: string | null;
+  assigned_by_name: string | null;
+  dpjp_name: string | null;
 }
 
 export interface MonitoringRecord {
@@ -123,6 +140,8 @@ export interface AssignmentInfo {
   incubator_no: string;
   location: string | null;
   assigned_at: string;
+  status: "active" | "discharged";
+  discharged_at: string | null;
   assigned_by_name: string | null;
   // registration data (updates02)
   no_registrasi_nicu: string | null;
@@ -193,11 +212,33 @@ export interface BabyDetail {
   lingkar_kepala: number | null;
   lingkar_dada: number | null;
   golongan_darah: string | null;
+  /** false once discharged */
+  is_active: boolean;
   age_in_days: number;
   parent: ParentInfo | null;
   maternal: MaternalRecord | null;
+  /** Only while the baby is in an incubator; null after discharge. */
   current_assignment: AssignmentInfo | null;
+  /** Every placement, newest first — discharged ones included. */
+  placements: AssignmentInfo[];
   latest_vitals: MonitoringRecord | null;
+}
+
+/** A row of the baby list (GET /babies): identity + most recent placement. */
+export interface BabyListItem {
+  baby_id: string;
+  baby_name: string;
+  gender: "laki_laki" | "perempuan";
+  birth_date: string;
+  no_rm_bayi: string | null;
+  is_active: boolean;
+  created_at: string;
+  placement: AssignmentInfo | null;
+}
+
+/** The placement a baby's pages should describe: the current one, else the last. */
+export function latestPlacement(baby: Pick<BabyDetail, "current_assignment" | "placements">): AssignmentInfo | null {
+  return baby.current_assignment ?? baby.placements[0] ?? null;
 }
 
 export interface InvolvementSummary {
@@ -491,9 +532,42 @@ export interface SensorAlert {
   threshold: number | null;
   started_at: string;
   resolved_at: string | null;
+  /**
+   * null = readings came back in range. "discharged"/"archived" = closed because
+   * the baby went home or the incubator was retired — not a recovery.
+   */
+  resolved_reason: "discharged" | "archived" | null;
   acknowledged_by: string | null;
   acknowledged_by_name: string | null;
   acknowledged_at: string | null;
+  /** Filled on a baby's alert list, where the incubator is not otherwise shown. */
+  incubator_no: string | null;
+}
+
+/** One bucket of a baby's sensor history: mean plus the extremes inside it. */
+export interface SensorHistoryPoint {
+  t: string;
+  samples: number;
+  suhu_bayi: number | null;
+  suhu_bayi_min: number | null;
+  suhu_bayi_max: number | null;
+  suhu_inkubator: number | null;
+  suhu_inkubator_min: number | null;
+  suhu_inkubator_max: number | null;
+  kelembapan_inkubator: number | null;
+  kelembapan_inkubator_min: number | null;
+  kelembapan_inkubator_max: number | null;
+  heart_rate: number | null;
+  heart_rate_min: number | null;
+  heart_rate_max: number | null;
+  spo2: number | null;
+  spo2_min: number | null;
+  spo2_max: number | null;
+}
+
+export interface BabySensorHistory {
+  bucket_minutes: number;
+  points: SensorHistoryPoint[];
 }
 
 export const ALERT_LABELS: Record<SensorAlert["alert_type"], string> = {

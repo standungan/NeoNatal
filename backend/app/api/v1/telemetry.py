@@ -1,12 +1,13 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import AnyRole, CurrentDevice, PerawatOrAdmin
 from app.core.database import get_db
 from app.core.config import settings
 from app.schemas.telemetry import (
+    BabySensorHistory,
     LegacyTelemetryIn,
     SensorAlertResponse,
     SensorReadingResponse,
@@ -56,6 +57,32 @@ async def get_latest_reading_for_baby(
     no device, no assignment, or nothing recorded yet.
     """
     return await telemetry_service.latest_for_baby(baby_id, db)
+
+
+@router.get("/babies/{baby_id}/sensor-history", response_model=BabySensorHistory)
+async def get_sensor_history_for_baby(
+    baby_id: uuid.UUID,
+    current_user: AnyRole,
+    db: AsyncSession = Depends(get_db),
+):
+    """This baby's sensor readings across their whole stay, bucketed for a chart.
+
+    Keyed on the baby, so it outlives the incubator being reused or archived and
+    keeps covering the period after raw readings are pruned (from the minute
+    rollups). Each bucket carries the mean and the min/max inside it.
+    """
+    return await telemetry_service.baby_sensor_history(baby_id, db)
+
+
+@router.get("/babies/{baby_id}/alerts", response_model=list[SensorAlertResponse])
+async def get_alerts_for_baby(
+    baby_id: uuid.UUID,
+    current_user: AnyRole,
+    limit: int = Query(100, ge=1, le=500),
+    db: AsyncSession = Depends(get_db),
+):
+    """Every sensor alert raised while this baby was in an incubator, newest first."""
+    return await alert_service.list_for_baby(baby_id, db, limit=limit)
 
 
 @router.post("/alerts/{alert_id}/acknowledge", response_model=SensorAlertResponse)

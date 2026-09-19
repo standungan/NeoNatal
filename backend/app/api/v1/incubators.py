@@ -6,10 +6,12 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import AdminOnly, AnyRole
-from app.core.database import get_db
+from app.core.database import AsyncSessionLocal, get_db
+from app.repositories.assignment_repository import AssignmentRepository
 from app.schemas.incubator import (
     IncubatorCreate,
     IncubatorDetailResponse,
+    IncubatorPlacement,
     IncubatorResponse,
     IncubatorThresholdsResponse,
     IncubatorThresholdsUpdate,
@@ -36,9 +38,11 @@ router = APIRouter()
 @router.get("", response_model=list[IncubatorDetailResponse])
 async def list_incubators(
     current_user: AnyRole,
+    archived: bool = False,
     db: AsyncSession = Depends(get_db),
 ):
-    return await incubator_service.get_all_incubators(db)
+    """Incubators in service. `archived=true` lists the archived ones instead."""
+    return await incubator_service.get_all_incubators(db, archived=archived)
 
 
 @router.get("/available", response_model=list[IncubatorResponse])
@@ -91,11 +95,56 @@ async def delete_incubator(
     current_user: AdminOnly,
     db: AsyncSession = Depends(get_db),
 ):
-    """Delete an empty/unavailable incubator (admin only)."""
+    """Delete an incubator that has never held a baby (admin only).
+
+    One with placement history is refused (409) — archive it instead.
+    """
     ip = request.client.host if request.client else None
     await incubator_service.delete_incubator(
         incubator_id, db, actor_id=current_user.id, ip=ip
     )
+
+
+@router.post("/{incubator_id}/archive", response_model=IncubatorDetailResponse)
+async def archive_incubator(
+    incubator_id: uuid.UUID,
+    request: Request,
+    current_user: AdminOnly,
+    db: AsyncSession = Depends(get_db),
+):
+    """Retire an incubator, keeping every placement, reading and alert (admin only).
+
+    Refused while a baby is in it. Its device is unbound, open alerts are closed as
+    'archived', and it becomes read-only and hidden from the dashboard and admission.
+    """
+    ip = request.client.host if request.client else None
+    return await incubator_service.archive_incubator(
+        incubator_id, db, actor_id=current_user.id, ip=ip
+    )
+
+
+@router.post("/{incubator_id}/restore", response_model=IncubatorDetailResponse)
+async def restore_incubator(
+    incubator_id: uuid.UUID,
+    request: Request,
+    current_user: AdminOnly,
+    db: AsyncSession = Depends(get_db),
+):
+    """Return an archived incubator to the dashboard, as 'tidak_tersedia' (admin only)."""
+    ip = request.client.host if request.client else None
+    return await incubator_service.restore_incubator(
+        incubator_id, db, actor_id=current_user.id, ip=ip
+    )
+
+
+@router.get("/{incubator_id}/placements", response_model=list[IncubatorPlacement])
+async def list_incubator_placements(
+    incubator_id: uuid.UUID,
+    current_user: AnyRole,
+    db: AsyncSession = Depends(get_db),
+):
+    """Every baby this incubator has held, newest first — its usage history."""
+    return await incubator_service.get_placements(incubator_id, db)
 
 
 @router.get("/{incubator_id}/thresholds", response_model=IncubatorThresholdsResponse)
@@ -174,12 +223,19 @@ async def stream_incubator_readings(
     On connect the ring buffer is replayed so a chart opened mid-stream is never
     blank, then new readings arrive as they are ingested. A comment line is sent
     every 15 s so idle proxies do not close the connection.
+
+    The replay starts at the incubator's current occupancy, like GET /readings —
+    the buffer does not know who was in the box. The lookup uses its own
+    short-lived session: a request-scoped one would stay checked out of the pool
+    for as long as the stream is open.
     """
+    async with AsyncSessionLocal() as session:
+        since = await AssignmentRepository(session).occupancy_start(incubator_id)
 
     async def events():
         q = telemetry_stream.subscribe(incubator_id)
         try:
-            for reading in telemetry_stream.replay(incubator_id):
+            for reading in telemetry_stream.replay(incubator_id, since=since):
                 yield f"data: {reading.model_dump_json()}\n\n"
 
             while True:

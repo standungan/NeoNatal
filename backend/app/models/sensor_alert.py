@@ -58,6 +58,10 @@ class SensorAlert(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Who closed it. NULL = readings came back in range (the engine); 'discharged' =
+    # the baby went home; 'archived' = the incubator was retired. Kept so the history
+    # never reads as a recovery that did not happen.
+    resolved_reason: Mapped[str | None] = mapped_column(String(20))
     acknowledged_by: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL")
     )

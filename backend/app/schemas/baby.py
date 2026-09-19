@@ -104,6 +104,9 @@ class AssignmentInfo(BaseModel):
     incubator_no: str
     location: str | None
     assigned_at: datetime
+    # "active" while the baby is in the incubator, "discharged" once they went home
+    status: str = "active"
+    discharged_at: datetime | None = None
     assigned_by_name: str | None = None
     # registration data (updates02)
     no_registrasi_nicu: str | None = None
@@ -172,11 +175,22 @@ class BabyResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class BabyListItem(BabyResponse):
+    """A row of the baby list: identity plus the most recent placement, so a
+    discharged baby still shows where and when they were treated."""
+
+    placement: AssignmentInfo | None = None
+
+
 class BabyDetailResponse(BabyResponse):
     age_in_days: int
     parent: ParentResponse | None = None
     maternal: MaternalResponse | None = None
+    # Only while the baby is in an incubator; None after discharge.
     current_assignment: AssignmentInfo | None = None
+    # Every placement, newest first, discharged ones included — what a report
+    # about a baby who has gone home reads its admission data from.
+    placements: list[AssignmentInfo] = []
     latest_vitals: "MonitoringSummary | None" = None
 
 

@@ -37,6 +37,13 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               Dashboard
             </Link>
 
+            <Link
+              href="/babies"
+              className="rounded-lg px-3 py-2 text-sm font-semibold text-muted hover:bg-surface hover:text-ink"
+            >
+              Riwayat Bayi
+            </Link>
+
             {canWrite(role) && (
               <Link
                 href="/baby/register"
@@ -65,6 +72,13 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                       onClick={() => setAdminOpen(false)}
                     >
                       Manajemen Pengguna
+                    </Link>
+                    <Link
+                      href="/admin/incubators"
+                      className="block px-4 py-2.5 text-sm hover:bg-surface"
+                      onClick={() => setAdminOpen(false)}
+                    >
+                      Arsip Inkubator
                     </Link>
                     <Link
                       href="/admin/audit-logs"

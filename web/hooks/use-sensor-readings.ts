@@ -19,14 +19,19 @@ const WINDOW = 120;
  * The initial backfill still comes from GET /readings: the server's ring buffer
  * only holds ~6 minutes, and a chart should open with history rather than
  * filling in from empty.
+ *
+ * `since` is the start of the incubator's current occupancy. The server already
+ * cuts both the backfill and the stream replay there; filtering again here
+ * covers a page left open across an admission, whose chart would otherwise keep
+ * the previous baby's readings until reloaded.
  */
-export function useSensorReadings(incubatorId: string, limit = WINDOW) {
+export function useSensorReadings(incubatorId: string, limit = WINDOW, since?: string) {
   // Backfill. Once the stream is live this stops polling and simply holds the
   // seed data; if the stream never connects, it keeps polling as before.
   const [streaming, setStreaming] = useState(false);
 
   const backfill = useQuery({
-    queryKey: ["readings", incubatorId, limit],
+    queryKey: ["readings", incubatorId, limit, since],
     queryFn: async () =>
       (
         await api.get<SensorReading[]>(
@@ -72,12 +77,14 @@ export function useSensorReadings(incubatorId: string, limit = WINDOW) {
     };
 
     return () => es.close();
-  }, [incubatorId, limit]);
+  }, [incubatorId, limit, since]);
 
   // Merge: backfill first, then anything the stream added that it did not cover.
   const seed = backfill.data ?? [];
   const seedIds = new Set(seed.map((r) => r.reading_id));
+  const from = since ? new Date(since).getTime() : null;
   const merged = [...seed, ...live.filter((r) => !seedIds.has(r.reading_id))]
+    .filter((r) => from == null || new Date(r.recorded_at).getTime() >= from)
     .slice(-limit);
 
   return {

@@ -215,9 +215,13 @@ class SensorAlertResponse(BaseModel):
     threshold: Decimal | None
     started_at: datetime
     resolved_at: datetime | None
+    # None = readings came back in range; "discharged" / "archived" = closed because
+    # the baby went home or the incubator was retired, not because anything recovered.
+    resolved_reason: str | None = None
     acknowledged_by: uuid.UUID | None
     acknowledged_by_name: str | None = None
     acknowledged_at: datetime | None
+    incubator_no: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -225,3 +229,39 @@ class SensorAlertResponse(BaseModel):
     def _decimal_as_number(self, v: Decimal | None) -> float | None:
         """Numbers, not strings — same reasoning as SensorReadingResponse."""
         return float(v) if v is not None else None
+
+
+# ── Per-baby sensor history ─────────────────────────────────────────────────────
+
+
+class SensorHistoryPoint(BaseModel):
+    """One bucket of a baby's sensor history: mean plus the extremes inside it.
+
+    Plain floats, never Decimal — the chart compares these numerically, and a
+    Decimal would reach the client as a string.
+    """
+
+    t: datetime
+    samples: int
+    suhu_bayi: float | None = None
+    suhu_bayi_min: float | None = None
+    suhu_bayi_max: float | None = None
+    suhu_inkubator: float | None = None
+    suhu_inkubator_min: float | None = None
+    suhu_inkubator_max: float | None = None
+    kelembapan_inkubator: float | None = None
+    kelembapan_inkubator_min: float | None = None
+    kelembapan_inkubator_max: float | None = None
+    heart_rate: float | None = None
+    heart_rate_min: float | None = None
+    heart_rate_max: float | None = None
+    spo2: float | None = None
+    spo2_min: float | None = None
+    spo2_max: float | None = None
+
+
+class BabySensorHistory(BaseModel):
+    """A baby's whole stay, however long, as at most a few hundred buckets."""
+
+    bucket_minutes: int
+    points: list[SensorHistoryPoint]

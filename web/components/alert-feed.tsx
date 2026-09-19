@@ -9,25 +9,37 @@ import { canWrite, formatDate } from "@/lib/format";
 import { ALERT_LABELS, type SensorAlert } from "@/lib/types";
 
 /**
- * Alert feed for one incubator.
+ * Alert feed — for one incubator, or for one baby.
  *
  * The engine writes `sensor_alerts` rows and flips `incubators.status`, but a
  * status badge says only "something is wrong" — this says which metric, what it
  * read, which bound it crossed, and when. An alarm nobody can interpret is
  * barely better than no alarm.
  *
+ * `incubatorId`: the incubator's CURRENT occupancy only (the backend cuts it at
+ * the present baby's admission, or the last discharge) — the previous baby's
+ * alarms are theirs, not the next baby's.
+ * `babyId`: every alarm raised while that baby was in an incubator, wherever,
+ * which is how they stay readable after discharge.
+ *
  * Visible to every role; acknowledging is PerawatOrAdmin, matching the backend.
  */
-export function AlertFeedCard({ incubatorId }: { incubatorId: string }) {
+export function AlertFeedCard(
+  props: { incubatorId: string; babyId?: never } | { babyId: string; incubatorId?: never },
+) {
   const qc = useQueryClient();
   const { role } = useAuth();
   const writable = canWrite(role);
 
+  const forBaby = props.babyId !== undefined;
+  const key = forBaby ? ["alerts", "baby", props.babyId] : ["alerts", props.incubatorId];
+  const path = forBaby
+    ? `/babies/${props.babyId}/alerts?limit=100`
+    : `/incubators/${props.incubatorId}/alerts?limit=20`;
+
   const q = useQuery({
-    queryKey: ["alerts", incubatorId],
-    queryFn: async () =>
-      (await api.get<SensorAlert[]>(`/incubators/${incubatorId}/alerts?limit=20`))
-        .data,
+    queryKey: key,
+    queryFn: async () => (await api.get<SensorAlert[]>(path)).data,
     // An alert can open between page loads; the chart polls, so should this.
     refetchInterval: 15_000,
   });
@@ -36,8 +48,10 @@ export function AlertFeedCard({ incubatorId }: { incubatorId: string }) {
     mutationFn: async (alertId: string) =>
       api.post(`/alerts/${alertId}/acknowledge`),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["alerts", incubatorId] });
-      qc.invalidateQueries({ queryKey: ["incubator", incubatorId] });
+      qc.invalidateQueries({ queryKey: key });
+      if (props.incubatorId) {
+        qc.invalidateQueries({ queryKey: ["incubator", props.incubatorId] });
+      }
     },
   });
 
@@ -68,7 +82,9 @@ export function AlertFeedCard({ incubatorId }: { incubatorId: string }) {
 
       {alerts.length === 0 ? (
         <p className="mt-2 text-sm text-muted">
-          Belum ada peringatan untuk inkubator ini.
+          {forBaby
+            ? "Tidak ada peringatan sensor selama bayi ini dirawat."
+            : "Belum ada peringatan sejak periode ini dimulai."}
         </p>
       ) : (
         <ul className="mt-3 flex flex-col gap-2">
@@ -76,7 +92,10 @@ export function AlertFeedCard({ incubatorId }: { incubatorId: string }) {
             <AlertRow
               key={a.alert_id}
               alert={a}
-              canAck={writable}
+              forBaby={forBaby}
+              // A baby's history is a record: acknowledging an alarm that has
+              // already closed — usually because the baby went home — says nothing.
+              canAck={writable && (!forBaby || !a.resolved_at)}
               onAck={() => ack.mutate(a.alert_id)}
               acking={ack.isPending && ack.variables === a.alert_id}
             />
@@ -93,18 +112,27 @@ export function AlertFeedCard({ incubatorId }: { incubatorId: string }) {
   );
 }
 
+/** How an alert ended. Only a null reason means the readings recovered. */
+const CLOSED_LABEL: Record<NonNullable<SensorAlert["resolved_reason"]>, string> = {
+  discharged: "ditutup saat bayi pulang",
+  archived: "ditutup saat inkubator diarsipkan",
+};
+
 function AlertRow({
   alert,
+  forBaby,
   canAck,
   onAck,
   acking,
 }: {
   alert: SensorAlert;
+  forBaby: boolean;
   canAck: boolean;
   onAck: () => void;
   acking: boolean;
 }) {
   const isOpen = !alert.resolved_at;
+  const closedLabel = alert.resolved_reason ? CLOSED_LABEL[alert.resolved_reason] : "selesai";
 
   return (
     <li
@@ -125,7 +153,7 @@ function AlertRow({
             />
             {ALERT_LABELS[alert.alert_type] ?? alert.alert_type}
             <span className="font-semibold text-muted">
-              {isOpen ? "· aktif" : "· selesai"}
+              {isOpen ? "· aktif" : `· ${closedLabel}`}
             </span>
           </p>
 
@@ -133,12 +161,14 @@ function AlertRow({
             {/* The reading and the bound it crossed, as recorded at the time. */}
             {alert.metric_key} <strong className="text-ink">{alert.value}</strong>
             {alert.threshold != null && <> (batas {alert.threshold})</>}
-            {alert.baby_name && <> · {alert.baby_name}</>}
+            {forBaby
+              ? alert.incubator_no && <> · Inkubator {alert.incubator_no}</>
+              : alert.baby_name && <> · {alert.baby_name}</>}
           </p>
 
           <p className="mt-0.5 text-[11.5px] text-muted">
             mulai {formatDate(alert.started_at, true)}
-            {alert.resolved_at && <> · selesai {formatDate(alert.resolved_at, true)}</>}
+            {alert.resolved_at && <> · {alert.resolved_reason ? "ditutup" : "selesai"} {formatDate(alert.resolved_at, true)}</>}
           </p>
         </div>
 

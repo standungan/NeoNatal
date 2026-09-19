@@ -1,22 +1,33 @@
 import uuid
+from typing import Literal
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import AnyRole, PerawatOrAdmin
 from app.core.database import get_db
-from app.schemas.baby import BabyCreate, BabyDetailResponse, BabyResponse, BabyUpdate
+from app.schemas.baby import BabyCreate, BabyDetailResponse, BabyListItem, BabyUpdate
 from app.services import baby_service
 
 router = APIRouter()
 
 
-@router.get("", response_model=list[BabyResponse])
+@router.get("", response_model=list[BabyListItem])
 async def list_babies(
     current_user: AnyRole,
+    status_filter: Literal["aktif", "pulang", "semua"] = Query("aktif", alias="status"),
+    q: str | None = Query(None, max_length=100),
+    limit: int = Query(100, ge=1, le=500),
     db: AsyncSession = Depends(get_db),
 ):
-    return await baby_service.get_all_babies(db)
+    """Babies with their most recent placement, newest first.
+
+    `status` defaults to "aktif" (still in an incubator) — what this endpoint has
+    always returned. "pulang" lists discharged babies and "semua" both, so records
+    stay reachable after the incubator is reused or archived. `q` matches name,
+    No. RM, or NICU registration number.
+    """
+    return await baby_service.get_all_babies(db, status=status_filter, q=q, limit=limit)
 
 
 @router.post("", response_model=BabyDetailResponse, status_code=status.HTTP_201_CREATED)

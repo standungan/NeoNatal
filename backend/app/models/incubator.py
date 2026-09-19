@@ -23,6 +23,10 @@ class Incubator(Base):
     )
     # admin-set sensor alert bounds { metric: {min, max} }; NULL → code defaults
     alert_thresholds: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # Set when an incubator that has held a baby is retired: the row stays so its
+    # placements, readings and alerts stay attached, but the app stops offering it.
+    # See incubator_service.archive_incubator.
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

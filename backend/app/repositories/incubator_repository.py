@@ -13,15 +13,29 @@ class IncubatorRepository:
         self.db = db
 
     async def get_all(self) -> list[Incubator]:
+        """Every incubator, archived ones included.
+
+        Numbering reads this, so an archived incubator's number is never handed to
+        a new one — "Inkubator 03" in a baby's history must keep meaning one box.
+        """
         result = await self.db.execute(
             select(Incubator).order_by(Incubator.incubator_no)
         )
         return list(result.scalars().all())
 
-    async def get_all_with_assignment(self) -> list[Incubator]:
-        """Load incubators with their active assignment + baby for the dashboard."""
+    async def get_all_with_assignment(self, archived: bool = False) -> list[Incubator]:
+        """Incubators with their active assignment + baby, for the dashboard.
+
+        Archived incubators are left out unless asked for — they only appear in the
+        archive list.
+        """
         result = await self.db.execute(
             select(Incubator)
+            .where(
+                Incubator.archived_at.is_not(None)
+                if archived
+                else Incubator.archived_at.is_(None)
+            )
             .options(
                 selectinload(Incubator.assignments.and_(
                     BabyIncubatorAssignment.status == "active"
@@ -30,6 +44,17 @@ class IncubatorRepository:
             .order_by(Incubator.incubator_no)
         )
         return list(result.scalars().all())
+
+    async def ids_with_history(self, incubator_ids: list[uuid.UUID]) -> set[uuid.UUID]:
+        """Which of these incubators have ever held a baby — the ones that can only be archived."""
+        if not incubator_ids:
+            return set()
+        result = await self.db.execute(
+            select(BabyIncubatorAssignment.incubator_id)
+            .where(BabyIncubatorAssignment.incubator_id.in_(incubator_ids))
+            .distinct()
+        )
+        return set(result.scalars().all())
 
     async def get_by_no(self, incubator_no: str) -> Incubator | None:
         """Look up by the human-facing number ("01"), not the UUID.
@@ -101,7 +126,7 @@ class IncubatorRepository:
         """Return incubators that can accept a new baby."""
         result = await self.db.execute(
             select(Incubator)
-            .where(Incubator.status == "kosong")
+            .where(Incubator.status == "kosong", Incubator.archived_at.is_(None))
             .order_by(Incubator.incubator_no)
         )
         return list(result.scalars().all())

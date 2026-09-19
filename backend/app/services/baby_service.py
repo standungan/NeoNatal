@@ -17,12 +17,13 @@ from app.schemas.baby import (
     AssignmentInfo,
     BabyCreate,
     BabyDetailResponse,
-    BabyResponse,
+    BabyListItem,
     BabyUpdate,
     MaternalResponse,
     MonitoringSummary,
     ParentResponse,
 )
+from app.services import alert_service
 from app.services.audit_service import log_action
 from app.services.monitoring_service import _check_vital_status
 
@@ -55,6 +56,11 @@ async def register_baby(
 
     if not incubator:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Inkubator tidak ditemukan")
+    if incubator.archived_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Inkubator {incubator.incubator_no} sudah diarsipkan",
+        )
     if incubator.status != "kosong":
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -146,9 +152,24 @@ async def register_baby(
     return await _to_detail(baby, db)
 
 
-async def get_all_babies(db: AsyncSession) -> list[BabyResponse]:
-    babies = await BabyRepository(db).get_all_active()
-    return [BabyResponse.model_validate(b) for b in babies]
+async def get_all_babies(
+    db: AsyncSession, *, status: str = "aktif", q: str | None = None, limit: int = 100
+) -> list[BabyListItem]:
+    """Babies with their most recent placement.
+
+    Defaults to babies still in an incubator, which is what the mobile app has
+    always received. "pulang" and "semua" reach discharged babies, whose records
+    would otherwise be unreachable once their incubator takes the next baby.
+    """
+    babies = await BabyRepository(db).search(status=status, q=q, limit=limit)
+    latest = await AssignmentRepository(db).latest_by_babies([b.baby_id for b in babies])
+    out: list[BabyListItem] = []
+    for b in babies:
+        item = BabyListItem.model_validate(b)
+        a = latest.get(b.baby_id)
+        item.placement = _assignment_info(a) if a else None
+        out.append(item)
+    return out
 
 
 async def get_baby(baby_id: uuid.UUID, db: AsyncSession) -> BabyDetailResponse:
@@ -199,9 +220,21 @@ async def discharge_baby(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bayi tidak sedang dalam inkubator")
 
     # close assignment
+    discharged_at = datetime.now(timezone.utc)
     assignment.status = "discharged"
-    assignment.discharged_at = datetime.now(timezone.utc)
+    assignment.discharged_at = discharged_at
     await AssignmentRepository(db).update(assignment)
+
+    # Close this baby's open sensor alerts. They cannot recover on this probe any
+    # more, and left open they would flip the empty incubator back to 'warning'
+    # on its next idle reading — which blocks the next admission.
+    alerts_closed = await alert_service.close_open_alerts(
+        db,
+        incubator_id=assignment.incubator_id,
+        baby_id=baby_id,
+        reason="discharged",
+        at=discharged_at,
+    )
 
     # free the incubator
     assignment.incubator.status = "kosong"
@@ -214,27 +247,38 @@ async def discharge_baby(
     await log_action(
         db, user_id=actor_id, action="DISCHARGE", table_name="babies",
         record_id=baby_id, ip_address=ip,
-        details={"incubator_no": assignment.incubator.incubator_no},
+        details={
+            "incubator_no": assignment.incubator.incubator_no,
+            "alerts_closed": alerts_closed,
+        },
+    )
+
+
+def _assignment_info(a: BabyIncubatorAssignment) -> AssignmentInfo:
+    """Needs `incubator`, `assigned_by_user` and `dpjp` loaded on the assignment."""
+    return AssignmentInfo(
+        assignment_id=a.assignment_id,
+        incubator_id=a.incubator_id,
+        incubator_no=a.incubator.incubator_no,
+        location=a.incubator.location,
+        assigned_at=a.assigned_at,
+        status=a.status,
+        discharged_at=a.discharged_at,
+        assigned_by_name=a.assigned_by_user.full_name if a.assigned_by_user else None,
+        no_registrasi_nicu=a.no_registrasi_nicu,
+        rumah_sakit=a.rumah_sakit,
+        ruang_nicu=a.ruang_nicu,
+        dpjp_name=a.dpjp.full_name if a.dpjp else None,
     )
 
 
 async def _to_detail(baby: Baby, db: AsyncSession) -> BabyDetailResponse:
-    active = next((a for a in baby.assignments if a.status == "active"), None)
-
-    assignment_info = None
-    if active:
-        assignment_info = AssignmentInfo(
-            assignment_id=active.assignment_id,
-            incubator_id=active.incubator_id,
-            incubator_no=active.incubator.incubator_no,
-            location=active.incubator.location,
-            assigned_at=active.assigned_at,
-            assigned_by_name=active.assigned_by_user.full_name if active.assigned_by_user else None,
-            no_registrasi_nicu=active.no_registrasi_nicu,
-            rumah_sakit=active.rumah_sakit,
-            ruang_nicu=active.ruang_nicu,
-            dpjp_name=active.dpjp.full_name if active.dpjp else None,
-        )
+    # Every placement, not just the active one: after discharge there is no active
+    # placement, and a report without its admission data would print dashes.
+    placements = [
+        _assignment_info(a) for a in await AssignmentRepository(db).list_by_baby(baby.baby_id)
+    ]
+    assignment_info = next((p for p in placements if p.status == "active"), None)
 
     latest = await BabyRepository(db).get_latest_monitoring(baby.baby_id)
     latest_vitals = None
@@ -284,5 +328,6 @@ async def _to_detail(baby: Baby, db: AsyncSession) -> BabyDetailResponse:
         parent=ParentResponse.model_validate(baby.parent) if baby.parent else None,
         maternal=MaternalResponse.model_validate(baby.maternal_record) if baby.maternal_record else None,
         current_assignment=assignment_info,
+        placements=placements,
         latest_vitals=latest_vitals,
     )

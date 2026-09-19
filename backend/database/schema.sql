@@ -64,6 +64,11 @@ CREATE TABLE incubators (
     location        VARCHAR(255),
     status          incubator_status NOT NULL DEFAULT 'kosong',
     alert_thresholds JSONB,                                  -- admin-set sensor min/max; NULL = code defaults
+    -- Set when an admin archives an incubator that has held a baby. The row stays so
+    -- every placement, reading and alert keeps its incubator; the app hides it from the
+    -- dashboard and admission, and its number is never reused. Unused incubators are
+    -- deleted outright instead.
+    archived_at     TIMESTAMPTZ,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -399,6 +404,9 @@ CREATE INDEX idx_assignment_incubator    ON baby_incubator_assignments (incubato
 
 -- sensor_readings — the chart backfill: newest N for one incubator
 CREATE INDEX idx_sensor_readings_incubator_time ON sensor_readings (incubator_id, recorded_at DESC);
+-- ...and one baby's history, which outlives the incubator being reused or archived
+CREATE INDEX idx_sensor_readings_baby_time ON sensor_readings (baby_id, recorded_at DESC)
+    WHERE baby_id IS NOT NULL;
 
 -- =============================================================================
 -- TABLE: sensor_reading_minutes  (updates03 P4 — 1-minute rollups)
@@ -434,6 +442,8 @@ CREATE TABLE sensor_reading_minutes (
 
 CREATE INDEX idx_sensor_minutes_incubator_time
     ON sensor_reading_minutes (incubator_id, minute DESC);
+CREATE INDEX idx_sensor_minutes_baby_time
+    ON sensor_reading_minutes (baby_id, minute DESC) WHERE baby_id IS NOT NULL;
 
 -- =============================================================================
 -- TABLE: sensor_alerts  (updates03 P4 — threshold breaches raised at ingest)
@@ -453,6 +463,12 @@ CREATE TABLE sensor_alerts (
     threshold       NUMERIC(6,2),
     started_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     resolved_at     TIMESTAMPTZ,
+    -- who closed it: NULL = readings came back in range; 'discharged' = the baby went
+    -- home; 'archived' = the incubator was retired. Never claims a recovery that did
+    -- not happen.
+    resolved_reason VARCHAR(20)
+        CONSTRAINT ck_sensor_alerts_resolved_reason
+        CHECK (resolved_reason IS NULL OR resolved_reason IN ('discharged', 'archived')),
     acknowledged_by UUID REFERENCES users(id) ON DELETE SET NULL,
     acknowledged_at TIMESTAMPTZ,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -461,6 +477,9 @@ CREATE TABLE sensor_alerts (
 -- the alert feed for one incubator, newest first
 CREATE INDEX idx_sensor_alerts_incubator_time
     ON sensor_alerts (incubator_id, started_at DESC);
+-- ...and for one baby, wherever they were
+CREATE INDEX idx_sensor_alerts_baby_time
+    ON sensor_alerts (baby_id, started_at DESC) WHERE baby_id IS NOT NULL;
 
 -- At most ONE open alert per incubator per type. This is what makes the engine
 -- idempotent: a breach lasting a minute refreshes one row rather than opening 20.

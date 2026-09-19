@@ -93,8 +93,23 @@ function sharedDomains(
   return out;
 }
 
-export function SensorChartCard({ incubatorId }: { incubatorId: string }) {
-  const readings = useSensorReadings(incubatorId);
+/**
+ * `periodNote` says which stretch the chart covers. The backend serves only the
+ * incubator's current occupancy (since this baby's admission, or since the last
+ * discharge), so without it an emptied chart after an admission would look like
+ * lost data rather than a deliberate cut.
+ */
+export function SensorChartCard({
+  incubatorId,
+  periodNote,
+  since,
+}: {
+  incubatorId: string;
+  periodNote?: string;
+  /** Start of the current occupancy (ISO); readings before it are not drawn. */
+  since?: string;
+}) {
+  const readings = useSensorReadings(incubatorId, undefined, since);
 
   // Bands come from the per-incubator threshold settings that already ship, so
   // they follow any admin override for free.
@@ -122,8 +137,9 @@ export function SensorChartCard({ incubatorId }: { incubatorId: string }) {
     return (
       <Card className="p-5">
         <SectionTitle>Tren Sensor</SectionTitle>
+        {periodNote && <p className="mt-1 text-xs text-muted">{periodNote}</p>}
         <p className="mt-2 text-sm text-muted">
-          Belum ada data sensor untuk inkubator ini. Grafik akan muncul otomatis
+          Belum ada data sensor pada periode ini. Grafik akan muncul otomatis
           setelah perangkat mulai mengirim.
         </p>
       </Card>
@@ -148,6 +164,7 @@ export function SensorChartCard({ incubatorId }: { incubatorId: string }) {
           {readings.streaming ? "Langsung" : "Berkala"} · {rows.length} pembacaan
         </span>
       </div>
+      {periodNote && <p className="mt-1 text-xs text-muted">{periodNote}</p>}
 
       {/* One column on purpose: full width makes the axis numbers and the
           shape of the trend legible, which 3-up thumbnails did not. */}

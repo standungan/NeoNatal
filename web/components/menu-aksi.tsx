@@ -10,11 +10,14 @@ import { canWrite } from "@/lib/format";
  * baby/[id]/layout.tsx (and reused on the incubator detail page) so switching
  * windows only swaps the content below — the menu never disappears. The tab
  * matching the current route is highlighted (blue).
+ *
+ * `discharged`: the baby has gone home, so only the report is offered — the
+ * entry windows chart a baby who is still in an incubator.
  */
-export function MenuAksiTabs({ babyId }: { babyId: string }) {
+export function MenuAksiTabs({ babyId, discharged = false }: { babyId: string; discharged?: boolean }) {
   const pathname = usePathname();
   const { role } = useAuth();
-  const writable = canWrite(role);
+  const writable = canWrite(role) && !discharged;
 
   const tabs = [
     { seg: "report", label: "📊 Laporan", show: true },
@@ -22,7 +25,7 @@ export function MenuAksiTabs({ babyId }: { babyId: string }) {
     { seg: "observation", label: "🩺 Monitoring Bayi (Observasi)", show: writable },
     { seg: "involvement", label: "👨‍👩‍👧 Keterlibatan", show: writable },
     { seg: "aksi", label: "🤝 Kolaborasi", show: writable },
-    { seg: "doctor-note", label: "🩺 Observasi Dokter", show: role === "dokter" },
+    { seg: "doctor-note", label: "🩺 Observasi Dokter", show: role === "dokter" && !discharged },
   ].filter((t) => t.show);
 
   return (

@@ -16,6 +16,7 @@ pub/sub behind the same broadcast() call — not a bigger dict.
 import asyncio
 import uuid
 from collections import defaultdict, deque
+from datetime import datetime
 
 from app.schemas.telemetry import SensorReadingResponse
 
@@ -54,9 +55,17 @@ def publish(incubator_id: uuid.UUID, reading: SensorReadingResponse) -> None:
                 pass
 
 
-def replay(incubator_id: uuid.UUID) -> list[SensorReadingResponse]:
-    """Everything still in the ring buffer, oldest first (plot order)."""
-    return list(_buffers.get(incubator_id, ()))
+def replay(
+    incubator_id: uuid.UUID, since: datetime | None = None
+) -> list[SensorReadingResponse]:
+    """What is still in the ring buffer, oldest first (plot order).
+
+    `since` drops anything older — the start of the incubator's current
+    occupancy. The buffer holds ~6 minutes whoever was in the box, so without it
+    a baby admitted a minute ago would open on the previous baby's readings.
+    """
+    buf = _buffers.get(incubator_id, ())
+    return [r for r in buf if since is None or r.recorded_at >= since]
 
 
 def subscribe(incubator_id: uuid.UUID) -> asyncio.Queue:

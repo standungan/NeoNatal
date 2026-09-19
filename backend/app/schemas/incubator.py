@@ -31,6 +31,9 @@ class IncubatorResponse(BaseModel):
     incubator_no: str
     location: str | None
     status: str
+    # Set once retired. An archived incubator is read-only and hidden from the
+    # dashboard and admission; its history stays readable.
+    archived_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -39,6 +42,23 @@ class IncubatorResponse(BaseModel):
 
 class IncubatorDetailResponse(IncubatorResponse):
     current_baby: CurrentBabySummary | None = None
+    # Has any baby ever been placed here? Decides the admin's option: an unused
+    # incubator can be deleted, one with history can only be archived.
+    has_history: bool = False
+
+
+class IncubatorPlacement(BaseModel):
+    """One baby's stay in this incubator — a row of its usage history."""
+
+    assignment_id: uuid.UUID
+    baby_id: uuid.UUID
+    baby_name: str
+    no_registrasi_nicu: str | None = None
+    status: str                       # "active" | "discharged"
+    assigned_at: datetime
+    discharged_at: datetime | None = None
+    assigned_by_name: str | None = None
+    dpjp_name: str | None = None
 
 
 # ── Sensor alert thresholds (per-incubator, admin-set) ──────────────────────────

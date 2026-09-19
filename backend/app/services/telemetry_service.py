@@ -1,10 +1,12 @@
 import ipaddress
 import uuid
+from decimal import Decimal
 
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import generate_device_key, hash_device_key
+from app.models.baby import Baby
 from app.models.device import Device
 from app.models.sensor_reading import SensorReading
 from app.repositories.assignment_repository import AssignmentRepository
@@ -12,11 +14,13 @@ from app.repositories.device_repository import DeviceRepository
 from app.repositories.incubator_repository import IncubatorRepository
 from app.repositories.sensor_reading_repository import SensorReadingRepository
 from app.schemas.telemetry import (
+    BabySensorHistory,
     DeviceCreate,
     DeviceProvisionResponse,
     DeviceResponse,
     DeviceUpdate,
     LegacyTelemetryIn,
+    SensorHistoryPoint,
     SensorReadingResponse,
     TelemetryAck,
     TelemetryIn,
@@ -115,8 +119,32 @@ async def latest_for_baby(
     assignment = await AssignmentRepository(db).get_active_by_baby(baby_id)
     if assignment is None:
         return None
-    rows = await SensorReadingRepository(db).get_recent(assignment.incubator_id, 1)
+    # Only from this admission on: if the device has been silent since the baby
+    # arrived, the newest row in the incubator is the previous baby's, and
+    # autofilling it into this baby's chart would be a charting error.
+    rows = await SensorReadingRepository(db).get_recent(
+        assignment.incubator_id, 1, since=assignment.assigned_at
+    )
     return SensorReadingResponse.model_validate(rows[0]) if rows else None
+
+
+async def baby_sensor_history(baby_id: uuid.UUID, db: AsyncSession) -> BabySensorHistory:
+    """A baby's sensor history across their whole stay, from wherever it survives.
+
+    Unlike the incubator chart this is keyed on the baby, so it is still there
+    after discharge, after the incubator takes its next baby, and after it is
+    archived. See SensorReadingRepository.baby_history for the two sources.
+    """
+    if await db.get(Baby, baby_id) is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Data bayi tidak ditemukan"
+        )
+    width, rows = await SensorReadingRepository(db).baby_history(baby_id)
+    points = [
+        SensorHistoryPoint(**{k: (float(v) if isinstance(v, Decimal) else v) for k, v in r.items()})
+        for r in rows
+    ]
+    return BabySensorHistory(bucket_minutes=width, points=points)
 
 
 # ── Legacy prototype ingest ─────────────────────────────────────────────────────
@@ -152,6 +180,13 @@ async def ingest_legacy(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Inkubator '{data.incubator_id}' tidak dikenal (dicari sebagai '{incubator_no}')",
+        )
+    # A retired incubator takes no data: nothing would show it, and the alert
+    # engine would start flipping the status of a box nobody is watching.
+    if inc.archived_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Inkubator {inc.incubator_no} sudah diarsipkan",
         )
 
     # The allowlist is checked against the incubator's bound device, if one
@@ -209,13 +244,18 @@ async def ingest_legacy(
 async def get_recent_readings(
     incubator_id: uuid.UUID, db: AsyncSession, limit: int = 120
 ) -> list[SensorReadingResponse]:
-    """Recent samples for one incubator, oldest first.
+    """Recent samples for one incubator's current occupancy, oldest first.
+
+    Current = since the present baby's admission, or since the last discharge
+    when empty; older samples belong to an earlier baby and are served by
+    baby_sensor_history instead.
 
     The repository returns newest-first (that is the direction the index runs);
     reversing here means every client gets plot order without each one having to
     remember to do it.
     """
-    rows = await SensorReadingRepository(db).get_recent(incubator_id, limit)
+    since = await AssignmentRepository(db).occupancy_start(incubator_id)
+    rows = await SensorReadingRepository(db).get_recent(incubator_id, limit, since=since)
     return [SensorReadingResponse.model_validate(r) for r in reversed(rows)]
 
 
@@ -244,6 +284,11 @@ async def provision_device(
     if not inc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Inkubator tidak ditemukan"
+        )
+    if inc.archived_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Inkubator sudah diarsipkan. Pulihkan terlebih dahulu.",
         )
 
     repo = DeviceRepository(db)

@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import exists, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -15,20 +15,33 @@ class BabyRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def get_all_active(self) -> list[Baby]:
-        result = await self.db.execute(
-            select(Baby)
-            .where(Baby.is_active == True)
-            .options(
-                selectinload(Baby.assignments.and_(
-                    BabyIncubatorAssignment.status == "active"
-                )).selectinload(BabyIncubatorAssignment.incubator),
-                selectinload(Baby.assignments.and_(
-                    BabyIncubatorAssignment.status == "active"
-                )).selectinload(BabyIncubatorAssignment.assigned_by_user),
+    async def search(
+        self, *, status: str = "aktif", q: str | None = None, limit: int = 100
+    ) -> list[Baby]:
+        """Babies for the list view, newest first.
+
+        `status`: "aktif" (in an incubator), "pulang" (discharged) or "semua".
+        `q` matches the name, the baby's medical-record number, or any of their
+        NICU registration numbers — the three things staff look a baby up by.
+        """
+        stmt = select(Baby)
+        if status == "aktif":
+            stmt = stmt.where(Baby.is_active == True)  # noqa: E712
+        elif status == "pulang":
+            stmt = stmt.where(Baby.is_active == False)  # noqa: E712
+        if q:
+            like = f"%{q.strip()}%"
+            stmt = stmt.where(
+                or_(
+                    Baby.baby_name.ilike(like),
+                    Baby.no_rm_bayi.ilike(like),
+                    exists().where(
+                        BabyIncubatorAssignment.baby_id == Baby.baby_id,
+                        BabyIncubatorAssignment.no_registrasi_nicu.ilike(like),
+                    ),
+                )
             )
-            .order_by(Baby.created_at.desc())
-        )
+        result = await self.db.execute(stmt.order_by(Baby.created_at.desc()).limit(limit))
         return list(result.scalars().all())
 
     async def get_by_id(self, baby_id: uuid.UUID) -> Baby | None:

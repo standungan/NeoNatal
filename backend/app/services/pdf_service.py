@@ -215,7 +215,11 @@ def generate_pdf(report: BabyReportResponse) -> bytes:
     baby = report.baby
     parent = baby.parent
     maternal = baby.maternal
-    asg = baby.current_assignment
+    # The current placement, or — once the baby has gone home and there is none —
+    # the most recent one. Without the fallback a discharge report prints dashes
+    # for every admission field.
+    asg = baby.current_assignment or (baby.placements[0] if baby.placements else None)
+    discharged = asg is not None and asg.discharged_at is not None
 
     # ── title block ─────────────────────────────────────────────────────────────
     pdf.set_font("Helvetica", "B", 15)
@@ -239,6 +243,8 @@ def generate_pdf(report: BabyReportResponse) -> bytes:
         ("Lokasi", (asg.location if asg else None) or "-"),
         ("DPJP", (asg.dpjp_name if asg else None) or "-"),
         ("Perawat Penerima", (asg.assigned_by_name if asg else None) or "-"),
+        ("Status", ("Sudah pulang" if discharged else "Masih dirawat") if asg else "-"),
+        ("Tgl Pulang", asg.discharged_at.strftime("%d %b %Y %H:%M") if discharged else "-"),
     ]
     pdf.kv2(reg_pairs)
     pdf.ln(2)
