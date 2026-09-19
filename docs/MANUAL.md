@@ -1,7 +1,7 @@
 # Panduan Pengguna — Neonatal Care System
 
-> Sumber tunggal panduan ini. Versi HTML (`docs/deliverables/MANUAL.html`) dihasilkan dari berkas ini
-> dengan `python docs/generate_manual_html.py`. Ubah di sini, jangan di HTML-nya.
+> Sumber tunggal panduan ini. Versi HTML (`docs/deliverables/MANUAL.html`) dihasilkan dari
+> berkas ini dengan `python docs/generate_manual_html.py`. Ubah di sini, jangan di HTML-nya.
 
 Sistem Monitoring Bayi pada Inkubator — panduan untuk perawat, dokter, dan admin.
 
@@ -370,14 +370,32 @@ Isinya sama dengan yang di layar, pada saat tombol ditekan.
 Tambah dan ubah akun, lalu tentukan perannya: **admin**, **perawat**, atau **dokter**.
 Peran menentukan menu yang muncul dan tindakan yang diizinkan.
 
-Tiap baris punya dua tombol:
+Tiap baris punya tombol **Edit**, **Reset PW**, dan **Nonaktifkan** — ditambah **Hapus**
+pada akun yang memenuhi syarat, dijelaskan di bawah:
 
-- **Nonaktifkan** menutup akses akun itu tanpa menghapusnya — catatan yang pernah ia
-  simpan tetap utuh dan tetap atas namanya. Tombolnya berubah jadi **Aktifkan** bila
-  suatu saat orangnya kembali bertugas.
+- **Nonaktifkan** menutup akses akun itu. Sistem meminta konfirmasi dulu, karena
+  akibatnya langsung: orang itu tidak bisa masuk lagi, dan bila ia sedang memakai
+  aplikasi, sesinya **seketika terputus** — tidak menunggu ia keluar sendiri. Tombolnya
+  lalu berubah jadi **Aktifkan** bila suatu saat orangnya kembali bertugas.
 - **Reset PW** memberi kata sandi baru untuk akun itu. Anda yang mengetik kata sandinya,
   lalu sampaikan langsung ke orangnya dan minta ia segera menggantinya. Kata sandi lama
   tidak bisa dilihat oleh siapa pun, termasuk Anda.
+
+**Hapus** muncul hanya pada akun yang **belum pernah mencatat atau mengubah apa pun** —
+biasanya akun yang salah dibuat, misalnya karena salah ketik email. Sekadar pernah masuk
+tidak dihitung. Setelah konfirmasi, akun itu hilang dari daftar untuk selamanya; audit
+log tetap mencatat siapa yang menghapusnya, beserta nama dan email akun tersebut.
+
+Akun yang sudah pernah menulis catatan — tanda vital, observasi, catatan dokter, bahkan
+sekadar menandai peringatan atau mengubah pengaturan — **tidak bisa dihapus, hanya
+dinonaktifkan**. Itu disengaja: setiap catatan tersimpan atas nama penulisnya, dan
+menghapus akunnya akan membuat catatan itu kehilangan penanggung jawab. Akun yang
+dinonaktifkan tetap ada di daftar, lengkap dengan seluruh catatannya, tetapi tidak bisa
+dipakai masuk.
+
+Baris akun Anda sendiri tidak punya tombol **Nonaktifkan** maupun **Hapus** — admin tidak
+bisa mengunci dirinya sendiri keluar. Bila akun admin memang harus ditutup, admin lain yang
+melakukannya.
 
 Beri peran sesuai pekerjaan sebenarnya. Peran admin memberi akses ke audit log dan seluruh
 data pasien di bangsal.
@@ -392,9 +410,23 @@ Yang diisi hanya **Lokasi**, dan itu pun opsional — misalnya `NICU Ruang C`. *
 inkubator dibuat otomatis dan berurutan** saat disimpan, jadi tidak ada kolom nomor yang
 bisa diketik; nomor itu juga tidak bisa diubah setelahnya.
 
-Inkubator yang **masih ada riwayat penempatan bayi tidak dapat dihapus**. Tandai
-**Tidak Tersedia** bila alatnya rusak atau sedang diperbaiki — itu menyembunyikannya dari
-pilihan saat mendaftarkan bayi, tanpa membuang riwayatnya.
+Pada inkubator yang sedang tidak berisi bayi, admin melihat kartu **Pengaturan Inkubator
+(Admin)** dengan tombol:
+
+- **Tandai Tidak Tersedia** — untuk inkubator yang rusak atau sedang diperbaiki. Ia
+  hilang dari pilihan saat mendaftarkan bayi, tanpa membuang riwayatnya. **Tandai
+  Kosong** mengembalikannya.
+- **Hapus Inkubator** — menghapusnya untuk selamanya, setelah konfirmasi. Tidak bisa
+  dibatalkan.
+
+**Hapus Inkubator** hanya berhasil untuk inkubator yang **belum pernah ditempati bayi**
+sama sekali — biasanya yang baru saja ditambahkan karena salah input. Inkubator yang punya
+riwayat penempatan ditolak dengan pesan di bawah tombolnya, karena menghapusnya berarti
+membuang riwayat perawatan bayi-bayi itu. Untuk inkubator seperti itu, pakai **Tandai
+Tidak Tersedia**.
+
+Inkubator yang sedang berisi bayi tidak menampilkan kartu ini sama sekali; pulangkan
+bayinya lebih dulu.
 
 ### Memasang perangkat IoT
 

@@ -5,8 +5,8 @@
 | | |
 |---|---|
 | **Nama sistem** | Neonatal Care System — Sistem Monitoring Bayi pada Inkubator |
-| **Versi dokumen** | 1.1 |
-| **Tanggal** | 14 September 2026 |
+| **Versi dokumen** | 1.2 |
+| **Tanggal** | 19 September 2026 |
 | **Status** | Untuk ditinjau dan disetujui Klien |
 | **Pengembang** | Sofyan Tandungan |
 | **Dasar** | Perjanjian Kerja Sama Pengembangan Sistem Pemantauan Inkubator Bayi Terintegrasi (IoT), Pasal 2 & 3 |
@@ -409,7 +409,9 @@ Empat hal pada Gambar 2 adalah keputusan rancangan yang perlu dibaca eksplisit:
 #### 4.6 Administrasi
 
 - **F-4.28** Admin dapat menambah, mengubah, dan menonaktifkan akun pengguna beserta
-  perannya.
+  perannya. Akun yang belum pernah mencatat atau mengubah data apa pun dapat dihapus
+  permanen; akun lain hanya dapat dinonaktifkan, agar setiap catatan tetap tercatat atas
+  nama penulisnya. Sekadar pernah masuk tidak dihitung sebagai catatan.
 - **F-4.29** Admin dapat menambah, mengubah, menghapus, dan menandai inkubator sebagai
   tidak tersedia. Inkubator yang memiliki riwayat penempatan tidak dapat dihapus.
 - **F-4.30** Admin dapat memasang dan melepas perangkat IoT pada inkubator. Kunci
@@ -650,5 +652,6 @@ saat dokumen disusun.
 
 | Versi | Tanggal | Perubahan |
 |---|---|---|
+| 1.2 | 19 September 2026 | F-4.28 diperluas: akun yang belum pernah mencatat atau mengubah data dapat dihapus permanen; akun lain tetap hanya dapat dinonaktifkan. |
 | 1.1 | 14 September 2026 | Baris *Laporan UAT* pada 9.2 diperbarui: laporannya kini ada, dengan Bagian A sudah dan Bagian B belum dijalankan. Baris lain pada 9.2 tidak ditinjau ulang dan tetap mencerminkan keadaan 7 September 2026. |
 | 1.0 | 7 September 2026 | Penyusunan awal. Kebutuhan diturunkan dari Kontrak v2, kerangka delapan pilar, dan sistem yang telah terbangun. |
