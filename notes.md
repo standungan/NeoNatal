@@ -1,5 +1,10 @@
 # Project Status (Updated)
 
+> **Historical.** Planning notes from June 2026, kept as they were written — several details
+> here are no longer true (for example, photos are no longer served from a public `/uploads`
+> path). Current status: [README.md](README.md) (section *Status*) · architecture and gotchas:
+> [HANDOFF.md](HANDOFF.md) · requirements: [SRS](docs/deliverables/SRS.md).
+
 ```text
 PHASE 1 — Analysis
 ────────────────────────

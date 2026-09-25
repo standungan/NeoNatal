@@ -38,11 +38,15 @@ disisipkan ke dalam berkasnya — jadi satu berkas itu bisa dikirim sendirian ta
 folder gambar.
 
 ```bash
+python docs/api/dump_api_inputs.py <folder-skema>
 python docs/api/generate_api_html.py <folder-skema> docs/deliverables/api.html
 ```
 
-`<folder-skema>` berisi `openapi.json` dan `roles_full.json` yang diambil dari aplikasi
-saat berjalan, jadi pembaruannya perlu backend yang hidup.
+Langkah pertama menulis `openapi.json` dan `roles_full.json` ke `<folder-skema>` (folder
+sementara mana pun) dengan mengimpor aplikasi langsung — tidak perlu backend yang hidup.
+Peran tiap endpoint dibaca dari penjaga rute yang sebenarnya ditegakkan server, bukan
+ditulis tangan. Jalankan dengan Python dari `backend/venv`, karena skripnya mengimpor
+aplikasi.
 
 ```bash
 python docs/generate_erd_svg.py

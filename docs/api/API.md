@@ -391,11 +391,19 @@ Ordered newest first.
 `POST /api/v1/monitoring/{monitoring_id}/photo` · **perawat / admin** · `multipart/form-data`
 → `200` `PhotoUploadResponse`
 
-Form field: `file` (image). Stored under `/uploads` (local; S3-pluggable) and served statically.
+Form field: `file` (image). Stored under `/uploads` (local; S3-pluggable).
 ```json
 { "monitoring_id": "uuid", "foto_url": "/uploads/<baby_id>/<monitoring_id>.jpg" }
 ```
 `404` if the monitoring record does not exist.
+
+### 7.4 Read a photo
+`GET /api/v1/monitoring/{monitoring_id}/photo` · **any signed-in role** · `?thumb=true` for a
+JPEG capped at 480 px → the image bytes.
+
+`foto_url` above is the storage key, not a fetchable URL: the photos are **not** served as
+static files, so reading one takes a session like every other clinical read. `404` when the
+record has no photo or its file is missing.
 
 #### Monitoring object
 ```jsonc
@@ -728,12 +736,12 @@ e.g. `LOGIN`, `CREATE`, `UPDATE`, `UPLOAD_PHOTO`).
 
 ---
 
-## 14. Health & static files
+## 14. Health & specs
 
 | Endpoint | Auth | Description |
 |---|---|---|
 | `GET /health` | public | `{ "status": "ok", "version": "1.0.0" }` |
-| `GET /uploads/<path>` | public (static) | Uploaded monitoring photos (FastAPI `StaticFiles` mount) |
+| `GET /api/v1/monitoring/<id>/photo` | any signed-in role | Uploaded monitoring photo. There is **no** public `/uploads` mount any more |
 | `GET /docs` · `/redoc` · `/openapi.json` | public | Interactive / machine-readable API specs |
 
 ---

@@ -97,6 +97,10 @@ If you change one of those, change all of them.
   admission, else last discharge). Earlier data is served per baby: `/babies/{id}/sensor-history`
   (raw ∪ minute rollups) and `/babies/{id}/alerts`. Anything new that reads telemetry by
   incubator must apply the same cut, or the next baby's screen shows the last one's readings.
+- **Patient photos are never static files.** `main.py` no longer mounts `/uploads`; photos are
+  read via `GET /monitoring/{id}/photo` (session required). `foto_url` is a storage key resolved
+  by `storage_service.photo_path`, which refuses anything outside the uploads dir. The PDF embeds
+  every photo re-encoded to 520 px (`pdf_service.PHOTO_MAX_PX`) — 4 photos ≈ 60 KB.
 - **Discharge closes the baby's open sensor alerts** (`resolved_reason='discharged'`). Before, an
   alert left open by a discharged baby flipped the empty incubator back to `warning` on every
   idle reading — and admission requires `kosong`, so the incubator couldn't be reused.
@@ -116,6 +120,7 @@ If you change one of those, change all of them.
 | GET | `/api/v1/babies/{id}/alerts` | AnyRole |
 | GET | `/api/v1/incubators/{id}/placements` | AnyRole — usage history |
 | POST | `/api/v1/incubators/{id}/archive`, `/restore` | AdminOnly |
+| GET | `/api/v1/monitoring/{id}/photo` | AnyRole — `?thumb=true` ≤480 px; replaces the old public `/uploads` mount |
 | GET/POST/PUT/DELETE | `/api/v1/incubators/{id}/device` | AdminOnly (GET is AnyRole) |
 
 ---
@@ -134,7 +139,11 @@ venv/Scripts/python tests/alert_check.py       # 28 — debounce, warning owners
 venv/Scripts/python tests/retention_check.py   # 18 — rollup/prune safety
 venv/Scripts/python tests/user_delete_check.py # 22 — account deletion keeps its records
 venv/Scripts/python tests/incubator_history_check.py  # 78 — reuse, per-baby history, archive
+venv/Scripts/python tests/photo_check.py       # 24 — photo upload/read/thumb, PDF, no static path
 ```
+
+Demo photos (illustrated, watermarked CONTOH): `venv/Scripts/python scripts/seed_demo_photos.py`
+(`--all`, `--clear`). The seed carries none, so without this the photo column is always empty.
 
 Flutter: `flutter analyze` and `flutter test` (8 tests).
 Web: `node node_modules/next/dist/bin/next build` — catches type/route errors dev mode hides.

@@ -5,8 +5,8 @@
 | | |
 |---|---|
 | **Nama sistem** | Neonatal Care System — Sistem Monitoring Bayi pada Inkubator |
-| **Versi dokumen** | 1.1 |
-| **Tanggal pengujian** | 7 September 2026; pengujian tambahan 19 September 2026 (§3.5) |
+| **Versi dokumen** | 1.2 |
+| **Tanggal pengujian** | 7 September 2026; pengujian tambahan 19 September 2026 (§3.5) dan 22 September 2026 (§3.6) |
 | **Penguji (Bagian A)** | Pengembang — Sofyan Tandungan |
 | **Penguji (Bagian B)** | Klien / tenaga medis penunjuk — **belum dijalankan** |
 | **Dasar** | Kontrak Pasal 3.1 (deliverable) dan `docs/deliverables/SRS.md` |
@@ -129,6 +129,7 @@ done
 | F-7.1 – F-7.8 (firmware) | A-3, A-9 |
 | NF-3 (grafik 120 titik), NF-16 (volume bertahan) | A-4, A-12 |
 | F-4.8, F-4.26, F-4.29, F-4.33 – F-4.37, F-6.3, F-6.7, F-6.8, D-8 (pemakaian ulang & arsip inkubator, SRS 1.4) | A-17 – A-21 |
+| F-4.38, F-6.9, NF-25 (foto monitoring, SRS 1.5) | A-22 – A-26 |
 
 ### 3.5 Pengujian tambahan — 19 September 2026
 
@@ -144,6 +145,19 @@ Butir A-1 s.d. A-15 di atas tetap mencatat keadaan 7 September 2026.
 | A-19 | Build produksi dashboard (`next build`) | **Lulus** — 20 rute (bertambah `/babies` dan `/admin/incubators`), tanpa galat |
 | A-20 | Basis data baru dari `schema.sql` dibandingkan dengan basis data hasil migrasi, untuk empat tabel yang berubah | **Lulus** — definisi, kekangan, dan indeks identik; hanya urutan kolom `archived_at` yang berbeda |
 | A-21 | Penelusuran antarmuka dashboard melalui BFF (`:3000`) dengan peramban tanpa-kepala: memulangkan, mengarsipkan, dan memulihkan lewat tombolnya; Riwayat Bayi; laporan bayi yang sudah pulang; lebar layar 1280 px dan 390 px | **Lulus** — tanpa galat konsol, tanpa gulir menyamping |
+
+### 3.6 Pengujian tambahan — 22 September 2026
+
+Foto monitoring (SRS 1.5): ditampilkan di layar, dicetak di PDF, dan hanya untuk pengguna
+yang masuk.
+
+| # | Butir | Hasil |
+|---|---|---|
+| A-22 | `photo_check.py` — unggah (dokter ditolak), baca ulang lewat API dengan sesi (tanpa token ditolak, jalur `/uploads` statis sudah tidak ada), thumbnail ≤ 480 px, PDF memuat bagian foto dan tetap kecil, berkas hilang tidak menggagalkan laporan, jalur yang mencoba keluar dari folder unggahan ditolak | **24/24 Lulus** |
+| A-23 | Delapan suite lainnya dijalankan ulang | **Seluruhnya Lulus** — 39/39, 30/30, firmware, 14/14, 28/28, 18/18, 22/22, 78/78 |
+| A-24 | Build produksi dashboard (`next build`) | **Lulus** — 20 rute, tanpa galat |
+| A-25 | Penelusuran antarmuka melalui BFF: thumbnail termuat (480×360), foto penuh terbuka (1200×900), Esc dan tombol Tutup menutupnya dan mengembalikan gulir halaman; lebar 1280 px dan 390 px | **Lulus** — tanpa galat konsol |
+| A-26 | PDF laporan dengan 4 foto | **Lulus** — 61 KB, sementara satu foto asli saja 421 KB |
 
 ---
 
@@ -179,7 +193,7 @@ bersangkutan — bukan oleh Pengembang.
 | B-14 | Mencatat Aksi | Detail bayi → Aksi, nilai 6 butir, simpan | Tersimpan; total maksimal 24 | F-4.13 | | |
 | B-15 | Mencatat keterlibatan | Detail bayi → Keterlibatan, isi 6 butir + durasi | Tersimpan; total maksimal 24 | F-4.14 | | |
 | B-16 | Mencatat observasi | Detail bayi → Observasi, isi butir | Tersimpan; total maksimal 168 | F-4.15 | | |
-| B-17 | Unggah foto | Monitoring → lampirkan foto ≤ 5 MB | Terunggah dan tampil pada catatan | F-4.10 | | |
+| B-17 | Unggah foto | Monitoring → lampirkan foto ≤ 5 MB, simpan, buka Laporan | Gambar kecilnya tampil di kolom **Foto** pada Riwayat Monitoring; diklik membuka ukuran penuh | F-4.10, F-6.9 | | |
 | B-18 | Memulangkan bayi | Lakukan pemulangan | Inkubator kembali Kosong; riwayat catatan tetap ada | F-4.8 | | |
 
 ### 4.3 Dokter
@@ -248,6 +262,14 @@ Jalankan berurutan pada satu inkubator yang alatnya mengirim data.
 | B-54 | Riwayat tetap utuh setelah arsip | Buka laporan kedua bayi lewat Riwayat Bayi | Riwayat sensor dan peringatan keduanya masih lengkap | F-4.35, D-8 | | |
 | B-55 | Nomor tidak dipakai ulang | Setelah B-53, Tambah Inkubator | Mendapat nomor **setelah** nomor inkubator yang diarsipkan | F-4.37, D-8 | | |
 | B-56 | Memulihkan inkubator | Arsip Inkubator → buka → **Pulihkan Inkubator** | Kembali ke dasbor berstatus **Tidak Tersedia**; setelah ditandai Kosong dapat dipilih lagi | F-4.37 | | |
+
+### 4.8 Foto monitoring
+
+| # | Skenario | Langkah | Diharapkan | SRS | Hasil | Catatan |
+|---|---|---|---|---|---|---|
+| B-57 | Foto ikut di PDF | Setelah B-17, Export PDF bayi itu | Bagian **Dokumentasi Foto** memuat seluruh foto pada catatan monitoring, dengan waktu dan nama pencatat | F-4.38 | | |
+| B-58 | PDF tetap ringan | Unggah beberapa foto ponsel (±3–5 MB) ke catatan berbeda, lalu Export PDF | Berkas PDF jauh lebih kecil daripada jumlah ukuran fotonya | F-4.38 | | |
+| B-59 | Foto butuh masuk | Klik kanan foto yang diperbesar → salin alamat gambar; buka di jendela penyamaran yang belum masuk | Foto **tidak** tampil | NF-25 | | |
 
 ---
 

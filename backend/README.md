@@ -58,7 +58,7 @@ app/
 ├── services/      one module per domain (+ *_catalog for the scored
 │                  instruments) + audit_service, storage_service
 ├── repositories/  data-access per aggregate
-└── main.py        app factory, CORS, static /uploads, router mounts
+└── main.py        app factory, CORS, router mounts
 ```
 
 > The three **scored instruments** — observation, involvement, aksi — each keep their
@@ -140,7 +140,7 @@ Everything below is the **integration contract** for building a dashboard / web 
 | | |
 |---|---|
 | **Base URL** | `http://localhost:8000` (dev). All endpoints below are relative to this. |
-| **API prefix** | every endpoint starts with `/api/v1` (except `/health`, `/uploads`, `/docs`). |
+| **API prefix** | every endpoint starts with `/api/v1` (except `/health` and `/docs`). |
 | **Content-Type** | `application/json`, except photo upload (multipart). |
 | **Auth** | JWT Bearer token in the `Authorization` header (see [Authentication](#authentication)). |
 | **IDs** | All resource IDs are **UUID** strings. |
@@ -402,7 +402,13 @@ POST /api/v1/monitoring/{monitoring_id}/photo
 file=<binary>
 ```
 **200** `{ "monitoring_id": "...", "foto_url": "/uploads/<baby_id>/<monitoring_id>.jpg" }`
-Display at **`{BASE_URL}{foto_url}`** (static mount). Errors: **415** (type), **413** (> 5 MB).
+Errors: **415** (type), **413** (> 5 MB).
+
+**Read it back** — `GET /api/v1/monitoring/{monitoring_id}/photo` · any signed-in role ·
+`?thumb=true` returns a JPEG no larger than 480 px for lists. `foto_url` is the storage key,
+**not** a URL to fetch: there is no static mount, because a patient photo needs the same
+session check as every other clinical read. **404** when the record has no photo.
+Every photo on a baby's record is also printed in the report PDF, re-encoded small.
 
 ### Keterlibatan Orang Tua — Parent Involvement (Pillar 6: "Kerjasama dengan Keluarga")
 A catalog-driven scored instrument: **6 items** (`keluarga_1..6`), each scored **0–3**

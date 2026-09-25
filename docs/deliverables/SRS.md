@@ -5,8 +5,8 @@
 | | |
 |---|---|
 | **Nama sistem** | Neonatal Care System — Sistem Monitoring Bayi pada Inkubator |
-| **Versi dokumen** | 1.4 |
-| **Tanggal** | 19 September 2026 |
+| **Versi dokumen** | 1.5 |
+| **Tanggal** | 22 September 2026 |
 | **Status** | Untuk ditinjau dan disetujui Klien |
 | **Pengembang** | Sofyan Tandungan |
 | **Dasar** | Perjanjian Kerja Sama Pengembangan Sistem Pemantauan Inkubator Bayi Terintegrasi (IoT), Pasal 2 & 3 |
@@ -428,6 +428,10 @@ Empat hal pada Gambar 2 adalah keputusan rancangan yang perlu dibaca eksplisit:
   penempatan yang sedang berlangsung atau, bila bayi sudah pulang, dari penempatan
   terakhirnya, disertai status dan tanggal pulang.
 - **F-4.27** Laporan dapat diekspor sebagai berkas PDF.
+- **F-4.38** Laporan PDF memuat **seluruh** foto pada catatan monitoring bayi, masing-masing
+  dengan waktu observasi dan nama pencatatnya. Foto diperkecil sebelum disematkan sehingga
+  ukuran berkas tetap wajar; berkas aslinya tidak diubah. Foto yang berkasnya tidak dapat
+  dibaca dilewati tanpa menggagalkan laporan.
 
 #### 4.6 Administrasi
 
@@ -490,6 +494,8 @@ Empat hal pada Gambar 2 adalah keputusan rancangan yang perlu dibaca eksplisit:
   itu (F-4.35).
 - **F-6.8** Admin dapat membuka daftar **Arsip Inkubator**, membuka tiap inkubator yang
   diarsipkan beserta riwayat penggunaannya, dan memulihkannya (F-4.37).
+- **F-6.9** Riwayat monitoring pada laporan bayi menampilkan foto tiap catatan sebagai
+  gambar kecil yang dapat diperbesar (NF-25).
 
 ### KOM-7 — Pengembangan Perangkat IoT
 
@@ -537,6 +543,9 @@ Empat hal pada Gambar 2 adalah keputusan rancangan yang perlu dibaca eksplisit:
 - **NF-11** Sistem menangani data kesehatan yang sensitif; akses dibatasi jaringan lokal
   rumah sakit dan setiap perubahan data dapat ditelusuri melalui audit log.
 - **NF-12** Bila sistem diakses melampaui jaringan lokal, komunikasi wajib dilindungi TLS.
+- **NF-25** Foto pasien hanya dapat dibuka oleh pengguna yang sedang masuk, melalui API
+  yang sama pemeriksaannya dengan data klinis lain. Berkas unggahan tidak disajikan sebagai
+  berkas statis yang terbuka.
 
 ### 5.3 Keandalan dan Ketersediaan
 
@@ -648,9 +657,9 @@ Memastikan seluruh komponen Kontrak Pasal 2.2 dan deliverable Pasal 3.1 tercakup
 | 1 | Analisa Kebutuhan Sistem | F-1.1, F-1.2 |
 | 2 | Desain Database | F-2.1 – F-2.5, D-1 – D-8 |
 | 3 | Pengembangan Server | F-3.1 – F-3.5, NF-13, NF-16, NF-21, NF-23 |
-| 4 | Pengembangan Backend & API | F-4.1 – F-4.37, NF-1, NF-5 – NF-12 |
+| 4 | Pengembangan Backend & API | F-4.1 – F-4.38, NF-1, NF-5 – NF-12, NF-25 |
 | 5 | Pengembangan Aplikasi Mobile | F-5.1 – F-5.4, NF-24 |
-| 6 | Pengembangan Website Dashboard | F-6.1 – F-6.8, NF-2, NF-3 |
+| 6 | Pengembangan Website Dashboard | F-6.1 – F-6.9, NF-2, NF-3 |
 | 7 | Pengembangan Perangkat IoT | F-7.1 – F-7.9, NF-4, NF-14, NF-15 |
 
 ### 8.2 Deliverable → sumber
@@ -702,6 +711,7 @@ saat dokumen disusun.
 
 | Versi | Tanggal | Perubahan |
 |---|---|---|
+| 1.5 | 22 September 2026 | Foto monitoring: F-4.38 (seluruh foto dalam PDF, diperkecil), F-6.9 (foto tampil di riwayat monitoring), NF-25 (foto hanya untuk pengguna yang masuk; tidak ada lagi akses statis terbuka). |
 | 1.4 | 19 September 2026 | Pemakaian ulang dan pengarsipan inkubator. F-4.29 diubah: inkubator yang pernah ditempati diarsipkan, bukan dihapus. Baru: F-4.33 (riwayat bayi yang sudah pulang), F-4.34 (tampilan inkubator terbatas pada periode penempatan saat ini), F-4.35 (riwayat sensor & peringatan per bayi), F-4.36 (alasan penutupan peringatan), F-4.37 (arsip inkubator), F-6.7, F-6.8, D-8. F-4.8, F-4.26, F-6.3 diperluas. |
 | 1.3 | 19 September 2026 | F-4.28 diperluas lagi: akun mana pun dapat dihapus, tanpa menghapus catatannya maupun audit log; email akun yang dihapus tidak dapat dipakai ulang. |
 | 1.2 | 19 September 2026 | F-4.28 diperluas: akun yang belum pernah mencatat atau mengubah data dapat dihapus permanen; akun lain tetap hanya dapat dinonaktifkan. |

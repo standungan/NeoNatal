@@ -39,7 +39,7 @@ flowchart TB
     subgraph Data["Persistence and storage"]
         direction LR
         DB[("PostgreSQL<br/>9 tables · Alembic migrations")]
-        Files["Local file storage<br/>/uploads (StaticFiles)<br/>→ S3 pluggable"]
+        Files["Local file storage<br/>uploads/ (read via API)<br/>→ S3 pluggable"]
     end
 
     Mobile -->|"HTTPS · Bearer JWT<br/>/api/v1/*"| API
@@ -56,7 +56,7 @@ flowchart TB
     Repos --> Core
     Repos --> DB
     Services -->|save / serve photos| Files
-    API -.->|mount /uploads| Files
+    API -.->|reads & writes photos| Files
 ```
 
 **Two auth strategies, one backend.**
@@ -128,7 +128,7 @@ flowchart LR
     end
 
     DB[("PostgreSQL")]
-    FS["/uploads<br/>(local · S3-pluggable)"]
+    FS["uploads/<br/>(local · S3-pluggable)"]
 
     R --> D
     R --> S
@@ -198,6 +198,6 @@ involvement entry live in the Flutter client; the web dashboard is read + admin-
 | ORM / migrations | SQLAlchemy 2.0 (async) · Alembic |
 | Database | PostgreSQL |
 | Auth | JWT (HS256, `python-jose`) · bcrypt (`passlib`) |
-| File storage | Local `/uploads` via StaticFiles (S3-pluggable via `storage_service`) |
+| File storage | Local `uploads/`, served only through `GET /api/v1/monitoring/{id}/photo` — never a static mount, since these are patient photos (S3-pluggable via `storage_service`) |
 | PDF reports | `pdf_service` (server-side render) |
 | Deployment (planned) | Docker · Nginx · HTTPS/SSL · VPS |

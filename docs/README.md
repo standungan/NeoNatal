@@ -12,7 +12,7 @@ All diagrams use [Mermaid](https://mermaid.js.org/) and render directly on GitHu
 |---|---|
 | [GETTING_STARTED.md](api/GETTING_STARTED.md) | **Frontend Integration Guide** — auth flow, a ready-made typed API client, error handling, and common recipes (dashboard, monitoring, photo upload, PDF) |
 | [api-types.ts](api/api-types.ts) | **Copy-paste TypeScript types** for every request & response, including required/optional/nullable markers |
-| [api.html](deliverables/api.html) | **API reference (current)** — all 60 endpoints, generated from the app's OpenAPI schema (`api/dump_api_inputs.py`, then `api/generate_api_html.py`). Open it in a browser. |
+| [api.html](deliverables/api.html) | **API reference (current)** — all 61 endpoints, generated from the app's OpenAPI schema (`api/dump_api_inputs.py`, then `api/generate_api_html.py`). Open it in a browser. |
 | [API.md](api/API.md) | **API reference (stale)** — hand-written, and predates the IoT work: no telemetry, devices, readings, streams or alerts. Kept for its prose on the clinical modules. |
 
 ### 🏗️ Design & architecture

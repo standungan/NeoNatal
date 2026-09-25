@@ -198,6 +198,25 @@ real you've entered.
 > and its own credentials, so it won't work against containers. `seed_data.sql`
 > replaces it.
 
+### Sample photos for a demo
+
+The seed has no photos either (files cannot travel in SQL). To show the photo
+column and the PDF's *Dokumentasi Foto* page, attach illustrated samples — three
+per baby — to existing monitoring records:
+
+```bash
+docker compose exec backend python scripts/seed_demo_photos.py
+```
+
+They are drawn, not photographed, and watermarked **CONTOH - DATA DEMO**, so they
+cannot be mistaken for a patient. `--all` covers every monitoring record;
+`--clear` deletes them again and empties `foto_url`. They land in the `uploads`
+volume like a real upload, so they survive `up --build`.
+
+Photos are read through `GET /api/v1/monitoring/{id}/photo`, which needs a
+session. There is no public `/uploads/...` path any more — a copied image URL
+opened without logging in shows nothing, and that is intended.
+
 ## 5. Test from home
 
 1. `http://<vps-ip>:8001/health` → `{"status":"ok","version":"1.0.0"}` — proves the backend is up

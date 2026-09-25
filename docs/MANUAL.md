@@ -267,6 +267,11 @@ bukan salinan bacaan alat.
 Kosongkan kolom yang tidak Anda ukur. Kosong berarti "tidak diukur"; **nol berarti
 "diukur, hasilnya nol"** — dua hal yang sangat berbeda di laporan.
 
+**Foto yang Anda lampirkan menempel pada catatan itu**, bukan pada bayinya secara umum.
+Setelah disimpan, fotonya tampil di kolom **Foto** pada Riwayat Monitoring di halaman
+Laporan, dan **seluruh foto ikut tercetak di PDF**. Satu foto per catatan; mengunggah lagi
+pada catatan yang sama menggantikan yang lama.
+
 ### Mencatat Kolaborasi Interprofesional
 
 **Detail bayi → Kolaborasi.**
@@ -420,6 +425,20 @@ dari hari pertama sampai pulang.
   walaupun rata-ratanya normal.
 - Rentang waktu tanpa data tampil sebagai **jeda**, bukan garis yang menyambung.
 
+Pada **Riwayat Monitoring**, catatan yang ada fotonya menampilkan gambar kecil di kolom
+**Foto**.
+
+![Riwayat Monitoring dengan kolom Foto pada tiga catatan](images/32-foto-monitoring.png)
+
+Klik gambarnya untuk melihat ukuran penuh, lengkap dengan waktu dan nama pencatatnya.
+Tekan **Tutup** atau tombol **Esc** untuk kembali.
+
+![Foto yang diperbesar, dengan waktu dan nama pencatat di bawahnya](images/33-foto-diperbesar.png)
+
+Foto hanya bisa dilihat setelah masuk ke sistem — menempelkan alamat gambarnya ke tab lain
+yang belum masuk tidak akan menampilkan apa pun. Ini disengaja: foto pasien diperlakukan
+sama seperti catatan klinis lainnya.
+
 Lalu **Riwayat Peringatan** bayi itu — semua peringatan sensor selama ia dirawat, di
 inkubator mana pun, dengan nomor inkubatornya.
 
@@ -427,8 +446,11 @@ inkubator mana pun, dengan nomor inkubatornya.
 
 Tekan **Export PDF** untuk berkas yang bisa dicetak atau dilampirkan ke rekam medis.
 Isinya laporan pada saat tombol ditekan, termasuk status dan tanggal pulang untuk bayi
-yang sudah pulang. **Riwayat Data Sensor** dan **Riwayat Peringatan** hanya ada di layar,
-tidak ikut dicetak.
+yang sudah pulang, ditambah bagian **Dokumentasi Foto** di halaman terakhir yang memuat
+**seluruh foto** pada catatan monitoring bayi itu, tiga per baris, masing-masing dengan
+waktu dan nama pencatatnya. Fotonya diperkecil dulu agar berkasnya tetap ringan — sebuah
+laporan dengan beberapa foto biasanya masih di bawah 1 MB. **Riwayat Data Sensor** dan
+**Riwayat Peringatan** hanya ada di layar, tidak ikut dicetak.
 
 ---
 
@@ -636,6 +658,10 @@ bayi yang sedang dirawat. Buka **Riwayat Bayi** dan pilih **Sudah Pulang**.
 
 **Inkubator hilang dari dasbor.** Kemungkinan besar diarsipkan admin. Admin bisa
 melihatnya di **Admin → Arsip Inkubator** dan memulihkannya dari sana.
+
+**Foto tidak muncul, hanya kotak kosong.** Biasanya karena sesi Anda sudah berakhir — muat
+ulang halaman, dan masuk lagi bila diminta. Foto memang hanya dapat dibuka oleh pengguna
+yang sedang masuk.
 
 **Nilai sensor terasa tidak masuk akal.** Percayai pemeriksaan langsung, bukan layar.
 Periksa pemasangan probe. Bacaan yang dikirim alat adalah apa adanya — sistem tidak

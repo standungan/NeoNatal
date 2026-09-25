@@ -202,7 +202,18 @@ const res = await fetch(`${BASE_URL}/monitoring/${monitoringId}/photo`, {
   headers: { Authorization: `Bearer ${token}` }, // do NOT set Content-Type; browser sets the boundary
   body: form,
 });
-const { foto_url } = await res.json(); // e.g. "/uploads/<baby>/<id>.jpg" — prefix with backend host to display
+await res.json(); // { monitoring_id, foto_url } — foto_url is the storage key, not a URL to fetch
+```
+
+Read it back from the API, not from a static path — the photo needs the session like any
+other clinical read:
+
+```ts
+// <img src=...> cannot send the Authorization header, so fetch it and use a blob URL.
+const photo = await fetch(`${BASE_URL}/monitoring/${monitoringId}/photo?thumb=true`, {
+  headers: { Authorization: `Bearer ${token}` },
+});
+img.src = URL.createObjectURL(await photo.blob());   // revokeObjectURL when done
 ```
 
 ### 5.4 Download the report PDF

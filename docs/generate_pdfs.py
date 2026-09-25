@@ -109,6 +109,8 @@ table:not(:has(tr:nth-child(13))){break-inside:avoid}
 tbody tr:nth-child(-n+3),tbody tr:nth-last-child(-n+2){break-before:avoid}
 p,li{orphans:3;widows:3}
 .keep{break-inside:avoid}
+.keep>:is(ul,ol):last-child{margin-bottom:0}
+:is(ul,ol).cont{margin-top:0}
 .wide{page:wide}
 """
 
@@ -191,6 +193,20 @@ def keep_groups(markup):
                     and text_len(kids[j]) <= LEAD_IN_MAX and not unbreakable(kids[j]):
                 group.append(kids[j])
                 j += 1
+            if j < len(kids) and nodes[kids[j]][0] in ("ul", "ol"):
+                # A heading over a list: Chrome drops break-after:avoid when the first item
+                # cannot split and does not fit, and the heading is left alone at the foot of
+                # the page. A wrapper cannot cut a list in half, so the list is split instead:
+                # its first item closes the .keep group, the rest continues as a second list.
+                lst = kids[j]
+                items = [k for k in children.get(lst, []) if nodes[k][0] == "li"]
+                if len(items) > 1:
+                    tag = nodes[lst][0]
+                    start = int(nodes[lst][1].get("start") or 1) + 1 if tag == "ol" else None
+                    reopen = '<ol class="cont" start="%d">' % start if start else '<ul class="cont">'
+                    wraps.append((nodes[i][2], nodes[items[0]][3], "keep",
+                                  "</%s></div>%s" % (tag, reopen)))
+                    continue
             if j >= len(kids) or not unbreakable(kids[j]):
                 continue
             group.append(kids[j])
@@ -199,12 +215,14 @@ def keep_groups(markup):
                     and (tail + 1 >= len(kids) or nodes[kids[tail + 1]][0] in HEADINGS | {"hr"}):
                 group.append(kids[tail])
             wide = any("wide" in classes(k) for k in group)
-            wraps.append((nodes[group[0]][2], nodes[group[-1]][3], "keep wide" if wide else "keep"))
+            wraps.append((nodes[group[0]][2], nodes[group[-1]][3], "keep wide" if wide else "keep",
+                          "</div>"))
 
     # Insert as points from the back, so offsets stay valid when one group sits inside another
     # (an API section around its first card, and a Responses group inside that card). At a shared
     # offset the opening tag goes in first, which leaves the earlier group's </div> before it.
-    points = [(s, 1, '<div class="%s">' % c) for s, _, c in wraps] + [(e, 0, "</div>") for _, e, _ in wraps]
+    points = [(s, 1, '<div class="%s">' % c) for s, _, c, _ in wraps] + \
+             [(e, 0, close) for _, e, _, close in wraps]
     for offset, _, tag in sorted(points, reverse=True):
         markup = markup[:offset] + tag + markup[offset:]
     return markup, len(wraps)

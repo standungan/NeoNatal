@@ -9,11 +9,81 @@ The project is not versioned with SemVer — entries are grouped by milestone da
 ## [Unreleased]
 
 ### Pending
-- **Push `main`** — 12 commits ahead of `origin/main`, nothing pushed.
-- **VPS redeploy** — the live demo is far behind: it has neither the later `updates02` work nor any IoT work.
-- **Reconstruct the authenticated firmware** (plan §9) so the unauthenticated `/api/sensors` compatibility route can be retired. The rig currently runs the prototype sketch.
-- **Mirror backend changes to the nested `backend-version2` repo** — the IoT work has not been.
-- `LatestVitals` and the monitoring/summary endpoints still serialise `Decimal` as JSON strings.
+- **Firmware end to end against a live server** — the authenticated sketch compiles; flashing
+  and a run against a deployed server are on hold. Open in SRS §9.2.
+- **Circuit schematic & casing** for the sensor unit (SRS F-7.9) — `hardware/` has wiring notes only.
+- **TLS overlay** (`docker-compose.tls.yml`) is prepared but untested.
+- **Client acceptance testing** — UAT Part B has not been run.
+- **Deployed copies need updating** to pick up the 2026-09-19 → 09-22 work (migration
+  `b5e2a7c9d314` applies itself on start; see DEPLOYMENT.md → "Updating a running deployment").
+- **Mirror backend changes to the nested `backend-version2` repo** — not done since the IoT work
+  (unverified since 2026-09-02).
+- `LatestVitals` and the monitoring/summary endpoints still serialise `Decimal` as JSON strings
+  (unverified since 2026-09-02).
+
+## [2026-09-22] — Monitoring photos: on screen, in the PDF, and behind a session
+
+A photo could be uploaded but was never shown anywhere, and the files were served from an open
+static directory.
+
+### Added
+- **Photos on screen:** a *Foto* column in the report's monitoring history — thumbnail, full size
+  on click (Esc / Tutup closes).
+- **Every photo in the PDF:** a *9. Dokumentasi Foto* section, three per row with time and author,
+  each re-encoded to 520 px — a report with four photos is ~60 KB against 421 KB for one original.
+- **`GET /api/v1/monitoring/{id}/photo`** (any signed-in role, `?thumb=true` ≤ 480 px).
+- **`scripts/seed_demo_photos.py`** — illustrated, watermarked sample photos for demos (`--all`, `--clear`).
+- `tests/photo_check.py` (24 checks).
+
+### Security
+- **Removed the public `/uploads` static mount.** Patient photos now need a session like any other
+  clinical read; stored paths are resolved inside the uploads directory only.
+
+### Fixed
+- The PDF generator (`docs/generate_pdfs.py`) now keeps a heading together with the first item of
+  a list below it; Chrome used to strand such headings at the foot of a page.
+
+## [2026-09-20] — Incubator reuse, archive, and per-baby history
+
+### Added
+- **Archive instead of delete** for incubators that have held a baby: off the dashboard and
+  admission, read-only, device unbound, open alerts closed, number never reused; restorable.
+  Never-used incubators still delete outright. (`incubators.archived_at`, migration `b5e2a7c9d314`.)
+- **Riwayat Bayi** (`/babies`) — every baby including those discharged, searchable; the
+  discharged baby's workspace is read-only.
+- **Per-baby sensor history and alerts** (`/babies/{id}/sensor-history`, `/babies/{id}/alerts`),
+  drawn from raw readings and minute rollups, bucketed to ≤ 600 points with min/max bands.
+- **Incubator usage history** (`/incubators/{id}/placements`) and an *Arsip Inkubator* page.
+- `tests/incubator_history_check.py` (78 checks).
+
+### Fixed
+- **A discharged baby's open alert blocked the incubator's reuse** — it flipped the empty
+  incubator back to `warning` on every idle reading, and admission requires `kosong`. Discharge now
+  closes the baby's alerts (`sensor_alerts.resolved_reason = 'discharged'`).
+- **The next baby's chart opened on the previous baby's readings** — the SSE replay, `/readings`,
+  `/alerts`, sparklines and vitals autofill are now cut at the current occupancy.
+- **The PDF of a discharged baby printed dashes** for every admission field; it now uses the last placement.
+
+## [2026-09-19] — Account deletion that keeps every record
+
+### Added
+- Admins can delete any account but their own. An account with records is kept and marked
+  `users.deleted_at` (migration `f4b7d2e9a613`): gone from the app, unable to sign in, email still
+  taken — while every record and audit entry keeps naming its author. `tests/user_delete_check.py` (22).
+
+## [2026-09-03 → 09-15] — Deployment hardening and the contract deliverables
+
+### Added
+- **Authenticated IoT on port 8001, end to end**, with firmware backoff on server rejections.
+- **Contract documents** in `docs/deliverables/` — SRS, UAT report, ERD (16 tables, with an SVG
+  render), user manual (Indonesian, per role, with screenshots), a generated HTML API reference,
+  an introduction deck — each also as a checked A4 PDF.
+- DEPLOYMENT.md: running without Docker, reboot survival, a real update procedure.
+
+### Fixed
+- The Android release APK builds and connects; a flat metric no longer renders as a solid grey
+  block on Flutter; the device card no longer denies a sensor that is visibly streaming.
+- The backend image is pinned to Python 3.10, the version actually tested.
 
 ## [2026-09-02] — IoT telemetry, end to end (updates03 P0–P4)
 
