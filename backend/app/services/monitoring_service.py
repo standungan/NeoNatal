@@ -10,7 +10,7 @@ from app.repositories.assignment_repository import AssignmentRepository
 from app.repositories.incubator_repository import IncubatorRepository
 from app.repositories.monitoring_repository import MonitoringRepository
 from app.schemas.monitoring import MonitoringCreate, MonitoringResponse, PhotoUploadResponse
-from app.services import alert_service
+from app.services import alert_service, storage_service
 from app.services.audit_service import log_action
 from app.services.storage_service import save_photo
 
@@ -174,3 +174,32 @@ async def upload_photo(
         ip_address=ip,
     )
     return PhotoUploadResponse(monitoring_id=monitoring_id, foto_url=foto_url)
+
+
+THUMB_PX = 480
+
+
+async def get_photo(
+    monitoring_id: uuid.UUID, db: AsyncSession, *, thumb: bool = False
+) -> tuple[bytes, str]:
+    """The photo attached to a monitoring record: (bytes, content type).
+
+    Served through this endpoint rather than as a static file so that a patient
+    photo needs a session like every other clinical read. `thumb` returns a small
+    JPEG for lists; the full size is for opening one photo.
+    """
+    record = await MonitoringRepository(db).get_by_id(monitoring_id)
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Data monitoring tidak ditemukan"
+        )
+    path = storage_service.photo_path(record.foto_url)
+    if path is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Catatan ini tidak memiliki foto"
+        )
+    if thumb:
+        data = storage_service.resized_jpeg(path, THUMB_PX)
+        if data is not None:
+            return data, "image/jpeg"
+    return path.read_bytes(), storage_service.content_type_for(path)

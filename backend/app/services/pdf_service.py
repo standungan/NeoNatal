@@ -2,8 +2,10 @@ from datetime import datetime, timezone
 from io import BytesIO
 
 from fpdf import FPDF
+from PIL import Image
 
 from app.schemas.report import BabyReportResponse
+from app.services import storage_service
 
 # ── palette ───────────────────────────────────────────────────────────────────
 _BLUE = (30, 90, 160)
@@ -204,6 +206,46 @@ class _Report(FPDF):
 
 def _fnum(v):
     return "-" if v is None else (f"{v:g}" if isinstance(v, (int, float)) else str(v))
+
+
+# ── photo grid (section 9) ─────────────────────────────────────────────────────
+PHOTO_COLS = 3
+PHOTO_GAP = 6.0
+PHOTO_W = (CONTENT_W - PHOTO_GAP * (PHOTO_COLS - 1)) / PHOTO_COLS   # 58 mm
+PHOTO_H = 43.5                                                      # 4:3 of the width
+# 520 px across 58 mm is ~230 dpi — sharp in print, while an untouched 5 MB phone
+# photo would be ~40x larger for no visible gain on paper.
+PHOTO_MAX_PX = 520
+PHOTO_QUALITY = 72
+
+
+def _photo_for_pdf(foto_url: str | None):
+    """(jpeg bytes, width px, height px) for one photo, or None if unreadable."""
+    path = storage_service.photo_path(foto_url)
+    if path is None:
+        return None
+    data = storage_service.resized_jpeg(path, PHOTO_MAX_PX, PHOTO_QUALITY)
+    if data is None:
+        return None
+    with Image.open(BytesIO(data)) as im:
+        return data, im.width, im.height
+
+
+def _draw_photo(pdf: "FPDF", img, x: float, y: float) -> None:
+    """Fit the photo inside the PHOTO_W x PHOTO_H box, centred, on a grey card.
+
+    Fitted rather than cropped: a cropped thumbnail can cut out exactly the part
+    of the baby the nurse photographed.
+    """
+    data, pw, ph = img
+    scale = min(PHOTO_W / pw, PHOTO_H / ph)
+    w, h = pw * scale, ph * scale
+    pdf.set_fill_color(*_GREY)
+    pdf.rect(x, y, PHOTO_W, PHOTO_H, "F")
+    pdf.image(BytesIO(data), x=x + (PHOTO_W - w) / 2, y=y + (PHOTO_H - h) / 2, w=w, h=h)
+    pdf.set_draw_color(*_LINE)
+    pdf.set_line_width(0.2)
+    pdf.rect(x, y, PHOTO_W, PHOTO_H)
 
 
 def generate_pdf(report: BabyReportResponse) -> bytes:
@@ -501,6 +543,56 @@ def generate_pdf(report: BabyReportResponse) -> bytes:
         pdf.set_text_color(*_MUTE)
         pdf.cell(0, 6, "Belum ada catatan dokter.", ln=True)
         pdf.set_text_color(*_BLACK)
+
+    # ── 9. Dokumentasi Foto ──────────────────────────────────────────────────────
+    # Every photo on the record, not a selection: the nurse attached each one to a
+    # specific observation, and which of them matters is a clinical judgement, not
+    # this renderer's. They are re-encoded small (see PHOTO_MAX_PX) so "every" stays
+    # a few hundred KB rather than tens of MB.
+    photos = [r for r in report.monitoring_history if r.foto_url]
+    if photos:
+        pdf.section("9. Dokumentasi Foto")
+        pdf.set_font("Helvetica", "", 7)
+        pdf.set_text_color(*_MUTE)
+        pdf.cell(0, 4, f"{len(photos)} foto dari {len(report.monitoring_history)} catatan monitoring, "
+                       "urut dari yang terbaru.", ln=True)
+        pdf.set_text_color(*_BLACK)
+        pdf.ln(1.5)
+
+        missing = 0
+        col = 0
+        row_top = pdf.get_y()
+        for rec in photos:
+            img = _photo_for_pdf(rec.foto_url)
+            if img is None:
+                missing += 1
+                continue
+            if col == 0:
+                pdf.ensure_space(PHOTO_H + 9)
+                row_top = pdf.get_y()
+            x = pdf.l_margin + col * (PHOTO_W + PHOTO_GAP)
+            _draw_photo(pdf, img, x, row_top)
+
+            pdf.set_xy(x, row_top + PHOTO_H + 1)
+            pdf.set_font("Helvetica", "", 6.5)
+            pdf.cell(PHOTO_W, 3.2, rec.observation_time.strftime("%d %b %Y %H:%M"), ln=False)
+            if rec.recorder_name:
+                pdf.set_xy(x, row_top + PHOTO_H + 4.2)
+                pdf.set_text_color(*_MUTE)
+                pdf.cell(PHOTO_W, 3.2, rec.recorder_name[:34], ln=False)
+                pdf.set_text_color(*_BLACK)
+
+            col += 1
+            if col == PHOTO_COLS:
+                col = 0
+                pdf.set_xy(pdf.l_margin, row_top + PHOTO_H + 9)
+        if col:
+            pdf.set_xy(pdf.l_margin, row_top + PHOTO_H + 9)
+        if missing:
+            pdf.set_font("Helvetica", "", 7)
+            pdf.set_text_color(*_MUTE)
+            pdf.cell(0, 4, f"{missing} foto tidak dapat dibaca dari penyimpanan.", ln=True)
+            pdf.set_text_color(*_BLACK)
 
     buf = BytesIO()
     buf.write(pdf.output())

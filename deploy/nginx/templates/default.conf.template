@@ -66,7 +66,7 @@ server {
     }
 }
 
-# ── API (FastAPI) — Flutter client, /uploads, /docs ───────────────────────────
+# ── API (FastAPI) — Flutter client, /docs ─────────────────────────────────────
 server {
     listen 443 ssl;
     listen [::]:443 ssl;

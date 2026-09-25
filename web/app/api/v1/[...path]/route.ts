@@ -61,7 +61,10 @@ async function handle(
   const payload = nullBody ? null : await upstream.arrayBuffer();
   const out = new NextResponse(payload, { status: upstream.status });
 
-  for (const h of ["content-type", "content-disposition"]) {
+  // cache-control is forwarded so the backend can let the browser keep a photo
+  // instead of refetching it for every thumbnail on the page. It is the backend's
+  // call: it marks patient photos `private`, and sets nothing on clinical JSON.
+  for (const h of ["content-type", "content-disposition", "cache-control"]) {
     const v = upstream.headers.get(h);
     if (v) out.headers.set(h, v);
   }

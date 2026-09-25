@@ -5,7 +5,6 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 
 from app.api.v1 import (
     aksi,
@@ -58,9 +57,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# The directory is created here so the first upload has somewhere to land. It is
+# deliberately NOT mounted as static files: these are patient photos, and a static
+# mount serves them to anyone who can reach the port, with no session and nothing
+# in the audit trail. They are read through GET /api/v1/monitoring/{id}/photo,
+# which is gated like every other clinical read.
 uploads_dir = Path(settings.storage_local_path)
 uploads_dir.mkdir(parents=True, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
 
 app.include_router(auth.router,        prefix="/api/v1/auth",        tags=["Auth"])
 app.include_router(users.router,       prefix="/api/v1/users",       tags=["Users"])

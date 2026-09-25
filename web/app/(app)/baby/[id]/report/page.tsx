@@ -28,6 +28,7 @@ import { InvolvementSummaryCard } from "@/components/involvement";
 import { AksiSummaryCard } from "@/components/aksi";
 import { RegistrationCard, BabyIdentityCard, MaternalRecordCard } from "@/components/maternal";
 import { BabySensorHistoryCard } from "@/components/sensor-history";
+import { MonitoringPhoto } from "@/components/photo";
 import { AlertFeedCard } from "@/components/alert-feed";
 
 export default function ReportPage() {
@@ -328,9 +329,16 @@ function DoctorNoteCard({ note }: { note: DoctorNote | null }) {
 }
 
 function HistoryCard({ records }: { records: MonitoringRecord[] }) {
+  const withPhoto = records.filter((r) => r.foto_url).length;
   return (
     <Card className="p-5">
       <SectionTitle>Riwayat Monitoring ({records.length} entri)</SectionTitle>
+      {withPhoto > 0 && (
+        <p className="mt-1 text-xs text-muted">
+          {withPhoto} catatan punya foto — klik gambarnya untuk memperbesar. Semua foto
+          ikut tercetak di PDF.
+        </p>
+      )}
       {records.length === 0 ? (
         <p className="mt-3 text-sm text-muted">Belum ada data monitoring.</p>
       ) : (
@@ -345,6 +353,7 @@ function HistoryCard({ records }: { records: MonitoringRecord[] }) {
                 <th className="py-2 font-semibold">SpO₂</th>
                 <th className="py-2 font-semibold">Nyeri</th>
                 <th className="py-2 font-semibold">Status</th>
+                <th className="py-2 font-semibold">Foto</th>
               </tr>
             </thead>
             <tbody>
@@ -364,6 +373,13 @@ function HistoryCard({ records }: { records: MonitoringRecord[] }) {
                         r.vital_status === "warning" ? "bg-warn" : "bg-ok"
                       }`}
                     />
+                  </td>
+                  <td className="py-2">
+                    {r.foto_url ? (
+                      <MonitoringPhoto record={r} />
+                    ) : (
+                      <span className="text-muted">–</span>
+                    )}
                   </td>
                 </tr>
               ))}
