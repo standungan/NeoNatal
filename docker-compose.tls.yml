@@ -48,7 +48,7 @@ services:
     # on a timer to pick up rotated certs. The image entrypoint still runs the
     # template pass before exec'ing this.
     command: >
-      sh -c "while :; do sleep 6h & wait $${!}; nginx -s reload; done & exec nginx -g 'daemon off;'"
+      sh -c "while :; do sleep 6h & wait $${!}; nginx -s reload; done & exec /docker-entrypoint.sh nginx -g 'daemon off;'"
 
   certbot:
     image: certbot/certbot:latest
