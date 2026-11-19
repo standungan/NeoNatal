@@ -1,0 +1,27 @@
+# Background sensor simulator overlay — for live demos without physical ESP8266 rigs.
+#
+# Usage alongside docker-compose.yml (and optionally docker-compose.tls.yml):
+#   export COMPOSE_FILE=docker-compose.yml:docker-compose.tls.yml:docker-compose.sim.yml
+#   docker compose up -d --build
+#
+# Turn it back off at any time without affecting patient or past sensor data:
+#   docker compose stop simulator && docker compose rm -f simulator
+
+services:
+  simulator:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      SIM_API_URL: http://backend:8000
+      SIM_ADMIN_EMAIL: ${SIM_ADMIN_EMAIL:-admin@neonatal.rs}
+      SIM_ADMIN_PASSWORD: ${SIM_ADMIN_PASSWORD:-Password123!}
+      SIM_INTERVAL_SECONDS: ${SIM_INTERVAL_SECONDS:-5}
+      SIM_INCLUDE_EMPTY: ${SIM_INCLUDE_EMPTY:-true}
+    volumes:
+      - simdata:/data
+    command: ["python", "scripts/simulate_sensors.py"]
+
+volumes:
+  simdata:

@@ -22,6 +22,10 @@
 # already owns /api/* on the dashboard origin.
 
 services:
+  backend:
+    environment:
+      ALLOWED_ORIGINS: https://${APP_DOMAIN},https://${API_DOMAIN},http://${VPS_IP:-localhost}
+
   nginx:
     image: nginx:1.27-alpine
     restart: unless-stopped
