@@ -47,7 +47,7 @@ for d in "${domains[@]}"; do
   docker compose run --rm --entrypoint sh certbot -c "
     rm -rf /etc/letsencrypt/live/$d /etc/letsencrypt/archive/$d /etc/letsencrypt/renewal/$d.conf"
 
-  docker compose run --rm certbot certonly \
+  docker compose run --rm --entrypoint certbot certbot certonly \
     --webroot -w /var/www/certbot \
     --email "$LETSENCRYPT_EMAIL" --agree-tos --no-eff-email \
     ${STAGING:+--staging} \
